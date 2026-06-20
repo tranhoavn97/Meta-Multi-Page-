@@ -35,6 +35,7 @@ import {
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 // @ts-ignore
 import bgImage from "./assets/images/cosmic_swirl_bg_1781941929717.jpg";
+import { safeFetchJson } from "./utils/safeFetchJson";
 
 // ==========================================
 // CUSTOM UI COMPONENTS (UNIFIED DESIGN)
@@ -410,18 +411,44 @@ export default function App() {
 
   // Initial load
   useEffect(() => {
-    // Check if redirect has returned with token
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get("token");
-    if (tokenFromUrl) {
-      setUserToken(tokenFromUrl);
-      localStorage.setItem("meta_user_token", tokenFromUrl);
-      addLog("system", "Phát hiện mã thông báo đăng nhập Facebook mới từ OAuth.", "success");
-      // clean url query params
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    const checkSetupAndFetch = async () => {
+      // Check if redirect has returned with token
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get("token");
+      let activeToken = userToken;
+      if (tokenFromUrl) {
+        setUserToken(tokenFromUrl);
+        activeToken = tokenFromUrl;
+        localStorage.setItem("meta_user_token", tokenFromUrl);
+        addLog("system", "Phát hiện mã thông báo đăng nhập Facebook mới từ OAuth.", "success");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
 
-    addLog("system", "Khởi tạo Meta Multi-Page Manager thành công. Sẵn sàng kết nối.", "success");
+      addLog("system", "Khởi tạo Meta Multi-Page Manager thành công. Đang tải trang tự động...", "pending");
+      
+      try {
+        const checkUrl = "/api/check-pages";
+        const options: any = { method: "POST" };
+        if (activeToken) {
+          options.headers = { "Content-Type": "application/json" };
+          options.body = JSON.stringify({ user_token: activeToken });
+        }
+        
+        const checkData = await safeFetchJson(checkUrl, options);
+        if (checkData.success) {
+          addLog("system", `Kết nối Vercel API & Facebook thành công (Khoản: ${checkData.user?.name || "Meta App"}).`, "success");
+          fetchPages(activeToken);
+        } else {
+          addLog("system", `Lưu ý kết nối: ${checkData.error || "Chưa cấu hình Token"}`, "skipped");
+          fetchPages(activeToken);
+        }
+      } catch (err: any) {
+        addLog("system", `Thông báo hệ thống: ${err.message}`, "skipped");
+        fetchPages(activeToken);
+      }
+    };
+
+    checkSetupAndFetch();
   }, []);
 
   // Set up Message Listener for OAuth Popup
@@ -460,8 +487,7 @@ export default function App() {
       if (appId) urlParams.append("app_id", appId);
       if (appSecret) urlParams.append("app_secret", appSecret);
 
-      const res = await fetch(`/api/auth/url?${urlParams.toString()}`);
-      const data = await res.json();
+      const data = await safeFetchJson(`/api/auth/url?${urlParams.toString()}`);
 
       if (data.error) {
         setApiError(data.error);
@@ -496,32 +522,29 @@ export default function App() {
   // Fetch listed Pages
   const fetchPages = async (tokenToUse?: string) => {
     const activeToken = tokenToUse || userToken;
-    if (!activeToken) {
-      setApiError("Vui lòng thực hiện đăng nhập hoặc cung cấp User Token trước.");
-      return;
-    }
-
     setLoadingPages(true);
     setApiError(null);
-    addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /me/accounts...", "pending");
+    addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /api/pages...", "pending");
     
     try {
-      const res = await fetch(`/api/facebook/pages?user_token=${encodeURIComponent(activeToken)}`);
-      const data = await res.json();
+      const urlParams = new URLSearchParams();
+      if (activeToken) {
+        urlParams.append("user_token", activeToken);
+      }
+      const data = await safeFetchJson(`/api/pages?${urlParams.toString()}`);
 
       if (data.error) {
         setApiError(data.error);
-        addLog("system", `Lỗi Graph API: ${data.error}`, "failed");
+        addLog("system", `Lỗi API lấy trang: ${data.error}`, "failed");
         return;
       }
 
       if (data.data) {
         setPages(data.data);
         addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý.`, "success");
-        // No default selection (as per user request we don't auto-tick the first one)
       } else {
         setPages([]);
-        addLog("system", "Không tìm thấy Fanpage nào liên kết với tài khoản này.", "skipped");
+        addLog("system", "Không tìm thấy Fanpage nào liên kết.", "skipped");
       }
     } catch (err: any) {
       setApiError(err.message);
@@ -569,8 +592,14 @@ export default function App() {
       addLog("system", `Đang đọc bài viết từ Page: "${pageInfo.name}"...`, "processing");
 
       try {
-        const res = await fetch(`/api/facebook/posts?page_id=${pageId}&page_token=${pageInfo.access_token}&limit=${filters.maxPostsToFetch}`);
-        const data = await res.json();
+        const urlParams = new URLSearchParams();
+        urlParams.append("pageId", pageId);
+        urlParams.append("limit", filters.maxPostsToFetch.toString());
+        if (pageInfo.access_token) {
+          urlParams.append("user_token", pageInfo.access_token);
+        }
+        
+        const data = await safeFetchJson(`/api/posts?${urlParams.toString()}`);
 
         if (data.error) {
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
@@ -755,17 +784,15 @@ export default function App() {
       addLog(postId, `[${i+1}/${selectedPostIds.length}] Đang xóa bài trên Page "${post.pageName}"...`, "processing");
 
       try {
-        const res = await fetch("/api/facebook/delete-post", {
+        const data = await safeFetchJson("/api/delete-post", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            post_id: postId,
-            page_token: post.pageAccessToken,
-            confirm: true
+            postId: postId,
+            confirm: true,
+            userToken: post.pageAccessToken
           })
         });
-
-        const data = await res.json();
 
         if (data.success) {
           countSuccess++;
