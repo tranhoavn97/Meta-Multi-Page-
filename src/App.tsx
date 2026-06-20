@@ -30,13 +30,17 @@ import {
   Share2,
   TrendingUp,
   Activity,
-  X
+  X,
+  Users,
+  Briefcase
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 // @ts-ignore
 import bgImage from "./assets/images/cosmic_swirl_bg_1781941929717.jpg";
 import { safeFetchJson } from "./utils/safeFetchJson";
 import { useToast } from "./components/Toast";
+import PageStatusTab from "./components/PageStatusTab";
+import PageAdminsTab from "./components/PageAdminsTab";
 
 // ==========================================
 // CUSTOM UI COMPONENTS (UNIFIED DESIGN)
@@ -386,9 +390,13 @@ export default function App() {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [doubleConfirm, setDoubleConfirm] = useState<boolean>(false);
 
+  // Active Tab state for Page Status and Admin/Business views integration
+  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins">("posts");
+
   // References for logging & scroll
   const logContainerRef = useRef<HTMLDivElement>(null);
   const scanCancelledRef = useRef<boolean>(false);
+  const deleteCancelledRef = useRef<boolean>(false);
 
   // Save Config to LocalStorage
   const saveCredentials = () => {
@@ -463,7 +471,7 @@ export default function App() {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      addLog("system", "Khởi tạo Meta Multi-Page Manager thành công. Đang tải trang tự động...", "pending");
+      addLog("system", "Khởi tạo Meta Page Manager thành công. Đang tải trang tự động...", "pending");
       
       try {
         const checkUrl = "/api/check-pages";
@@ -848,6 +856,7 @@ export default function App() {
 
     setShowConfirmModal(false);
     setIsDeleting(true);
+    deleteCancelledRef.current = false;
     setProgress({ current: 0, total: selectedPostIds.length });
     
     addLog("queue", `--- PHIÊN KHỞI CHẠY TIẾN TRÌNH XÓA<sup>*</sup> HÀNG LOẠT ---`, "processing");
@@ -856,8 +865,15 @@ export default function App() {
 
     let countSuccess = 0;
     let countFail = 0;
+    let wasCancelled = false;
 
     for (let i = 0; i < selectedPostIds.length; i++) {
+      if (deleteCancelledRef.current) {
+        wasCancelled = true;
+        addLog("queue", `Tiến trình xóa bị dừng theo yêu cầu của người dùng tại bài viết thứ ${i + 1}/${selectedPostIds.length}`, "skipped");
+        break;
+      }
+
       const postId = selectedPostIds[i];
       const post = posts.find(p => p.id === postId);
 
@@ -908,14 +924,20 @@ export default function App() {
 
     setIsDeleting(false);
     setDeletedCountSession(prev => prev + countSuccess);
-    addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "success");
     
-    if (countSuccess > 0 && countFail === 0) {
-      toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
-    } else if (countSuccess > 0 && countFail > 0) {
-      toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại.`, "Xóa hoàn tất");
+    if (wasCancelled) {
+      addLog("queue", `Đã dừng tác vụ xoá hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "failed");
+      toast.warning(`Tiến trình xoá đã bị dừng lại. Đã xoá thành công ${countSuccess} bài.`, "Đã dừng xoá");
     } else {
-      toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
+      addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "success");
+      
+      if (countSuccess > 0 && countFail === 0) {
+        toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
+      } else if (countSuccess > 0 && countFail > 0) {
+        toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại.`, "Xóa hoàn tất");
+      } else {
+        toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
+      }
     }
     
     // Refresh posts of pages to clear deleted items
@@ -948,9 +970,9 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent flex items-center gap-2 leading-tight">
-              Meta Multi-Page Manager
+              Meta Page Manager
             </h1>
-            <p className="text-[11px] text-white/70">Xóa bài viết chọn lọc hàng loạt trên các Facebook Fanpage</p>
+            <p className="text-[11px] text-white/70 pt-[2px]">Phát triển bởi Hoà Trần.</p>
           </div>
         </div>
 
@@ -1192,8 +1214,50 @@ export default function App() {
         {/* MAIN POST AREA & FILTERS (Col Span 9) */}
         <main className="lg:col-span-9 flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
           
-          {/* TOP BAR: FILTERS CARD */}
-          <section className="relative z-30 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 text-white shadow-xl flex flex-col gap-2 shrink-0">
+          {/* NAVIGATION TABS BAR (GLASS DESIGN & DARK MODE STYLE) */}
+          <nav className="relative z-30 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-1 flex items-center gap-1 shrink-0 shadow-md">
+            <button
+              id="tab-posts"
+              onClick={() => setActiveTab("posts")}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "posts"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Bài viết & Xóa bài
+            </button>
+            <button
+              id="tab-status"
+              onClick={() => setActiveTab("status")}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "status"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 animate-pulse" />
+              Trạng thái Page
+            </button>
+            <button
+              id="tab-admins"
+              onClick={() => setActiveTab("admins")}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "admins"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30"
+                  : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Quản trị & BM
+            </button>
+          </nav>
+
+          {activeTab === "posts" && (
+            <>
+              {/* TOP BAR: FILTERS CARD */}
+              <section className="relative z-30 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 text-white shadow-xl flex flex-col gap-2 shrink-0">
             <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
               <h2 className="text-xs font-extrabold tracking-wider uppercase text-white/80 flex items-center gap-1.5">
                 <ListFilter className="w-3.5 h-3.5 text-emerald-300" />
@@ -1243,10 +1307,10 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 relative z-40 w-full text-white">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 lg:gap-2.5 relative z-40 w-full text-white">
               
               {/* Filter: Older Than X days */}
-              <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+              <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
                 <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
@@ -1281,7 +1345,7 @@ export default function App() {
               </div>
 
               {/* Filter: Keyword Search */}
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+              <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
                 <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none shrink-0">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
@@ -1316,7 +1380,7 @@ export default function App() {
               </div>
 
               {/* Filter: Date Range Selection */}
-              <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+              <div className="col-span-1 sm:col-span-6 lg:col-span-4 flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
                 <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none shrink-0">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
@@ -1337,7 +1401,7 @@ export default function App() {
                   <span>Khoảng:</span>
                 </label>
                 <div className="flex items-center gap-1 leading-none shrink-0">
-                  <span className="text-[9px] text-white/40">Từ</span>
+                  <span className="text-[9px] text-white/40 font-semibold">Từ</span>
                   <div className="w-[72px] sm:w-[80px]">
                     <CustomDatePicker
                       value={filters.dateFrom}
@@ -1345,7 +1409,7 @@ export default function App() {
                       onChange={(val) => setFilters(f => ({ ...f, dateFrom: val }))}
                     />
                   </div>
-                  <span className="text-[9px] text-white/40">đến</span>
+                  <span className="text-[9px] text-white/40 font-semibold font-semibold">đến</span>
                   <div className="w-[72px] sm:w-[80px]">
                     <CustomDatePicker
                       value={filters.dateTo}
@@ -1357,7 +1421,7 @@ export default function App() {
               </div>
 
               {/* Filter: Max Limits config */}
-              <div className="flex items-center justify-between gap-2 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+              <div className="col-span-1 sm:col-span-6 lg:col-span-2 flex items-center justify-between gap-2 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
                 <span className="text-[10px] font-bold text-white/85 flex items-center gap-1 select-none shrink-0">
                   <SlidersHorizontal className="w-3" />
                   Giới hạn:
@@ -1699,8 +1763,23 @@ export default function App() {
             {/* PROGRESS BAR PANEL (Col Span 4) */}
             <div className="md:col-span-4 flex flex-col justify-between gap-2 p-0.5 min-h-0">
               <div>
-                <div className="flex justify-between text-[10px] uppercase font-bold text-white/55 mb-1">
-                  <span>Tiến trình tác vụ</span>
+                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-white/55 mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <span>Tiến trình tác vụ</span>
+                    {isDeleting && (
+                      <button
+                        id="btn-stop-deletion"
+                        onClick={() => {
+                          deleteCancelledRef.current = true;
+                          addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
+                        }}
+                        className="px-1.5 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 text-[8px] font-black tracking-wide uppercase transition-all shrink-0 cursor-pointer animate-pulse"
+                        title="Click để dừng tiến trình xóa ngay lập tức"
+                      >
+                        Dừng xóa
+                      </button>
+                    )}
+                  </div>
                   <span className="font-mono text-emerald-300">{progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%"}</span>
                 </div>
                 <div className="w-full h-2 bg-black/25 rounded-full overflow-hidden shadow-inner border border-white/5">
@@ -1772,6 +1851,20 @@ export default function App() {
               </div>
             </div>
           </footer>
+          </>
+          )}
+
+          {activeTab === "status" && (
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <PageStatusTab pages={pages} userToken={userToken} />
+            </div>
+          )}
+
+          {activeTab === "admins" && (
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <PageAdminsTab pages={pages} userToken={userToken} />
+            </div>
+          )}
 
         </main>
       </div>
