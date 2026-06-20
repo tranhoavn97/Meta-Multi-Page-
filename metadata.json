@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Quản lý Facebook Fanpage",
+  "description": "Ứng dụng đăng nhập Meta OAuth để hiển thị, chọn lọc và xóa hàng loạt bài viết trên nhiều Facebook Fanpage bằng Meta Graph API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
