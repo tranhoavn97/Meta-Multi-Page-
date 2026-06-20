@@ -3,15 +3,23 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
+  if (contentType.includes("application/json")) {
+    try {
+      const data = JSON.parse(text);
+      if (!response.ok && !data.error) {
+         data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
+      }
+      return data;
+    } catch (e) {
+      // JSON parse failed
+    }
+  }
+
   if (!response.ok) {
     throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
   }
 
-  if (!contentType.includes("application/json")) {
-    throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
-  }
-
-  return JSON.parse(text);
+  throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
 }
 
 export default async function handler(req: any, res: any) {
@@ -47,7 +55,7 @@ export default async function handler(req: any, res: any) {
     const requestedLimit = parseInt(req.query.limit as string, 10) || 100;
     const initialLimit = Math.min(requestedLimit, 100);
 
-    let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,created_time,permalink_url,full_picture,attachments{media,type,url},likes.summary(true).limit(0),comments.summary(true).limit(0),shares&access_token=${activeToken}&limit=${initialLimit}`;
+    let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,story,created_time,permalink_url,status_type,full_picture&access_token=${activeToken}&limit=${initialLimit}`;
     
     let allPosts: any[] = [];
     let nextUrl: string | null = postsUrl;
@@ -57,7 +65,15 @@ export default async function handler(req: any, res: any) {
 
       if (data.error) {
         if (allPosts.length === 0) {
-          return res.status(500).json({ error: data.error.message || "Meta API Error when fetching posts" });
+          const pageName = allPagesData?.data?.find((p: any) => p.id === pageId)?.name || "Unknown Page";
+          const endpointLog = nextUrl.replace(activeToken, "[HIDDEN_TOKEN]");
+          return res.status(500).json({ 
+             error: data.error.message || "Meta API Error when fetching posts",
+             pageName: pageName,
+             pageId: pageId,
+             endpoint: endpointLog,
+             isDetailedError: true
+          });
         } else {
           break;
         }

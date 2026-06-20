@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { 
   Facebook, 
   Settings, 
@@ -36,6 +36,7 @@ import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types
 // @ts-ignore
 import bgImage from "./assets/images/cosmic_swirl_bg_1781941929717.jpg";
 import { safeFetchJson } from "./utils/safeFetchJson";
+import { useToast } from "./components/Toast";
 
 // ==========================================
 // CUSTOM UI COMPONENTS (UNIFIED DESIGN)
@@ -316,6 +317,7 @@ function CustomSelect({
 }
 
 export default function App() {
+  const toast = useToast();
   // OAuth / Credentials state
   const [appId, setAppId] = useState<string>(() => {
     return localStorage.getItem("meta_app_id") || "";
@@ -354,6 +356,26 @@ export default function App() {
     maxPostsToShow: 1000,
   });
 
+  // Local state for keyword input to make UI Typing instantaneous and lag-free
+  const [keywordInput, setKeywordInput] = useState<string>(filters.keyword);
+
+  // Synchronize local input state with filters keyword if changed externally
+  useEffect(() => {
+    setKeywordInput(filters.keyword);
+  }, [filters.keyword]);
+
+  // Debounced effect for keyword filtering to avoid recalculation on heavy loops
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setFilters(f => {
+        if (f.keyword === keywordInput) return f;
+        return { ...f, keyword: keywordInput };
+      });
+    }, 150); // Fast 150ms debounce response
+
+    return () => clearTimeout(delayDebounce);
+  }, [keywordInput]);
+
   // Logs & Progress
   const [logs, setLogs] = useState<DeletionLog[]>([]);
   const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
@@ -374,6 +396,7 @@ export default function App() {
     localStorage.setItem("meta_app_secret", appSecret);
     localStorage.setItem("meta_user_token", userToken);
     addLog("system", "Đã lưu cài đặt Meta Credentials vào thiết bị.", "success");
+    toast.success("Cài đặt Meta Credentials đã được lưu cục bộ cực kỳ an toàn.", "Lưu cài đặt");
     setShowConfig(false);
   };
 
@@ -392,6 +415,7 @@ export default function App() {
       setSelectedPostIds([]);
       setLogs([]);
       addLog("system", "Đã xóa sạch bộ nhớ tài khoản Facebook.", "success");
+      toast.info("Đã đăng xuất và xóa sạch cấu hình khỏi trình duyệt của bạn.", "Đăng xuất thành công");
     }
   };
 
@@ -421,6 +445,7 @@ export default function App() {
         activeToken = tokenFromUrl;
         localStorage.setItem("meta_user_token", tokenFromUrl);
         addLog("system", "Phát hiện mã thông báo đăng nhập Facebook mới từ OAuth.", "success");
+        toast.success("Đăng nhập bằng tài khoản Facebook thành công via OAuth!", "Đăng nhập");
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
@@ -436,14 +461,22 @@ export default function App() {
         
         const checkData = await safeFetchJson(checkUrl, options);
         if (checkData.success) {
-          addLog("system", `Kết nối Vercel API & Facebook thành công (Khoản: ${checkData.user?.name || "Meta App"}).`, "success");
+          const userName = checkData.user?.name || "Meta Account";
+          addLog("system", `Kết nối Vercel API & Facebook thành công (Khoản: ${userName}).`, "success");
+          toast.success(`Kết nối API thành công với tài khoản "${userName}"`, "Hệ thống");
           fetchPages(activeToken);
         } else {
           addLog("system", `Lưu ý kết nối: ${checkData.error || "Chưa cấu hình Token"}`, "skipped");
+          if (activeToken) {
+            toast.error(`Cách kết nối API thất bại: ${checkData.error || "Token không hợp lệ"}`, "Lỗi kết nối");
+          } else {
+            toast.info("Vui lòng click vào nút Đăng nhập Facebook hoặc cấu hình Token để bắt đầu.", "Chào mừng");
+          }
           fetchPages(activeToken);
         }
       } catch (err: any) {
         addLog("system", `Thông báo hệ thống: ${err.message}`, "skipped");
+        toast.error(`Kết nối API và Facebook thất bại: ${err.message}`, "Lỗi hệ thống");
         fetchPages(activeToken);
       }
     };
@@ -460,6 +493,7 @@ export default function App() {
           setUserToken(receivedToken);
           localStorage.setItem("meta_user_token", receivedToken);
           addLog("system", "Nhận Access Token thành công từ Meta Popup Window.", "success");
+          toast.success("Nhận mã Access Token thành công từ Facebook Popup!", "OAuth Thành công");
           fetchPages(receivedToken);
         }
       }
@@ -536,19 +570,23 @@ export default function App() {
       if (data.error) {
         setApiError(data.error);
         addLog("system", `Lỗi API lấy trang: ${data.error}`, "failed");
+        toast.error(`Không thể tải Fanpages: ${data.error}`, "Lỗi");
         return;
       }
 
       if (data.data) {
         setPages(data.data);
         addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý.`, "success");
+        toast.success(`Đã tải thành công ${data.data.length} Fanpages quản lý.`, "Tải Fanpage");
       } else {
         setPages([]);
         addLog("system", "Không tìm thấy Fanpage nào liên kết.", "skipped");
+        toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
       setApiError(err.message);
       addLog("system", `Lỗi tải danh sách Fanpage: ${err.message}`, "failed");
+      toast.error(`Không thể tải Fanpages: ${err.message}`, "Lỗi kết nối");
     } finally {
       setLoadingPages(false);
     }
@@ -565,6 +603,7 @@ export default function App() {
   const fetchPostsFromSelectedPages = async () => {
     if (selectedPageIds.length === 0) {
       addLog("system", "Yêu cầu hành động thất bại: Vui lòng tích chọn ít nhất 1 Fanpage bên cột Trái.", "skipped");
+      toast.warning("Yêu cầu hành động thất bại: Vui lòng tích chọn ít nhất 1 Fanpage bên cột Trái.", "Chưa chọn Fanpage");
       return;
     }
 
@@ -574,6 +613,7 @@ export default function App() {
     setSelectedPostIds([]);
     scanCancelledRef.current = false;
     addLog("system", `Bắt đầu tải các bài viết từ ${selectedPageIds.length} Fanpage đã chọn...`, "pending");
+    toast.info(`Bắt đầu tải và quét các bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết", 3000);
 
     let allFetchedPosts: FacebookPost[] = [];
     setScanProgress({ current: 0, total: selectedPageIds.length, currentPageName: "Đang khởi tạo..." });
@@ -582,6 +622,7 @@ export default function App() {
     for (const pageId of selectedPageIds) {
       if (scanCancelledRef.current) {
         addLog("system", `Đã dừng quét theo yêu cầu của người dùng tại bước ${index}/${selectedPageIds.length}.`, "skipped");
+        toast.warning("Đã dừng quá trình quét bài viết theo yêu cầu.", "Hủy quét");
         break;
       }
 
@@ -615,6 +656,7 @@ export default function App() {
             created_time: item.created_time,
             permalink_url: item.permalink_url,
             full_picture: item.full_picture,
+            status_type: item.status_type,
             attachments: item.attachments,
             pageId: pageInfo.id,
             pageName: pageInfo.name,
@@ -630,7 +672,15 @@ export default function App() {
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
         }
       } catch (err: any) {
-        addLog("system", `Lỗi kết nối Page [${pageInfo.name}]: ${err.message}`, "failed");
+        if (err.responseJson && err.responseJson.isDetailedError) {
+          const detail = err.responseJson;
+          const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
+          addLog("system", msg, "failed");
+          toast.error(msg, "Lỗi API Facebook");
+        } else {
+          addLog("system", `Lỗi kết nối Page [${pageInfo.name}]: ${err.message}`, "failed");
+          toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${err.message}`, "Lỗi");
+        }
       }
 
       index++;
@@ -652,6 +702,11 @@ export default function App() {
     setPosts(uniquePosts);
     setLoadingPosts(false);
     addLog("system", `Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết hợp lệ (đã loại bỏ trùng lặp).`, "success");
+    if (uniquePosts.length > 0) {
+      toast.success(`Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết khác nhau.`, "Đã quét xong");
+    } else {
+      toast.info("Không tìm thấy bài viết nào phù hợp trên các Fanpage đã chọn.", "Kết quả trống");
+    }
   };
 
   // Auto loaded posts once pages & selection is resolved
@@ -671,43 +726,49 @@ export default function App() {
     );
   };
 
-  // Helper selectors
-  const getFilteredPosts = (): FacebookPost[] => {
+  // Helper selectors - Memoized and heavily optimized for maximum speed
+  const filteredPosts = useMemo((): FacebookPost[] => {
+    // 1. Precompute loop invariants to avoid repeated properties access, new Date calls, and toLowerCase() calls inside the array filter loop.
+    const enableKeyword = filters.enableKeyword && filters.keyword.trim().length > 0;
+    const kw = enableKeyword ? filters.keyword.trim().toLowerCase() : "";
+
+    const enableOlderThan = filters.enableOlderThan;
+    const olderThanDays = filters.olderThanDays;
+    const nowTime = Date.now();
+
+    const enableDateRange = filters.enableDateRange;
+    const fromTime = (enableDateRange && filters.dateFrom) ? new Date(filters.dateFrom).getTime() : null;
+    const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null; // add 1 day minus 1ms
+
     return posts.filter(post => {
+      let postTime: number | null = null;
+
       // 1. Check keyword
-      if (filters.enableKeyword && filters.keyword.trim()) {
+      if (enableKeyword) {
         const text = (post.message || "").toLowerCase();
-        const kw = filters.keyword.toLowerCase();
         if (!text.includes(kw)) return false;
       }
 
       // 2. Older than X days
-      if (filters.enableOlderThan) {
-        const postDate = new Date(post.created_time);
-        const diffTime = Math.abs(new Date().getTime() - postDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays <= filters.olderThanDays) return false;
+      if (enableOlderThan) {
+        postTime = new Date(post.created_time).getTime();
+        const diffTime = Math.abs(nowTime - postTime);
+        const diffDays = Math.ceil(diffTime / 86400000);
+        if (diffDays <= olderThanDays) return false;
       }
 
       // 3. Date range matching
-      if (filters.enableDateRange) {
-        const postDate = new Date(post.created_time).getTime();
-        if (filters.dateFrom) {
-          const fromTime = new Date(filters.dateFrom).getTime();
-          if (postDate < fromTime) return false;
+      if (enableDateRange) {
+        if (postTime === null) {
+          postTime = new Date(post.created_time).getTime();
         }
-        if (filters.dateTo) {
-          // Add 23h59m to include whole end day
-          const toTime = new Date(filters.dateTo).getTime() + (24 * 60 * 60 * 1000) - 1;
-          if (postDate > toTime) return false;
-        }
+        if (fromTime !== null && postTime < fromTime) return false;
+        if (toTime !== null && postTime > toTime) return false;
       }
 
       return true;
     });
-  };
-
-  const filteredPosts = getFilteredPosts();
+  }, [posts, filters]);
   const displayedPosts = filteredPosts.slice(0, filters.maxPostsToShow);
 
   // Calculate engagement metrics for currently displayed posts
@@ -755,6 +816,7 @@ export default function App() {
   const executeBatchDeletion = async () => {
     if (!doubleConfirm) {
       alert("Bạn phải tự tay tick xác nhận 'Hành động không thể hoàn tác' trước khi xóa!");
+      toast.warning("Vui lòng tick chọn 'Hành động không thể hoàn tác' trước khi bắt đầu xóa.", "Xác nhận yêu cầu");
       return;
     }
 
@@ -764,6 +826,7 @@ export default function App() {
     
     addLog("queue", `--- PHIÊN KHỞI CHẠY TIẾN TRÌNH XÓA<sup>*</sup> HÀNG LOẠT ---`, "processing");
     addLog("queue", `Tổng số lượng bài viết đang đợi xóa: ${selectedPostIds.length}`, "pending");
+    toast.info(`Bắt đầu tiến trình xóa hàng loạt ${selectedPostIds.length} bài viết...`, "Xóa bài viết", 3000);
 
     let countSuccess = 0;
     let countFail = 0;
@@ -778,8 +841,8 @@ export default function App() {
       }
 
       const snippet = post.message 
-        ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
-        : "[Bài viết hình ảnh/video không có tiêu đề]";
+          ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
+          : "[Bài viết hình ảnh/video không có tiêu đề]";
 
       addLog(postId, `[${i+1}/${selectedPostIds.length}] Đang xóa bài trên Page "${post.pageName}"...`, "processing");
 
@@ -818,6 +881,14 @@ export default function App() {
     setIsDeleting(false);
     setDeletedCountSession(prev => prev + countSuccess);
     addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "success");
+    
+    if (countSuccess > 0 && countFail === 0) {
+      toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
+    } else if (countSuccess > 0 && countFail > 0) {
+      toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại.`, "Xóa hoàn tất");
+    } else {
+      toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
+    }
     
     // Refresh posts of pages to clear deleted items
     fetchPostsFromSelectedPages();
@@ -1207,9 +1278,9 @@ export default function App() {
                   <input 
                     type="text" 
                     id="input-keyword"
-                    value={filters.keyword}
+                    value={keywordInput}
                     disabled={!filters.enableKeyword}
-                    onChange={(e) => setFilters(f => ({ ...f, keyword: e.target.value }))}
+                    onChange={(e) => setKeywordInput(e.target.value)}
                     placeholder="Tìm..." 
                     className="bg-black/40 border border-white/20 rounded-md pl-4.5 pr-1 h-5 text-[10px] outline-none text-white w-full disabled:opacity-30 focus:border-emerald-400 transition-all font-medium"
                   />
@@ -1532,7 +1603,7 @@ export default function App() {
                                   className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
                                 />
                                 {/* Video Play icon attachment overlay */}
-                                {post.attachments?.data?.some(att => att.type?.includes("video")) && (
+                                {post.status_type === "added_video" && (
                                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                                     <Play className="w-3.5 h-3.5 fill-current text-white animate-pulse" />
                                   </div>

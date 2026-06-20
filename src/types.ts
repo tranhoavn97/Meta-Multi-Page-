@@ -16,6 +16,7 @@ export interface FacebookPost {
   created_time: string;
   permalink_url?: string;
   full_picture?: string;
+  status_type?: string;
   attachments?: {
     data?: Array<{
       media?: {
