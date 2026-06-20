@@ -419,6 +419,20 @@ export default function App() {
     }
   };
 
+  const handleAuthError = (errMsg: string) => {
+    const msg = typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg);
+    if (msg.includes("Session has expired") || msg.includes("Error validating access token") || msg.includes("OAuthException")) {
+      toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Facebook.", "Hết hạn phiên");
+      localStorage.removeItem("meta_user_token");
+      setUserToken("");
+      setPages([]);
+      setPosts([]);
+      setSelectedPageIds([]);
+      return true;
+    }
+    return false;
+  };
+
   // Custom log adder helper
   const addLog = (postId: string, message: string, status: DeletionLog["status"]) => {
     const timeString = new Date().toLocaleTimeString("vi-VN");
@@ -468,7 +482,9 @@ export default function App() {
         } else {
           addLog("system", `Lưu ý kết nối: ${checkData.error || "Chưa cấu hình Token"}`, "skipped");
           if (activeToken) {
-            toast.error(`Cách kết nối API thất bại: ${checkData.error || "Token không hợp lệ"}`, "Lỗi kết nối");
+            if (!handleAuthError(checkData.error || "")) {
+              toast.error(`Cách kết nối API thất bại: ${checkData.error || "Token không hợp lệ"}`, "Lỗi kết nối");
+            }
           } else {
             toast.info("Vui lòng click vào nút Đăng nhập Facebook hoặc cấu hình Token để bắt đầu.", "Chào mừng");
           }
@@ -476,7 +492,9 @@ export default function App() {
         }
       } catch (err: any) {
         addLog("system", `Thông báo hệ thống: ${err.message}`, "skipped");
-        toast.error(`Kết nối API và Facebook thất bại: ${err.message}`, "Lỗi hệ thống");
+        if (!handleAuthError(err.message)) {
+          toast.error(`Kết nối API và Facebook thất bại: ${err.message}`, "Lỗi hệ thống");
+        }
         fetchPages(activeToken);
       }
     };
@@ -570,7 +588,9 @@ export default function App() {
       if (data.error) {
         setApiError(data.error);
         addLog("system", `Lỗi API lấy trang: ${data.error}`, "failed");
-        toast.error(`Không thể tải Fanpages: ${data.error}`, "Lỗi");
+        if (!handleAuthError(data.error)) {
+          toast.error(`Không thể tải Fanpages: ${data.error}`, "Lỗi");
+        }
         return;
       }
 
@@ -586,7 +606,9 @@ export default function App() {
     } catch (err: any) {
       setApiError(err.message);
       addLog("system", `Lỗi tải danh sách Fanpage: ${err.message}`, "failed");
-      toast.error(`Không thể tải Fanpages: ${err.message}`, "Lỗi kết nối");
+      if (!handleAuthError(err.message)) {
+        toast.error(`Không thể tải Fanpages: ${err.message}`, "Lỗi kết nối");
+      }
     } finally {
       setLoadingPages(false);
     }
@@ -613,7 +635,7 @@ export default function App() {
     setSelectedPostIds([]);
     scanCancelledRef.current = false;
     addLog("system", `Bắt đầu tải các bài viết từ ${selectedPageIds.length} Fanpage đã chọn...`, "pending");
-    toast.info(`Bắt đầu tải và quét các bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết", 3000);
+    toast.info(`Bắt đầu tải và quét các bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết");
 
     let allFetchedPosts: FacebookPost[] = [];
     setScanProgress({ current: 0, total: selectedPageIds.length, currentPageName: "Đang khởi tạo..." });
@@ -676,10 +698,14 @@ export default function App() {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
           addLog("system", msg, "failed");
-          toast.error(msg, "Lỗi API Facebook");
+          if (!handleAuthError(detail.error)) {
+             toast.error(msg, "Lỗi API Facebook");
+          }
         } else {
           addLog("system", `Lỗi kết nối Page [${pageInfo.name}]: ${err.message}`, "failed");
-          toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${err.message}`, "Lỗi");
+          if (!handleAuthError(err.message)) {
+             toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${err.message}`, "Lỗi");
+          }
         }
       }
 
@@ -826,7 +852,7 @@ export default function App() {
     
     addLog("queue", `--- PHIÊN KHỞI CHẠY TIẾN TRÌNH XÓA<sup>*</sup> HÀNG LOẠT ---`, "processing");
     addLog("queue", `Tổng số lượng bài viết đang đợi xóa: ${selectedPostIds.length}`, "pending");
-    toast.info(`Bắt đầu tiến trình xóa hàng loạt ${selectedPostIds.length} bài viết...`, "Xóa bài viết", 3000);
+    toast.info(`Bắt đầu tiến trình xóa hàng loạt ${selectedPostIds.length} bài viết...`, "Xóa bài viết");
 
     let countSuccess = 0;
     let countFail = 0;
@@ -863,10 +889,12 @@ export default function App() {
         } else {
           countFail++;
           addLog(postId, `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error || "Lỗi Meta API"}`, "failed");
+          if (handleAuthError(data.error || "")) break;
         }
       } catch (err: any) {
         countFail++;
         addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
+        if (handleAuthError(err.message)) break;
       }
 
       setProgress(p => ({ ...p, current: i + 1 }));
@@ -1097,7 +1125,6 @@ export default function App() {
             <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
               <Info className="w-8 h-8 text-white/30 mb-2" />
               <p className="text-xs text-white/60">Không tìm thấy Account Fanpage nào trong mã thông báo này.</p>
-              <p className="text-[11px] text-white/40 mt-1">Hãy xin quyền <span className="font-mono text-amber-200">pages_show_list</span> khi cấp quyền ứng dụng.</p>
             </div>
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar min-h-0">

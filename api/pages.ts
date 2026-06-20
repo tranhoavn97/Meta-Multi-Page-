@@ -3,15 +3,23 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
+  if (contentType.includes("application/json")) {
+    try {
+      const data = JSON.parse(text);
+      if (!response.ok && !data.error) {
+         data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
+      }
+      return data;
+    } catch (e) {
+      // JSON parse failed
+    }
+  }
+
   if (!response.ok) {
     throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
   }
 
-  if (!contentType.includes("application/json")) {
-    throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
-  }
-
-  return JSON.parse(text);
+  throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
 }
 
 export default async function handler(req: any, res: any) {
