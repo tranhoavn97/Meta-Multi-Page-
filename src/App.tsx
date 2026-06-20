@@ -34,7 +34,9 @@ import {
   Activity,
   X,
   Users,
-  Briefcase
+  Briefcase,
+  Sun,
+  Moon
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 // @ts-ignore
@@ -325,6 +327,21 @@ function CustomSelect({
 
 export default function App() {
   const toast = useToast();
+  
+  // Theme state
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("meta_app_theme") as "dark" | "light") || "dark";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("meta_app_theme", theme);
+    if (theme === "light") {
+      document.documentElement.classList.add("light-theme");
+    } else {
+      document.documentElement.classList.remove("light-theme");
+    }
+  }, [theme]);
+
   // OAuth / Credentials state
   const [appId, setAppId] = useState<string>(() => {
     return localStorage.getItem("meta_app_id") || "";
@@ -365,6 +382,18 @@ export default function App() {
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState<boolean>(false);
+  const timeDropdownRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) {
+        setShowTimeDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const [tempDateFrom, setTempDateFrom] = useState<string>("");
   const [tempDateTo, setTempDateTo] = useState<string>("");
 
@@ -962,7 +991,7 @@ export default function App() {
         <img 
           src={bgImage} 
           alt="Cosmic backdrop" 
-          className="w-full h-full object-cover scale-[1.03] blur-[6px] opacity-75 brightness-[0.38]"
+          className="w-full h-full object-cover bg-backdrop scale-[1.03] blur-[6px] opacity-75 brightness-[0.38]"
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#030a16]/40 to-[#030a16]/95" />
@@ -989,12 +1018,21 @@ export default function App() {
               )}
             </div>
             
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="hidden md:flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white shrink-0"
-            >
-              {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-amber-400"
+                title="Sáng / Tối"
+              >
+                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className="hidden md:flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white"
+              >
+                {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <div className="hidden sm:block w-px h-px md:w-full md:h-px bg-white/10" />
@@ -1305,15 +1343,15 @@ export default function App() {
           
           {activeTab === "posts" && (
             <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
-              <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-hidden h-full">
+              <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
               <section className="relative z-30 glass-card rounded-2xl p-3 text-slate-100 shadow-2xl shrink-0">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-40">
                   {/* Left: Filter Controls */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
-                    <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0">
+                    <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
                       <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 w-full">
                         <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide select-none shrink-0 border-r border-slate-700 pr-2">
                           Thời gian
@@ -1352,11 +1390,7 @@ export default function App() {
                       {/* Dropdown Menu */}
                       {showTimeDropdown && (
                         <>
-                          <div 
-                            className="fixed inset-0 z-40"
-                            onClick={() => setShowTimeDropdown(false)}
-                          />
-                          <div className="absolute top-[110%] left-0 right-0 z-50 glass-card border border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
+                          <div className="absolute top-[110%] left-0 right-0 z-[100] glass-card border border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
                             {[
                               { id: "today", label: "Hôm nay" },
                               { id: "week", label: "Tuần này" },

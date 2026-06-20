@@ -149,3 +149,12 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+html.light-theme {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html.light-theme img:not(.bg-backdrop),
+html.light-theme video:not(.bg-backdrop) {
+  filter: invert(1) hue-rotate(180deg);
+}
