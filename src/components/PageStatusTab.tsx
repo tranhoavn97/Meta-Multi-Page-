@@ -178,62 +178,51 @@ const restrictedCount = pageStatuses.filter(s => s.status.includes("Nghi bị h�
 
 return (
   <div className="flex flex-col gap-4 min-h-0 h-full w-full text-slate-100">
-    {/* 1. METRICS DASHBOARD */}
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
-      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 text-center hover:bg-slate-850 transition-all shadow-md">
-        <p className="text-xs uppercase font-extrabold tracking-wider text-slate-400">TỔNG PAGE</p>
-        <p className="text-3xl font-black text-white mt-1 select-none font-mono">{pages.length}</p>
-        <div className="text-[11px] text-slate-400 mt-1">Đã kết nối</div>
-      </div>
-      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 text-center hover:bg-emerald-950/60 transition-all shadow-md">
-        <p className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">BÌNH THƯỜNG</p>
-        <p className="text-3xl font-black text-emerald-400 mt-1 select-none font-mono">
-          {totalChecked > 0 ? normalCount : "-"}
-        </p>
-        <div className="text-[11px] text-emerald-400/80 mt-1">Hoạt động tốt</div>
-      </div>
-      <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-4 text-center hover:bg-amber-950/60 transition-all shadow-md">
-        <p className="text-xs uppercase font-extrabold tracking-wider text-amber-400">THIẾU QUYỀN</p>
-        <p className="text-3xl font-black text-amber-400 mt-1 select-none font-mono">
-          {totalChecked > 0 ? missingPermsCount : "-"}
-        </p>
-        <div className="text-[11px] text-amber-400/80 mt-1">Cần cấp lại quyền</div>
-      </div>
-      <div className="bg-rose-950/40 border border-rose-500/30 rounded-2xl p-4 text-center hover:bg-rose-950/60 transition-all shadow-md">
-        <p className="text-xs uppercase font-extrabold tracking-wider text-rose-400">TOKEN LỖI</p>
-        <p className="text-3xl font-black text-rose-400 mt-1 select-none font-mono">
-          {totalChecked > 0 ? tokenErrorCount : "-"}
-        </p>
-        <div className="text-[11px] text-rose-400/80 mt-1">Hết hạn phiên</div>
-      </div>
-      <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 text-center col-span-2 md:col-span-1 hover:bg-purple-950/60 transition-all shadow-md">
-        <p className="text-xs uppercase font-extrabold tracking-wider text-purple-400">NGHI HẠN CHẾ</p>
-        <p className="text-3xl font-black text-purple-400 mt-1 select-none font-mono">
-          {totalChecked > 0 ? restrictedCount : "-"}
-        </p>
-        <div className="text-[11px] text-purple-400/80 mt-1">Cảnh báo tính năng</div>
-      </div>
-    </div>
-
-    {/* 2. COMMAND ACTION BAR & PROGRESS */}
-    <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 shadow-lg">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-black tracking-wide uppercase text-slate-100 flex items-center gap-1.5">
-          <Activity className="w-5 h-5 text-blue-400" />
-          Trình quét & Kiểm tra Trạng thái API
-        </h3>
-        <p className="text-xs text-slate-400 font-medium">Kiểm tra thông tin chi tiết quyền tác vụ của từng Fanpage đã kết nối</p>
+    {/* 1. TOP CONTROL CENTER: METRICS & ACTIONS (CONDENSED 1-ROW) */}
+    <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-lg">
+      
+      {/* Metrics Row (Left side on large screens) */}
+      <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-slate-950/40 border border-slate-700/50 rounded-xl p-2.5 text-center transition-all">
+          <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">TỔNG PAGE</p>
+          <p className="text-xl font-black text-white mt-0.5 select-none font-mono">{pages.length}</p>
+        </div>
+        <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 text-center transition-all">
+          <p className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-400">BÌNH THƯỜNG</p>
+          <p className="text-xl font-black text-emerald-400 mt-0.5 select-none font-mono">
+            {totalChecked > 0 ? normalCount : "-"}
+          </p>
+        </div>
+        <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl p-2.5 text-center transition-all">
+          <p className="text-[10px] uppercase font-extrabold tracking-wider text-amber-400">THIẾU QUYỀN</p>
+          <p className="text-xl font-black text-amber-400 mt-0.5 select-none font-mono">
+            {totalChecked > 0 ? missingPermsCount : "-"}
+          </p>
+        </div>
+        <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-2.5 text-center transition-all">
+          <p className="text-[10px] uppercase font-extrabold tracking-wider text-rose-400">TOKEN LỖI</p>
+          <p className="text-xl font-black text-rose-400 mt-0.5 select-none font-mono">
+            {totalChecked > 0 ? tokenErrorCount : "-"}
+          </p>
+        </div>
+        <div className="bg-purple-950/40 border border-purple-500/30 rounded-xl p-2.5 text-center col-span-2 md:col-span-1 transition-all">
+          <p className="text-[10px] uppercase font-extrabold tracking-wider text-purple-400">NGHI HẠN CHẾ</p>
+          <p className="text-xl font-black text-purple-400 mt-0.5 select-none font-mono">
+            {totalChecked > 0 ? restrictedCount : "-"}
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2.5">
+      {/* Action Bar (Right side on large screens) */}
+      <div className="flex items-center gap-2.5 shrink-0 justify-end">
         {pageStatuses.length > 0 && (
           <button
             type="button"
             onClick={handleExportCSV}
-            className="px-5 h-11 bg-slate-800 hover:bg-slate-750 border border-slate-700/50 hover:border-slate-500 text-white rounded-xl font-bold text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer select-none active:scale-95"
+            className="px-4 h-10 bg-slate-800 hover:bg-slate-750 border border-slate-700/50 text-white rounded-xl font-bold text-[11px] tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer select-none active:scale-95"
           >
             <Download className="w-4 h-4 text-slate-300" />
-            Xuất CSV
+            CSV
           </button>
         )}
 
@@ -244,20 +233,24 @@ return (
               cancelScanRef.current = true;
               addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
             }}
-            className="px-6 h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs md:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer border border-rose-500/30 animate-pulse"
+            className="px-5 h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[11px] tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer border border-rose-500/30 animate-pulse"
           >
             <XOctagon className="w-4 h-4 text-white" />
-            Dừng kiểm tra
+            Dừng
           </button>
         ) : (
           <button
             type="button"
             onClick={runPageStatusScan}
             disabled={pages.length === 0}
-            className="px-6 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 text-white rounded-xl font-black text-xs md:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg tracking-wide active:scale-95 cursor-pointer border border-blue-500/30"
+            className={`px-5 h-10 rounded-xl font-black text-[11px] tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg select-none ${
+              pages.length === 0
+                ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border border-blue-500/30 cursor-pointer active:scale-95"
+            }`}
           >
-            <RotateCw className="w-4 h-4 text-blue-100" />
-            Chạy kiểm tra toàn bộ
+            <RotateCw className={`w-4 h-4 ${pages.length > 0 ? "text-blue-100" : "text-slate-500"}`} />
+            Kiểm tra tất cả
           </button>
         )}
       </div>

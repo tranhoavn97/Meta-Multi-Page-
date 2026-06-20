@@ -279,86 +279,81 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         </div>
       )}
 
-      {/* 2. KPI METRICS DASHBOARD */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 shrink-0">
-        <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 text-center hover:bg-slate-850 transition-all shadow-md">
-          <p className="text-xs uppercase font-extrabold tracking-wider text-slate-400">TỔNG PAGE</p>
-          <p className="text-3xl font-black text-white mt-1 select-none font-mono">{pages.length}</p>
+      {/* 2. TOP CONTROL CENTER: METRICS, FILTERS & ACTIONS (CONDENSED 1-ROW) */}
+      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-lg">
+        
+        {/* Metrics Row (Left side on large screens) */}
+        <div className="flex-1 grid grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-slate-950/40 border border-slate-700/50 rounded-xl p-2.5 text-center transition-all">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400">TỔNG PAGE</p>
+            <p className="text-xl font-black text-white mt-0.5 select-none font-mono">{pages.length}</p>
+          </div>
+          <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 text-center transition-all">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-400">QUYỀN QUẢN LÝ</p>
+            <p className="text-xl font-black text-emerald-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? hasManageRights : "-"}
+            </p>
+          </div>
+          <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-2.5 text-center transition-all">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-blue-400">QUYỀN ĐĂNG BÀI</p>
+            <p className="text-xl font-black text-blue-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? hasCreateRights : "-"}
+            </p>
+          </div>
+          <div className="bg-purple-950/40 border border-purple-500/30 rounded-xl p-2.5 text-center transition-all">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-purple-400">NẰM TRONG BM</p>
+            <p className="text-xl font-black text-purple-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? inBmCount : "-"}
+            </p>
+          </div>
+          <div className="bg-teal-950/40 border border-teal-500/30 rounded-xl p-2.5 text-center transition-all">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-teal-400">CHƯA KHỞI TẠO BM</p>
+            <p className="text-xl font-black text-teal-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? noBmCount : "-"}
+            </p>
+          </div>
+          <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-2.5 text-center transition-all">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-rose-400">THIẾU QUYỀN HẠN</p>
+            <p className="text-xl font-black text-rose-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? missingCount : "-"}
+            </p>
+          </div>
         </div>
-        <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 text-center hover:bg-emerald-950/60 transition-all shadow-md">
-          <p className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">QUYỀN QUẢN LÝ</p>
-          <p className="text-3xl font-black text-emerald-400 mt-1 select-none font-mono">
-            {pageAdmins.length > 0 ? hasManageRights : "-"}
-          </p>
-        </div>
-        <div className="bg-blue-950/40 border border-blue-500/30 rounded-2xl p-4 text-center hover:bg-blue-950/60 transition-all shadow-md">
-          <p className="text-xs uppercase font-extrabold tracking-wider text-blue-400">QUYỀN ĐĂNG BÀI</p>
-          <p className="text-3xl font-black text-blue-400 mt-1 select-none font-mono">
-            {pageAdmins.length > 0 ? hasCreateRights : "-"}
-          </p>
-        </div>
-        <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 text-center hover:bg-purple-950/60 transition-all shadow-md">
-          <p className="text-xs uppercase font-extrabold tracking-wider text-purple-400">NẰM TRONG BM</p>
-          <p className="text-3xl font-black text-purple-400 mt-1 select-none font-mono">
-            {pageAdmins.length > 0 ? inBmCount : "-"}
-          </p>
-        </div>
-        <div className="bg-teal-950/40 border border-teal-500/30 rounded-2xl p-4 text-center hover:bg-teal-950/60 transition-all shadow-md">
-          <p className="text-xs uppercase font-extrabold tracking-wider text-teal-400">CHƯA KIÊN KẾT BM</p>
-          <p className="text-3xl font-black text-teal-400 mt-1 select-none font-mono">
-            {pageAdmins.length > 0 ? noBmCount : "-"}
-          </p>
-        </div>
-        <div className="bg-rose-950/40 border border-rose-500/30 rounded-2xl p-4 text-center hover:bg-rose-950/60 transition-all shadow-md">
-          <p className="text-xs uppercase font-extrabold tracking-wider text-rose-400">THIẾU QUYỀN HẠN</p>
-          <p className="text-3xl font-black text-rose-400 mt-1 select-none font-mono">
-            {pageAdmins.length > 0 ? missingCount : "-"}
-          </p>
-        </div>
-      </div>
 
-      {/* 3. CONTROL CENTER BAR */}
-      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4.5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-lg">
-        {/* Filters Group - LARGER ACTION HIT TARGETS */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-300 uppercase font-black tracking-wider mr-2 select-none">Lọc Bộ Lọc:</span>
-          {[
-            { id: "all", label: "Tất cả" },
-            { id: "manage", label: "Có quyền quản lý" },
-            { id: "create", label: "Có quyền đăng/xoá" },
-            { id: "missing", label: "Thiếu quyền" },
-            { id: "bm", label: "Nằm trong BM" },
-            { id: "no-bm", label: "Chưa xác định BM" },
-            { id: "token-err", label: "Token lỗi" }
-          ].map((type) => (
-            <button
-              key={type.id}
-              type="button"
-              onClick={() => {
-                setFilterType(type.id);
-                addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${type.label}]`, "skipped");
+        {/* Filters & Actions (Right side on large screens) */}
+        <div className="flex items-center justify-end gap-2 shrink-0">
+          {/* Dropdown Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider select-none hidden sm:inline-block">Lọc Bộ Lọc:</span>
+            <select
+              value={filterType}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilterType(val);
+                const label = e.target.options[e.target.selectedIndex].text;
+                addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
               }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold tracking-wide transition-all border shrink-0 cursor-pointer ${
-                filterType === type.id
-                  ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25 scale-[1.01]"
-                  : "bg-slate-800 border-slate-700/65 text-slate-300 hover:text-white hover:bg-slate-750"
-              }`}
+              className="h-10 px-3 bg-slate-800 border border-slate-700/65 text-slate-200 text-[11px] font-extrabold tracking-wide rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
             >
-              {type.label}
-            </button>
-          ))}
-        </div>
+              <option value="all">Tất cả</option>
+              <option value="manage">Có quyền quản lý</option>
+              <option value="create">Có quyền đăng/xoá</option>
+              <option value="missing">Thiếu quyền</option>
+              <option value="bm">Nằm trong BM</option>
+              <option value="no-bm">Chưa xác định BM</option>
+              <option value="token-err">Token lỗi</option>
+            </select>
+          </div>
 
-        {/* Buttons Group */}
-        <div className="flex items-center gap-2.5 self-stretch xl:self-auto justify-end">
+          {/* Actions */}
           {pageAdmins.length > 0 && (
             <button
               type="button"
               onClick={handleExportCSV}
-              className="px-5 h-11 bg-slate-800 hover:bg-slate-750 border border-slate-700/50 hover:border-slate-500 text-white rounded-xl font-bold text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer select-none active:scale-95"
+              className="px-4 h-10 bg-slate-800 hover:bg-slate-750 border border-slate-700/50 text-white rounded-xl font-bold text-[11px] tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer select-none active:scale-95"
             >
               <Download className="w-4 h-4 text-slate-300" />
-              Xuất CSV
+              CSV
             </button>
           )}
 
@@ -369,20 +364,24 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                 cancelScanRef.current = true;
                 addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
               }}
-              className="px-6 h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer border border-rose-500/30 animate-pulse"
+              className="px-5 h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[11px] tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer border border-rose-500/30 animate-pulse"
             >
               <XOctagon className="w-4 h-4 text-white" />
-              Dừng kiểm tra
+              Dừng
             </button>
           ) : (
             <button
               type="button"
               onClick={runAdminsBMScan}
               disabled={pages.length === 0}
-              className="px-6 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-lg tracking-wide active:scale-95 cursor-pointer border border-blue-500/30"
+              className={`px-5 h-10 rounded-xl font-black text-[11px] tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg select-none ${
+                pages.length === 0
+                  ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border border-blue-500/30 cursor-pointer active:scale-95"
+              }`}
             >
-              <RotateCw className="w-4 h-4 text-blue-100" />
-              Kiểm tra quyền & BM
+              <RotateCw className={`w-4 h-4 ${pages.length > 0 ? "text-blue-100" : "text-slate-500"}`} />
+              Kiểm tra Quyền & BM
             </button>
           )}
         </div>

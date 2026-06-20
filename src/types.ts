@@ -58,6 +58,7 @@ export interface FilterCriteria {
   enableKeyword: boolean;
   maxPostsToFetch: number; // For API query limit
   maxPostsToShow: number; // For UI list restriction
+  timeRangePreset?: "today" | "week" | "month" | "year" | "all" | "custom";
 }
 
 export interface DeletionLog {

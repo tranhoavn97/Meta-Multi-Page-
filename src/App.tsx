@@ -41,6 +41,7 @@ import { safeFetchJson } from "./utils/safeFetchJson";
 import { useToast } from "./components/Toast";
 import PageStatusTab from "./components/PageStatusTab";
 import PageAdminsTab from "./components/PageAdminsTab";
+import DateRangePickerModal from "./components/DateRangePickerModal";
 
 // ==========================================
 // CUSTOM UI COMPONENTS (UNIFIED DESIGN)
@@ -358,7 +359,11 @@ export default function App() {
     enableKeyword: false,
     maxPostsToFetch: 1000,
     maxPostsToShow: 1000,
+    timeRangePreset: "all",
   });
+  const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
+  const [tempDateFrom, setTempDateFrom] = useState<string>("");
+  const [tempDateTo, setTempDateTo] = useState<string>("");
 
   // Local state for keyword input to make UI Typing instantaneous and lag-free
   const [keywordInput, setKeywordInput] = useState<string>(filters.keyword);
@@ -963,42 +968,120 @@ export default function App() {
       <div className="relative z-10 w-full h-full flex flex-col p-3 md:p-4 overflow-hidden min-h-0 flex-1">
       
       {/* HEADER BAR */}
-      <header className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 mb-3 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0">
-            <Facebook className="w-5.5 h-5.5 text-white fill-current" />
+      <header className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 mb-3 shrink-0 flex flex-col xl:flex-row items-center justify-between gap-3 shadow-xl relative z-30">
+        
+        {/* 1. LEFT: Logo */}
+        <div className="flex items-center gap-2.5 w-full xl:w-auto justify-between xl:justify-start">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0">
+              <Facebook className="w-5 h-5 text-white fill-current" />
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent leading-none whitespace-nowrap">
+                Meta Page Manager
+              </h1>
+              <p className="text-[10px] text-white/70 mt-0.5">Phát triển bởi Hoà Trần</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent flex items-center gap-2 leading-tight">
-              Meta Page Manager
-            </h1>
-            <p className="text-[11px] text-white/70 pt-[2px]">Phát triển bởi Hoà Trần.</p>
+          
+          {/* Mobile Right: Small action if needed or just empty space */}
+          <div className="xl:hidden">
+            {/* Quick Info Mobile */}
+            {userToken ? (
+              <span className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-inner">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                Connected
+              </span>
+            ) : null}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Quick Info */}
-          {userToken ? (
-            <span className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 shadow-inner">
-              <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
-              Đã kết nối Facebook
-            </span>
-          ) : (
-            <span className="bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
-              Yêu cầu đăng nhập Meta
-            </span>
-          )}
+        {/* 2. MIDDLE: Navigation Tabs */}
+        <nav className="flex-1 w-full xl:w-auto bg-slate-900/60 border border-slate-700/60 rounded-xl p-1.5 flex items-center gap-1.5 max-w-xl">
+          <button
+            id="tab-posts"
+            type="button"
+            onClick={() => {
+              setActiveTab("posts");
+              addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
+              activeTab === "posts"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/80"
+                : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
+            }`}
+          >
+            <FileText className={`w-4 h-4 shrink-0 ${activeTab === "posts" ? "text-white animate-pulse" : "text-slate-400"}`} />
+            <div className="text-left select-none hidden min-[400px]:block">
+              <span className="block text-xs font-black tracking-wide">Bài viết</span>
+            </div>
+          </button>
+
+          <button
+            id="tab-status"
+            type="button"
+            onClick={() => {
+              setActiveTab("status");
+              addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
+              activeTab === "status"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/80"
+                : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
+            }`}
+          >
+            <Activity className={`w-4 h-4 shrink-0 ${activeTab === "status" ? "text-white animate-pulse" : "text-slate-400"}`} />
+            <div className="text-left select-none hidden min-[400px]:block">
+              <span className="block text-xs font-black tracking-wide font-sans whitespace-nowrap">Trạng thái API</span>
+            </div>
+          </button>
+
+          <button
+            id="tab-admins"
+            type="button"
+            onClick={() => {
+              setActiveTab("admins");
+              addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
+              activeTab === "admins"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/80"
+                : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
+            }`}
+          >
+            <Users className={`w-4 h-4 shrink-0 ${activeTab === "admins" ? "text-white animate-pulse" : "text-slate-400"}`} />
+            <div className="text-left select-none hidden min-[400px]:block">
+              <span className="block text-xs font-black tracking-wide font-sans whitespace-nowrap">Quản trị viên</span>
+            </div>
+          </button>
+        </nav>
+
+        {/* 3. RIGHT: Actions */}
+        <div className="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto">
+          {/* Quick Info (Desktop) */}
+          <div className="hidden xl:block">
+            {userToken ? (
+              <span className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-inner">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                Connected
+              </span>
+            ) : (
+              <span className="bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-ping"></span>
+                Auth Required
+              </span>
+            )}
+          </div>
 
           {/* Access Token Quick settings Trigger */}
           <button 
             id="btn-settings"
             onClick={() => setShowConfig(!showConfig)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-semibold border border-white/25 transition-all"
-            title="Cài đặt thông số API nâng cao"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold border border-white/20 transition-all text-white/90"
+            title="Cài đặt thông số API"
           >
-            <Settings className="w-4 h-4" />
-            Cài đặt API
+            <Settings className="w-3.5 h-3.5" />
+            <span className="hidden sm:block">Cài đặt API</span>
           </button>
 
           {/* Connect / OAuth Action */}
@@ -1006,16 +1089,16 @@ export default function App() {
             <button
               id="btn-login"
               onClick={handleOAuthLogin}
-              className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-900/30 border border-blue-500/30 transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs shadow-md shadow-blue-900/30 border border-blue-500/30 transition-all flex items-center gap-1.5"
             >
               <Facebook className="w-3.5 h-3.5 fill-current" />
-              Đăng nhập Meta
+              Đăng nhập
             </button>
           ) : (
             <button
               id="btn-logout"
               onClick={clearCredentials}
-              className="px-3 py-1.5 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/30 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/30 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
             >
               <LogOut className="w-3.5 h-3.5" />
               Đăng xuất
@@ -1026,7 +1109,7 @@ export default function App() {
 
       {/* ERROR ALERT BOX */}
       {apiError && (
-        <div className="mb-2.5 bg-rose-500/20 border border-rose-500/40 backdrop-blur-md p-2.5 rounded-2xl flex items-start gap-2.5 text-rose-100 shadow-md shrink-0">
+        <div className="mb-2.5 bg-rose-500/20 border border-rose-500/40 backdrop-blur-md p-2.5 rounded-2xl flex items-start gap-2.5 text-rose-100 shadow-md shrink-0 relative z-20">
           <AlertTriangle className="w-4.5 h-4.5 text-rose-400 shrink-0 mt-0.5" />
           <div className="text-xs flex-1">
             <span className="font-semibold block text-[11px]">Sự cố kết nối hoặc xác thực:</span>
@@ -1034,69 +1117,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* 3 MAIN PAGES NAVIGATION */}
-      <nav className="relative z-30 bg-slate-900/60 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-1.5 flex flex-col md:flex-row items-stretch md:items-center gap-2 shrink-0 mb-3.5 shadow-xl">
-        <button
-          id="tab-posts"
-          type="button"
-          onClick={() => {
-            setActiveTab("posts");
-            addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
-          }}
-          className={`flex-1 flex items-center justify-center gap-3.5 px-6 py-3.5 rounded-xl transition-all cursor-pointer ${
-            activeTab === "posts"
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/80 scale-[1.01]"
-              : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
-          }`}
-        >
-          <FileText className={`w-5.5 h-5.5 ${activeTab === "posts" ? "text-white animate-pulse" : "text-slate-400"}`} />
-          <div className="text-left select-none">
-            <span className="block text-sm font-black tracking-wide">Quản lý bài viết</span>
-            <span className="block text-[11px] opacity-80 font-normal">Quét bài đăng & Xoá hàng loạt</span>
-          </div>
-        </button>
-
-        <button
-          id="tab-status"
-          type="button"
-          onClick={() => {
-            setActiveTab("status");
-            addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
-          }}
-          className={`flex-1 flex items-center justify-center gap-3.5 px-6 py-3.5 rounded-xl transition-all cursor-pointer ${
-            activeTab === "status"
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/80 scale-[1.01]"
-              : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
-          }`}
-        >
-          <Activity className={`w-5.5 h-5.5 ${activeTab === "status" ? "text-white animate-pulse" : "text-slate-400"}`} />
-          <div className="text-left select-none">
-            <span className="block text-sm font-black tracking-wide font-sans">Trạng thái Fanpage</span>
-            <span className="block text-[11px] opacity-80 font-normal font-sans">Kiểm tra kết nối & Quyền hạn</span>
-          </div>
-        </button>
-
-        <button
-          id="tab-admins"
-          type="button"
-          onClick={() => {
-            setActiveTab("admins");
-            addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
-          }}
-          className={`flex-1 flex items-center justify-center gap-3.5 px-6 py-3.5 rounded-xl transition-all cursor-pointer ${
-            activeTab === "admins"
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/80 scale-[1.01]"
-              : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
-          }`}
-        >
-          <Users className={`w-5.5 h-5.5 ${activeTab === "admins" ? "text-white animate-pulse" : "text-slate-400"}`} />
-          <div className="text-left select-none">
-            <span className="block text-sm font-black tracking-wide font-sans">Quản trị viên Fanpage</span>
-            <span className="block text-[11px] opacity-80 font-normal font-sans">Phân tích Business Manager & Admins</span>
-          </div>
-        </button>
-      </nav>
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch overflow-hidden">
@@ -1283,180 +1303,94 @@ export default function App() {
             <>
               {/* TOP BAR: FILTERS CARD */}
               <section className="relative z-30 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-4.5 text-slate-100 shadow-2xl flex flex-col gap-3.5 shrink-0">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                  <h2 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-2">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-40">
+                  <h2 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-2 shrink-0">
                     <ListFilter className="w-5 h-5 text-blue-400" />
                     Bộ lọc bài viết & Thống kê
                   </h2>
-                  <div className="flex flex-wrap gap-2">
-                    <button 
-                      id="preset-all-time"
-                      type="button"
-                      onClick={() => {
-                        setFilters(f => ({
-                          ...f,
-                          enableOlderThan: false,
-                          enableDateRange: false
-                        }));
-                        addLog("system", "Hủy bộ lọc thời gian - Hiển thị tối đa bài đăng từ trước đến nay.", "success");
-                      }}
-                      className={`px-3.5 py-2 rounded-xl text-[11px] uppercase font-extrabold tracking-wide transition-all ${
-                        !filters.enableOlderThan && !filters.enableDateRange
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500" 
-                          : "bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-transparent"
-                      }`}
-                    >
-                      Từ trước đến nay
-                    </button>
-                    <button 
-                      id="preset-30-days"
-                      type="button"
-                      onClick={() => setPresetOlderThan(30)}
-                      className={`px-3.5 py-2 rounded-xl text-[11px] uppercase font-extrabold tracking-wide transition-all ${
-                        filters.enableOlderThan && filters.olderThanDays === 30 
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500" 
-                          : "bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-transparent"
-                      }`}
-                    >
-                      &gt; 30 ngày
-                    </button>
-                    <button 
-                      id="preset-90-days"
-                      type="button"
-                      onClick={() => setPresetOlderThan(90)}
-                      className={`px-3.5 py-2 rounded-xl text-[11px] uppercase font-extrabold tracking-wide transition-all ${
-                        filters.enableOlderThan && filters.olderThanDays === 90 
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500" 
-                          : "bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-transparent"
-                      }`}
-                    >
-                      &gt; 90 ngày
-                    </button>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 relative z-40 w-full text-slate-100">
-                  
-                  {/* Filter: Older Than X days */}
-                  <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-100 cursor-pointer select-none">
-                      <div 
-                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${
-                          filters.enableOlderThan 
-                            ? "bg-blue-600 border-blue-500 text-white shadow-sm" 
-                            : "border-slate-600 hover:border-slate-400"
-                        }`}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 w-full xl:w-auto">
+                    
+                    {/* Filter: Date Range Selection / Dropdown */}
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 shrink-0">
+                      <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide select-none">
+                        Thời gian:
+                      </span>
+                      <select 
+                        value={filters.timeRangePreset} 
+                        onChange={(e) => {
+                          const val = e.target.value as "today" | "week" | "month" | "year" | "all" | "custom";
+                          if (val === "custom") {
+                            setTempDateFrom(filters.dateFrom);
+                            setTempDateTo(filters.dateTo);
+                            setShowCustomDateModal(true);
+                          } else {
+                            // Automatically calculate dates
+                            const today = new Date();
+                            let dFrom = "";
+                            let dTo = "";
+                            if (val === "today") {
+                              dFrom = today.toISOString().split('T')[0];
+                              dTo = dFrom;
+                            } else if (val === "week") {
+                              const day = today.getDay();
+                              const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+                              const monday = new Date(today.setDate(diff));
+                              dFrom = monday.toISOString().split('T')[0];
+                              dTo = new Date().toISOString().split('T')[0];
+                            } else if (val === "month") {
+                              const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                              dFrom = startOfMonth.toISOString().split('T')[0];
+                              dTo = new Date().toISOString().split('T')[0];
+                            } else if (val === "year") {
+                              const startOfYear = new Date(today.getFullYear(), 0, 1);
+                              dFrom = startOfYear.toISOString().split('T')[0];
+                              dTo = new Date().toISOString().split('T')[0];
+                            }
+                            
+                            setFilters(f => ({ 
+                              ...f, 
+                              timeRangePreset: val,
+                              dateFrom: dFrom,
+                              dateTo: dTo,
+                              enableDateRange: val !== "all"
+                            }));
+                            addLog("system", `Đã đổi bộ lọc thời gian thành: ${e.target.options[e.target.selectedIndex].text}`, "success");
+                          }
+                        }}
+                        className="bg-slate-900 border border-slate-700/80 rounded-lg h-7 px-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
                       >
-                        {filters.enableOlderThan && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
-                      </div>
-                      <input 
-                        type="checkbox" 
-                        id="chk-filter-older"
-                        checked={filters.enableOlderThan}
-                        onChange={(e) => setFilters(f => ({ ...f, enableOlderThan: e.target.checked }))}
-                        className="sr-only"
-                      />
-                      <span>Cũ hơn:</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number"
-                        id="input-older-days"
-                        min="1"
-                        value={filters.olderThanDays}
-                        disabled={!filters.enableOlderThan}
-                        onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
-                        className="bg-slate-950 border border-slate-700/80 rounded-xl px-2 h-8 text-xs font-mono outline-none text-white w-14 text-center font-bold disabled:opacity-30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/25 transition-all"
-                      />
-                      <span className="text-[11px] text-slate-400 font-bold">ngày</span>
+                        <option value="today">Hôm nay</option>
+                        <option value="week">Tuần này</option>
+                        <option value="month">Tháng này</option>
+                        <option value="year">Năm nay</option>
+                        <option value="all">Từ trước đến nay</option>
+                        <option value="custom">Tuỳ chỉnh...</option>
+                      </select>
+                      
+                      {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
+                         <div 
+                           onClick={() => {
+                             setTempDateFrom(filters.dateFrom);
+                             setTempDateTo(filters.dateTo);
+                             setShowCustomDateModal(true);
+                           }}
+                           className="text-[10px] text-blue-400 font-bold bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded cursor-pointer transition-colors ml-1 border border-blue-500/20"
+                           title="Sửa ngày tuỳ chỉnh"
+                         >
+                           {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
+                         </div>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Filter: Keyword Search */}
-                  <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-100 cursor-pointer select-none shrink-0">
-                      <div 
-                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${
-                          filters.enableKeyword 
-                            ? "bg-blue-600 border-blue-500 text-white shadow-sm" 
-                            : "border-slate-600 hover:border-slate-400"
-                        }`}
-                      >
-                        {filters.enableKeyword && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
-                      </div>
-                      <input 
-                        type="checkbox" 
-                        id="chk-filter-keyword"
-                        checked={filters.enableKeyword}
-                        onChange={(e) => setFilters(f => ({ ...f, enableKeyword: e.target.checked }))}
-                        className="sr-only"
-                      />
-                      <span>Từ khóa:</span>
-                    </label>
-                    <div className="relative flex-1">
-                      <input 
-                        type="text" 
-                        id="input-keyword"
-                        value={keywordInput}
-                        disabled={!filters.enableKeyword}
-                        onChange={(e) => setKeywordInput(e.target.value)}
-                        placeholder="Tìm theo nội dung..." 
-                        className="bg-slate-950 border border-slate-700/80 rounded-xl pl-8 pr-2 h-8 text-xs outline-none text-white w-full disabled:opacity-30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/25 transition-all font-medium"
-                      />
-                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
-                  </div>
-
-                  {/* Filter: Date Range Selection */}
-                  <div className="col-span-1 sm:col-span-6 lg:col-span-4 flex items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-100 cursor-pointer select-none shrink-0">
-                      <div 
-                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${
-                          filters.enableDateRange 
-                            ? "bg-blue-600 border-blue-500 text-white shadow-sm" 
-                            : "border-slate-600 hover:border-slate-400"
-                        }`}
-                      >
-                        {filters.enableDateRange && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
-                      </div>
-                      <input 
-                        type="checkbox" 
-                        id="chk-filter-range"
-                        checked={filters.enableDateRange}
-                        onChange={(e) => setFilters(f => ({ ...f, enableDateRange: e.target.checked }))}
-                        className="sr-only"
-                      />
-                      <span>Khoảng:</span>
-                    </label>
-                    <div className="flex items-center gap-1.5 leading-none shrink-0">
-                      <span className="text-[11px] text-slate-400 font-bold">Từ</span>
-                      <div className="w-[85px] sm:w-[95px]">
-                        <CustomDatePicker
-                          value={filters.dateFrom}
-                          disabled={!filters.enableDateRange}
-                          onChange={(val) => setFilters(f => ({ ...f, dateFrom: val }))}
-                        />
-                      </div>
-                      <span className="text-[11px] text-slate-400 font-bold">đến</span>
-                      <div className="w-[85px] sm:w-[95px]">
-                        <CustomDatePicker
-                          value={filters.dateTo}
-                          disabled={!filters.enableDateRange}
-                          onChange={(val) => setFilters(f => ({ ...f, dateTo: val }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Filter: Max Limits config */}
-                  <div className="col-span-1 sm:col-span-6 lg:col-span-2 flex items-center justify-between gap-1 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
-                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1 select-none shrink-0">
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
-                      Lọc:
-                    </span>
-                    <div className="flex items-center gap-2">
+                    {/* Filter: Max Limits config */}
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 shrink-0">
+                      <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5 select-none shrink-0">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                        Lọc:
+                      </span>
                       <div className="flex items-center gap-1">
-                        <span className="text-[11px] text-slate-400">Tải</span>
+                        <span className="text-[11px] text-slate-400 pr-1">Tải</span>
                         <CustomSelect
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
@@ -1471,8 +1405,8 @@ export default function App() {
                         />
                       </div>
                     </div>
-                  </div>
 
+                  </div>
                 </div>
 
                 {/* SELECTION CONTROL & RUN BUTTON WORKSPACE */}
@@ -1913,6 +1847,30 @@ export default function App() {
 
         </main>
       </div>
+
+      {/* CUSTOM DATE MODAL */}
+      {showCustomDateModal && (
+        <DateRangePickerModal 
+          initialFrom={tempDateFrom || filters.dateFrom}
+          initialTo={tempDateTo || filters.dateTo}
+          onClose={() => {
+            setShowCustomDateModal(false);
+          }}
+          onApply={(from, to) => {
+            setFilters(f => ({
+              ...f,
+              timeRangePreset: "custom",
+              dateFrom: from,
+              dateTo: to,
+              enableDateRange: true
+            }));
+            setShowCustomDateModal(false);
+            if (from || to) {
+              addLog("system", `Đã đổi khung thời gian tuỳ chỉnh: ${from || "..."} đến ${to || "..."}`, "success");
+            }
+          }}
+        />
+      )}
 
       {/* MODAL 1: APP SETTINGS PANEL MODAL (Interactive Configuration override) */}
       {showConfig && (
