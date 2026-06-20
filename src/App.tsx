@@ -161,12 +161,12 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-between w-full h-[30px] bg-[#05111d]/60 hover:bg-[#071728]/80 border border-white/20 disabled:border-white/10 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 rounded-xl px-2.5 py-1 text-[11px] text-left text-white disabled:opacity-35 cursor-pointer font-medium select-none transition-all"
+        className="relative flex items-center justify-between w-full h-6 bg-[#05111d]/60 hover:bg-[#071728]/80 border border-white/20 disabled:border-white/10 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 rounded-lg px-2 py-0.5 text-[10px] text-left text-white disabled:opacity-35 cursor-pointer font-medium select-none transition-all animate-none"
       >
         <span className={`${value ? "text-white" : "text-white/40"} font-mono`}>
           {displayValue()}
         </span>
-        <Calendar className="w-3.5 h-3.5 text-white/50" />
+        <Calendar className="w-3 h-3 text-white/50 ml-1 shrink-0" />
       </button>
 
       {isOpen && (
@@ -280,10 +280,10 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-1.5 bg-[#05111d]/60 hover:bg-[#071728]/80 border border-white/20 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 rounded-xl px-3 py-1 text-[11px] outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[95px]"
+        className="flex items-center justify-between gap-1 bg-[#05111d]/60 hover:bg-[#071728]/80 border border-white/20 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 rounded-lg px-2 h-6 text-[10px] outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[70px]"
       >
         <span>{selectedOption?.label}</span>
-        <ChevronRight className={`w-3.5 h-3.5 text-white/55 transition-transform duration-200 ${isOpen ? "rotate-90 text-emerald-400" : ""}`} />
+        <ChevronRight className={`w-3 h-3 text-white/55 transition-transform duration-200 ${isOpen ? "rotate-90 text-emerald-400" : ""}`} />
       </button>
 
       {isOpen && (
@@ -797,9 +797,9 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#030a16] text-slate-100 flex flex-col justify-between select-none overflow-x-hidden">
+    <div className="relative h-screen min-h-screen lg:min-h-0 bg-[#030a16] text-slate-100 flex flex-col select-none overflow-hidden">
       {/* BACKGROUND IMAGE LAYER */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0 pointer-events-none w-full h-full">
         <img 
           src="/src/assets/images/cosmic_swirl_bg_1781941929717.jpg" 
           alt="Cosmic backdrop" 
@@ -810,19 +810,19 @@ export default function App() {
       </div>
 
       {/* FOREGROUND CONTENT */}
-      <div className="relative z-10 w-full flex-1 flex flex-col justify-between p-4 md:p-6">
+      <div className="relative z-10 w-full h-full flex flex-col p-3 md:p-4 overflow-hidden min-h-0 flex-1">
       
       {/* HEADER BAR */}
-      <header className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-4 mb-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+      <header className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 mb-3 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
-            <Facebook className="w-7 h-7 text-white fill-current" />
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0">
+            <Facebook className="w-5.5 h-5.5 text-white fill-current" />
           </div>
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent flex items-center gap-2">
+            <h1 className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent flex items-center gap-2 leading-tight">
               Meta Multi-Page Manager
             </h1>
-            <p className="text-xs text-white/70">Xóa hàng loạt bài viết chọn lọc trên Fanpages Facebook</p>
+            <p className="text-[11px] text-white/70">Xóa bài viết chọn lọc hàng loạt trên các Facebook Fanpage</p>
           </div>
         </div>
 
@@ -876,23 +876,20 @@ export default function App() {
 
       {/* ERROR ALERT BOX */}
       {apiError && (
-        <div className="mb-4 bg-rose-500/20 border border-rose-500/40 backdrop-blur-md p-4 rounded-3xl flex items-start gap-3 text-rose-100 shadow-lg">
-          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          <div className="text-sm flex-1">
-            <span className="font-semibold block">Phát hiện sự cố từ API / Xác thực:</span>
-            <p className="mt-1 font-mono text-xs opacity-90">{apiError}</p>
-            <p className="mt-2 text-xs italic text-rose-300">
-              Mẹo: Các tài khoản cá nhân có thể thiếu quyền truy cập Nhà phát triển Meta cho Ứng dụng này. Hãy chọn mục "Cài đặt API" ở trên để điền thủ công Access Token của bạn.
-            </p>
+        <div className="mb-2.5 bg-rose-500/20 border border-rose-500/40 backdrop-blur-md p-2.5 rounded-2xl flex items-start gap-2.5 text-rose-100 shadow-md shrink-0">
+          <AlertTriangle className="w-4.5 h-4.5 text-rose-400 shrink-0 mt-0.5" />
+          <div className="text-xs flex-1">
+            <span className="font-semibold block text-[11px]">Sự cố kết nối hoặc xác thực:</span>
+            <p className="mt-0.5 font-mono text-[10px] opacity-90 truncate max-w-full" title={apiError}>{apiError}</p>
           </div>
         </div>
       )}
 
       {/* MAIN CONTAINER */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch min-h-[500px]">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch overflow-hidden">
         
         {/* SIDEBAR: PAGES LIST (Col Span 3) */}
-        <aside className="lg:col-span-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-5 flex flex-col shadow-xl">
+        <aside className="lg:col-span-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 flex flex-col shadow-xl overflow-hidden min-h-0 h-full">
           <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-white/10">
             <div className="flex justify-between items-center">
               <span className="text-xs uppercase tracking-wider text-white/70 font-extrabold flex items-center gap-1.5">
@@ -1003,7 +1000,7 @@ export default function App() {
               <p className="text-[11px] text-white/40 mt-1">Hãy xin quyền <span className="font-mono text-amber-200">pages_show_list</span> khi cấp quyền ứng dụng.</p>
             </div>
           ) : (
-            <div className="flex-1 space-y-2 overflow-y-auto max-h-[550px] lg:max-h-[780px] pr-1.5 custom-scrollbar">
+            <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar min-h-0">
               {(() => {
                 const query = pageSearchQuery.trim().toLowerCase();
                 const filteredList = pages.filter(
@@ -1040,7 +1037,7 @@ export default function App() {
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${page.id}`;
                         }}
-                        className="w-8.5 h-8.5 rounded-xl bg-indigo-500 shadow-inner flex-shrink-0"
+                        className="w-8.5 h-8.5 rounded-full bg-indigo-500 shadow-inner flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold truncate text-white leading-tight">{page.name}</p>
@@ -1062,29 +1059,18 @@ export default function App() {
             </div>
           )}
 
-          {/* Quick tips */}
-          <div className="mt-3 pt-2.5 border-t border-white/10 text-[10px] text-white/50 leading-relaxed">
-            <p className="font-semibold flex items-center gap-1.5 text-white/75 mb-1.5">
-              <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" />
-              Yêu cầu quyền bắt buộc:
-            </p>
-            <div className="flex flex-wrap gap-1 font-mono text-[9px]">
-              <span className="bg-white/5 border border-white/5 px-2 py-0.5 rounded text-white/60">pages_show_list</span>
-              <span className="bg-white/5 border border-white/5 px-2 py-0.5 rounded text-white/60">pages_manage_posts</span>
-              <span className="bg-white/5 border border-white/5 px-2 py-0.5 rounded text-white/60">pages_read_engagement</span>
-            </div>
-          </div>
+
         </aside>
 
         {/* MAIN POST AREA & FILTERS (Col Span 9) */}
-        <main className="lg:col-span-9 flex flex-col gap-4 relative z-10">
+        <main className="lg:col-span-9 flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
           
           {/* TOP BAR: FILTERS CARD */}
-          <section className="relative z-30 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-3.5 text-white shadow-xl flex flex-col gap-3">
+          <section className="relative z-30 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 text-white shadow-xl flex flex-col gap-2 shrink-0">
             <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
               <h2 className="text-xs font-extrabold tracking-wider uppercase text-white/80 flex items-center gap-1.5">
                 <ListFilter className="w-3.5 h-3.5 text-emerald-300" />
-                Bộ lọc tìm kiếm nâng cao
+                Bộ lọc bài viết & Thống kê
               </h2>
               <div className="flex gap-1.5">
                 <button 
@@ -1130,11 +1116,11 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 relative z-40">
+            <div className="flex flex-wrap items-center gap-2 relative z-40 w-full text-white">
               
               {/* Filter: Older Than X days */}
-              <div className="flex flex-col p-2.5 bg-white/5 rounded-xl border border-white/10 text-white hover:bg-white/10 transition-all duration-200">
-                <label className="flex items-center gap-2 text-[11px] font-bold text-white/90 cursor-pointer select-none">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
                       filters.enableOlderThan 
@@ -1151,25 +1137,23 @@ export default function App() {
                     onChange={(e) => setFilters(f => ({ ...f, enableOlderThan: e.target.checked }))}
                     className="sr-only"
                   />
-                  <span>Lọc bài cũ hơn X ngày</span>
+                  <span>Cũ hơn:</span>
                 </label>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <input 
-                    type="number"
-                    id="input-older-days"
-                    min="1"
-                    value={filters.olderThanDays}
-                    disabled={!filters.enableOlderThan}
-                    onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
-                    className="bg-black/30 border border-white/20 rounded-lg px-2 py-0.5 h-7 text-[11px] font-mono outline-none text-white w-14 text-center font-bold disabled:opacity-30 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 transition-all"
-                  />
-                  <span className="text-[10px] text-white/50">ngày về trước</span>
-                </div>
+                <input 
+                  type="number"
+                  id="input-older-days"
+                  min="1"
+                  value={filters.olderThanDays}
+                  disabled={!filters.enableOlderThan}
+                  onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
+                  className="bg-black/40 border border-white/20 rounded-md px-1.5 h-5 text-[10px] font-mono outline-none text-white w-10 text-center font-bold disabled:opacity-30 focus:border-emerald-400 transition-all"
+                />
+                <span className="text-[9px] text-white/40">ngày</span>
               </div>
 
               {/* Filter: Keyword Search */}
-              <div className="flex flex-col p-2.5 bg-white/5 rounded-xl border border-white/10 text-white hover:bg-white/10 transition-all duration-200">
-                <label className="flex items-center gap-2 text-[11px] font-bold text-white/90 cursor-pointer select-none">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0 min-w-[130px] max-w-[180px] flex-1">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
                       filters.enableKeyword 
@@ -1186,25 +1170,25 @@ export default function App() {
                     onChange={(e) => setFilters(f => ({ ...f, enableKeyword: e.target.checked }))}
                     className="sr-only"
                   />
-                  <span>Chứa từ khoá bài viết</span>
+                  <span>Từ khóa:</span>
                 </label>
-                <div className="mt-2 relative">
+                <div className="relative flex-1">
                   <input 
                     type="text" 
                     id="input-keyword"
                     value={filters.keyword}
                     disabled={!filters.enableKeyword}
                     onChange={(e) => setFilters(f => ({ ...f, keyword: e.target.value }))}
-                    placeholder="Nhập cụm từ tìm kiếm..." 
-                    className="bg-black/30 border border-white/20 rounded-lg pl-7 pr-2.5 py-1 h-7 text-[11px] outline-none text-white w-full disabled:opacity-30 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 transition-all"
+                    placeholder="Tìm..." 
+                    className="bg-black/40 border border-white/20 rounded-md pl-4.5 pr-1 h-5 text-[10px] outline-none text-white w-full disabled:opacity-30 focus:border-emerald-400 transition-all font-medium"
                   />
-                  <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
+                  <Search className="w-2.5 h-2.5 absolute left-1.5 top-1/2 -translate-y-1/2 text-white/40" />
                 </div>
               </div>
 
               {/* Filter: Date Range Selection */}
-              <div className="flex flex-col p-2.5 bg-white/5 rounded-xl border border-white/10 text-white hover:bg-white/10 transition-all duration-200">
-                <label className="flex items-center gap-2 text-[11px] font-bold text-white/90 cursor-pointer select-none">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
                       filters.enableDateRange 
@@ -1221,96 +1205,113 @@ export default function App() {
                     onChange={(e) => setFilters(f => ({ ...f, enableDateRange: e.target.checked }))}
                     className="sr-only"
                   />
-                  <span>Trong khoảng ngày đăng</span>
+                  <span>Khoảng ngày:</span>
                 </label>
-                <div className="mt-2 flex flex-col gap-1 w-full text-white">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-white/40 w-5 shrink-0">Từ:</span>
-                    <div className="flex-1">
-                      <CustomDatePicker
-                        value={filters.dateFrom}
-                        disabled={!filters.enableDateRange}
-                        onChange={(val) => setFilters(f => ({ ...f, dateFrom: val }))}
-                      />
-                    </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] text-white/40">Từ</span>
+                  <div className="w-[85px]">
+                    <CustomDatePicker
+                      value={filters.dateFrom}
+                      disabled={!filters.enableDateRange}
+                      onChange={(val) => setFilters(f => ({ ...f, dateFrom: val }))}
+                    />
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-white/40 w-5 shrink-0">Đến:</span>
-                    <div className="flex-1">
-                      <CustomDatePicker
-                        value={filters.dateTo}
-                        disabled={!filters.enableDateRange}
-                        onChange={(val) => setFilters(f => ({ ...f, dateTo: val }))}
-                      />
-                    </div>
+                  <span className="text-[9px] text-white/40">đến</span>
+                  <div className="w-[85px]">
+                    <CustomDatePicker
+                      value={filters.dateTo}
+                      disabled={!filters.enableDateRange}
+                      onChange={(val) => setFilters(f => ({ ...f, dateTo: val }))}
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Filter: Max Limits config */}
-              <div className="flex flex-col p-2.5 bg-white/5 rounded-xl border border-white/10 text-white hover:bg-white/10 transition-all duration-200">
-                <span className="text-[11px] font-bold text-white/85 mb-1.5 flex items-center gap-1.5">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-300" />
-                  Giới hạn & Tải tối đa bài
+              <div className="flex items-center gap-2 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0">
+                <span className="text-[10px] font-bold text-white/85 flex items-center gap-1 select-none">
+                  <SlidersHorizontal className="w-3" />
+                  Giới hạn:
                 </span>
-                <div className="space-y-1.5 mt-1 w-full">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] text-white/60">Tối đa tải/Page:</span>
-                    <CustomSelect
-                      value={filters.maxPostsToFetch}
-                      onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
-                      options={[
-                        { value: 10, label: "10 bài" },
-                        { value: 50, label: "50 bài" },
-                        { value: 100, label: "100 bài" },
-                        { value: 250, label: "250 bài" },
-                        { value: 500, label: "500 bài" },
-                        { value: 1000, label: "1000 bài" }
-                      ]}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] text-white/60">Tối đa hiển thị:</span>
-                    <CustomSelect
-                      value={filters.maxPostsToShow}
-                      onChange={(val) => setFilters(f => ({ ...f, maxPostsToShow: val }))}
-                      options={[
-                        { value: 10, label: "10 bài" },
-                        { value: 50, label: "50 bài" },
-                        { value: 100, label: "100 bài" },
-                        { value: 250, label: "250 bài" },
-                        { value: 500, label: "500 bài" },
-                        { value: 1000, label: "1000 bài" }
-                      ]}
-                    />
-                  </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] text-white/50">Tải:</span>
+                  <CustomSelect
+                    value={filters.maxPostsToFetch}
+                    onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
+                    options={[
+                      { value: 10, label: "10" },
+                      { value: 50, label: "50" },
+                      { value: 100, label: "100" },
+                      { value: 250, label: "250" },
+                      { value: 500, label: "500" },
+                      { value: 1000, label: "1000" }
+                    ]}
+                  />
+                </div>
+                <div className="flex items-center gap-1 border-l border-white/10 pl-1">
+                  <span className="text-[9px] text-white/50">Hiện:</span>
+                  <CustomSelect
+                    value={filters.maxPostsToShow}
+                    onChange={(val) => setFilters(f => ({ ...f, maxPostsToShow: val }))}
+                    options={[
+                      { value: 10, label: "10" },
+                      { value: 50, label: "50" },
+                      { value: 100, label: "100" },
+                      { value: 250, label: "250" },
+                      { value: 500, label: "500" },
+                      { value: 1000, label: "1000" }
+                    ]}
+                  />
                 </div>
               </div>
 
             </div>
 
-            {/* SELECTION CONTROL & RUN BUTTON */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 mt-0.5 border-t border-white/10">
-              <div className="text-left">
-                <p className="text-[9px] text-white/50 uppercase font-extrabold tracking-wider leading-none">Trạng thái bài viết đang lọc</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-base font-mono text-white font-bold">
-                    {selectedPostIds.length} <span className="text-[11px] text-white/60">/ {filteredPosts.length} bài đã chọn</span>
-                  </span>
-                  {filteredPosts.length > 0 && (
-                    <span className="text-[9px] bg-indigo-500/30 px-1.5 py-0.5 rounded text-indigo-200 font-mono">
-                      (Tổng: {posts.length})
-                    </span>
-                  )}
+            {/* SELECTION CONTROL & RUN BUTTON WORKSPACE */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 mt-0.5 border-t border-white/10">
+              
+              {/* Compact Stats Badges inside Footer of Filters Card */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/15 px-2 py-1 rounded-xl border border-white/5 select-none font-medium">
+                {/* Stat 1: Selection */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="font-extrabold uppercase tracking-wider text-emerald-300">Đã chọn:</span>
+                  <span className="font-mono font-black text-emerald-400 text-xs">{selectedPostIds.length}</span>
+                  <span className="text-white/40">/ {displayedPosts.length} hiển thị</span>
+                </div>
+
+                <span className="w-1 h-3 border-l border-white/10" />
+
+                {/* Stat 2: Total dynamic matches */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="font-extrabold uppercase tracking-wider text-blue-300">Khớp lọc:</span>
+                  <span className="font-mono font-black text-blue-300 text-xs">{filteredPosts.length}</span>
+                  <span className="text-white/40">bài</span>
+                </div>
+
+                <span className="w-1 h-3 border-l border-white/10" />
+
+                {/* Stat 3: Total cached posts in session */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="font-extrabold uppercase tracking-wider text-purple-300">Tổng nạp:</span>
+                  <span className="font-mono font-black text-purple-300 text-xs">{posts.length}</span>
+                </div>
+
+                <span className="w-1 h-3 border-l border-white/10" />
+
+                {/* Stat 4: Deleted Count */}
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className="font-extrabold uppercase tracking-wider text-rose-300">Đã xóa:</span>
+                  <span className="font-mono font-black text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 px-1 py-0.5 rounded leading-none">{deletedCountSession}</span>
                 </div>
               </div>
 
+              {/* Action Trigger Buttons */}
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   id="btn-load-posts"
                   onClick={fetchPostsFromSelectedPages}
                   disabled={selectedPageIds.length === 0 || loadingPosts}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-[11px] border border-white/15 transition-all flex items-center gap-1 disabled:opacity-50"
+                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-[11px] border border-white/15 transition-all flex items-center gap-1 disabled:opacity-50 cursor-pointer select-none active:scale-95"
                 >
                   <RotateCw className={`w-3 h-3 ${loadingPosts ? "animate-spin" : ""}`} />
                   Tải lại bài viết
@@ -1320,7 +1321,7 @@ export default function App() {
                   id="btn-delete-trigger"
                   onClick={() => setShowConfirmModal(true)}
                   disabled={selectedPostIds.length === 0 || isDeleting}
-                  className="px-4 py-1.5 bg-red-500 hover:bg-red-600 active:scale-95 text-white rounded-lg font-bold text-[11px] shadow-md shadow-red-500/20 transition-all flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
+                  className="px-4 py-1.5 bg-red-500 hover:bg-red-600 active:scale-95 text-white rounded-lg font-bold text-[11px] shadow-md shadow-red-500/25 transition-all flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Xóa bài viết đã chọn
@@ -1330,60 +1331,10 @@ export default function App() {
 
           </section>
 
-          {/* STATS OVERVIEW MODULE */}
-          <section className="relative z-20 grid grid-cols-1 md:grid-cols-3 gap-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl text-white">
-            {/* Stat Item 1: Deleted Posts */}
-            <div className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl border border-rose-500/10 min-h-[76px] w-full">
-              <div className="p-2.5 bg-rose-500/10 text-rose-400 rounded-lg">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <dt className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Bài viết đã xóa</dt>
-                <dd className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-xl font-mono font-extrabold text-rose-300">{deletedCountSession}</span>
-                  <span className="text-[10px] text-white/40 font-medium">bài viết</span>
-                </dd>
-              </div>
-            </div>
-
-            {/* Stat Item 2: Remaining Displayed Posts */}
-            <div className="flex items-center gap-3 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 min-h-[76px] w-full">
-              <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <dt className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Bài viết hiển thị</dt>
-                <dd className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-xl font-mono font-extrabold text-emerald-300">{displayedPosts.length}</span>
-                  <span className="text-[10px] text-white/40 font-medium">/ {filteredPosts.length} đang có</span>
-                </dd>
-              </div>
-            </div>
-
-            {/* Stat Item 3: Total Engagement of Displayed Posts */}
-            <div className="flex items-center gap-3 p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 min-h-[76px] w-full">
-              <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-lg">
-                <Activity className="w-5 h-5 animate-pulse" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <dt className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Tổng tương tác hiển thị</dt>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-xl font-mono font-extrabold text-amber-300">{totalEngagement.toLocaleString("vi-VN")}</span>
-                  <span className="text-[9px] text-white/40 font-medium">(Lọc hiện tại)</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[9px] text-white/40 border-t border-white/5 pt-0.5">
-                  <span className="flex items-center gap-0.5"><ThumbsUp className="w-2.5 h-2.5 text-blue-400" /> {totalLikes.toLocaleString("vi-VN")}</span>
-                  <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5 text-cyan-400" /> {totalComments.toLocaleString("vi-VN")}</span>
-                  <span className="flex items-center gap-0.5"><Share2 className="w-2.5 h-2.5 text-pink-400" /> {totalShares.toLocaleString("vi-VN")}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
           {/* POSTS SCREEN CONTAINER */}
-          <section className="relative z-10 flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-xl">
+          <section className="relative z-10 flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-xl min-h-0">
             {/* Table/List Header */}
-            <div className="px-6 py-4.5 border-b border-white/10 bg-white/5 flex justify-between items-center shrink-0">
+            <div className="px-4 py-2.5 border-b border-white/10 bg-white/5 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_#4ade80]"></span>
                 <span className="text-sm font-bold text-white flex items-center gap-1.5">
@@ -1396,17 +1347,17 @@ export default function App() {
                 <div 
                   id="btn-toggle-select-all"
                   onClick={selectAllFiltered}
-                  className="flex items-center gap-2.5 text-xs text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl border border-white/15 cursor-pointer select-none transition-all"
+                  className="flex items-center gap-2 text-xs text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-xl border border-white/15 cursor-pointer select-none transition-all"
                 >
                   <div 
-                    className={`w-4.5 h-4.5 rounded-lg flex items-center justify-center border transition-all ${
+                    className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
                       displayedPosts.length > 0 && displayedPosts.every(p => selectedPostIds.includes(p.id))
                         ? "bg-emerald-500 border-emerald-400 text-white shadow-md shadow-emerald-500/20" 
                         : "border-white/30 hover:border-white/50"
                     }`}
                   >
                     {displayedPosts.length > 0 && displayedPosts.every(p => selectedPostIds.includes(p.id)) && (
-                      <Check className="w-3 h-3 stroke-[3px]" />
+                      <Check className="w-2.5 h-2.5 stroke-[3px]" />
                     )}
                   </div>
                   <span>Chọn toàn bộ hiển thị ({displayedPosts.length})</span>
@@ -1415,25 +1366,25 @@ export default function App() {
             </div>
 
             {/* List Body */}
-            <div className="p-4 overflow-y-auto overflow-x-auto max-h-[500px] custom-scrollbar">
+            <div className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar">
               {loadingPosts ? (
-                <div className="flex flex-col justify-center items-center gap-5 text-white h-[410px] max-w-md mx-auto">
+                <div className="flex flex-col justify-center items-center gap-4 text-white h-full min-h-[300px] py-6 max-w-md mx-auto">
                   {/* Circular Spinner & Big Icon */}
                   <div className="relative flex items-center justify-center">
-                    <div className="w-16 h-16 border-4 border-emerald-500/10 border-t-emerald-400 rounded-full animate-spin"></div>
-                    <Facebook className="w-7 h-7 text-emerald-400 absolute fill-current animate-pulse" />
+                    <div className="w-14 h-14 border-4 border-emerald-500/10 border-t-emerald-400 rounded-full animate-spin"></div>
+                    <Facebook className="w-6 h-6 text-emerald-400 absolute fill-current animate-pulse" />
                   </div>
 
                   {/* Progress Info Header */}
-                  <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm tracking-wide text-white/95 uppercase">ĐANG QUÉT FANPAGE HÀNG LOẠT</h3>
-                    <p className="text-xs text-white/65">
+                  <div className="text-center space-y-0.5">
+                    <h3 className="font-bold text-xs tracking-wide text-white/95 uppercase">ĐANG QUÉT FANPAGE HÀNG LOẠT</h3>
+                    <p className="text-[11px] text-white/65">
                       Tiến trình: <span className="text-emerald-400 font-mono font-bold">{scanProgress.current}/{scanProgress.total}</span> Fanpage hoàn thành
                     </p>
                   </div>
 
                   {/* Progress Bar Container */}
-                  <div className="w-full bg-white/5 border border-white/10 rounded-full h-3.5 p-0.5 overflow-hidden shadow-inner">
+                  <div className="w-full bg-white/5 border border-white/10 rounded-full h-3 p-0.5 overflow-hidden shadow-inner">
                     <div 
                       className="bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-md shadow-emerald-500/20"
                       style={{ width: `${scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0}%` }}
@@ -1441,10 +1392,10 @@ export default function App() {
                   </div>
 
                   {/* Current Active Page Name & Detail badge */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
-                    <span className="text-[10px] uppercase font-semibold text-white/40 tracking-wider">Đang kiểm tra & đọc bài viết:</span>
-                    <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-4 py-1.5 text-xs text-emerald-300 font-bold max-w-full truncate shadow-sm flex items-center gap-2">
-                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping shrink-0" />
+                  <div className="flex flex-col items-center gap-1 w-full animate-pulse">
+                    <span className="text-[9px] uppercase font-semibold text-white/40 tracking-wider">Đang kiểm tra & đọc bài viết:</span>
+                    <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-3 py-1 text-[11px] text-emerald-300 font-bold max-w-full truncate shadow-sm flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping shrink-0" />
                       {scanProgress.currentPageName || "Đang khởi tạo..."}
                     </div>
                   </div>
@@ -1456,43 +1407,42 @@ export default function App() {
                       scanCancelledRef.current = true;
                       addLog("system", "Đang gửi yêu cầu dừng quét...", "pending");
                     }}
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-500/40 text-rose-300 hover:text-rose-200 text-xs font-semibold transition-all shadow-sm cursor-pointer select-none mt-1"
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/20 hover:border-rose-500/35 text-rose-300 hover:text-rose-200 text-[10px] font-semibold transition-all shadow-sm cursor-pointer select-none"
                   >
-                    <XOctagon className="w-3.5 h-3.5 shrink-0" />
+                    <XOctagon className="w-3 h-3 shrink-0" />
                     Dừng quét ngay
                   </button>
 
                   {/* Secondary info label */}
-                  <p className="text-[11px] text-white/35 text-center italic leading-normal">
+                  <p className="text-[10px] text-white/35 text-center italic leading-normal">
                     Hệ thống thu thập dữ liệu về bài viết, tổng hợp lượt thích, bình luận và chia sẻ từ API chính thức của Meta.
                   </p>
                 </div>
               ) : posts.length === 0 ? (
-                <div className="flex flex-col justify-center items-center text-center gap-3 h-[410px]">
-                  <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30">
-                    <Facebook className="w-7 h-7" />
+                <div className="flex flex-col justify-center items-center text-center gap-3 h-full min-h-[300px] py-8">
+                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30">
+                    <Facebook className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">Chưa có bài viết nào</h3>
-                    <p className="text-xs text-white/50 mt-1 max-w-sm mx-auto leading-relaxed">
+                    <h3 className="font-semibold text-xs">Chưa có bài viết nào</h3>
+                    <p className="text-[11px] text-white/50 mt-0.5 max-w-xs mx-auto leading-relaxed">
                       Để hiển thị bài đăng, vui lòng tích chọn các Fanpage bên trái. Sau đó hệ thống sẽ tự động quét tối đa {filters.maxPostsToFetch} bài viết gần nhất.
                     </p>
                   </div>
                 </div>
               ) : filteredPosts.length === 0 ? (
-                <div className="flex flex-col justify-center items-center text-center gap-2 h-[410px]">
-                  <ListFilter className="w-10 h-10 text-white/20" />
+                <div className="flex flex-col justify-center items-center text-center gap-2 h-full min-h-[300px] py-8">
+                  <ListFilter className="w-9 h-9 text-white/20" />
                   <p className="text-xs text-white/60 font-semibold">Tất cả {posts.length} bài viết hiện có đều bị bộ lọc ẩn đi.</p>
-                  <p className="text-[11px] text-white/40">Vui lòng tắt bớt các điều kiện lọc (Khoảng ngày, Từ khóa, Số ngày) để kiểm tra.</p>
+                  <p className="text-[10px] text-white/40">Vui lòng tắt bớt các điều kiện lọc (Khoảng ngày, Từ khóa, Số ngày) để kiểm tra.</p>
                 </div>
               ) : (
-                <div className="min-w-[760px] flex flex-col gap-2">
+                <div className="min-w-[700px] flex flex-col gap-2">
                   {/* Table Header */}
-                  <div className="grid grid-cols-[40px_54px_1fr_130px_145px_70px] gap-3 items-center px-2.5 pb-2 border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-white/45 select-none">
+                  <div className="grid grid-cols-[40px_54px_1fr_145px_70px] gap-3 items-center px-2.5 pb-2 border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-white/45 select-none">
                     <div className="text-center">Chọn</div>
                     <div>Ảnh</div>
                     <div>Nội dung bài viết</div>
-                    <div className="text-center">Tương tác</div>
                     <div className="text-center">Thời gian đăng</div>
                     <div className="text-center">FB Link</div>
                   </div>
@@ -1518,7 +1468,7 @@ export default function App() {
                           id={`post-row-${post.id}`}
                           key={post.id}
                           onClick={() => togglePostSelection(post.id)}
-                          className={`group grid grid-cols-[40px_54px_1fr_130px_145px_70px] gap-3 items-center p-2.5 rounded-xl transition-all cursor-pointer border border-white/5 shadow-sm ${
+                          className={`group grid grid-cols-[40px_54px_1fr_145px_70px] gap-3 items-center p-2.5 rounded-xl transition-all cursor-pointer border border-white/5 shadow-sm ${
                             isChecked 
                               ? "bg-white/15 border-white/30 translate-x-0.5" 
                               : "bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10"
@@ -1582,15 +1532,6 @@ export default function App() {
                             </p>
                           </div>
 
-                          {/* Engagement stats */}
-                          <div className="flex justify-center">
-                            <div className="flex items-center justify-center gap-2.5 text-[10px] text-white/70 font-bold bg-white/5 py-1 px-2.5 rounded-lg border border-white/5 select-none w-full max-w-[120px]">
-                              <span className="flex items-center gap-0.5" title="Thích"><ThumbsUp className="w-3 h-3 text-blue-400 shrink-0" /> {post.likes?.summary?.total_count || 0}</span>
-                              <span className="flex items-center gap-0.5" title="Bình luận"><MessageSquare className="w-3 h-3 text-cyan-400 shrink-0" /> {post.comments?.summary?.total_count || 0}</span>
-                              <span className="flex items-center gap-0.5" title="Chia sẻ"><Share2 className="w-3 h-3 text-pink-400 shrink-0" /> {post.shares?.count || 0}</span>
-                            </div>
-                          </div>
-
                           {/* Time */}
                           <div className="text-center flex flex-col gap-0.5 shrink-0 select-none">
                             <span className="text-[11px] font-mono text-white/85">{formattedDate}</span>
@@ -1623,39 +1564,39 @@ export default function App() {
           </section>
 
           {/* LOWER SECTION: BATCH ACTION LOGGER AND FOOTER LOGS */}
-          <footer className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-4 shadow-xl shrink-0">
+          <footer className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-xl shrink-0">
             {/* PROGRESS BAR PANEL (Col Span 4) */}
-            <div className="md:col-span-4 flex flex-col justify-between gap-3 p-1">
+            <div className="md:col-span-4 flex flex-col justify-between gap-2 p-0.5 min-h-0">
               <div>
-                <div className="flex justify-between text-[11px] uppercase font-bold text-white/60 mb-1.5">
-                  <span>Tiến trình hoàn tất tác vụ</span>
+                <div className="flex justify-between text-[10px] uppercase font-bold text-white/55 mb-1">
+                  <span>Tiến trình tác vụ</span>
                   <span className="font-mono text-emerald-300">{progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%"}</span>
                 </div>
-                <div className="w-full h-2.5 bg-black/25 rounded-full overflow-hidden shadow-inner border border-white/5">
+                <div className="w-full h-2 bg-black/25 rounded-full overflow-hidden shadow-inner border border-white/5">
                   <div 
                     className="bg-gradient-to-r from-blue-400 via-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(96,165,250,0.5)]"
                     style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                   ></div>
                 </div>
-                <span className="text-[10px] text-white/50 mt-1 block">
-                  Đã thực hiện: {progress.current} / {progress.total} bài viết của phiên hiện tại.
+                <span className="text-[9px] text-white/55 mt-0.5 block">
+                  Đã thực hiện: {progress.current} / {progress.total} bài viết.
                 </span>
               </div>
 
-              <div className="bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl flex items-start gap-2">
-                <ShieldAlert className="w-4.5 h-4.5 text-rose-300 shrink-0 mt-0.5" />
-                <div className="text-[10px] text-rose-200 font-medium leading-normal">
+              <div className="bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl flex items-start gap-1.5 mt-0.5">
+                <ShieldAlert className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
+                <div className="text-[9px] text-rose-200 font-medium leading-normal">
                   <span className="font-bold text-rose-100 block">CẢNH BÁO QUAN TRỌNG:</span>
-                  Hành động xóa bài viết là VĨNH VIỄN, không thể khôi phục hay hoàn tác trên Facebook.
+                  Xóa bài viết là VĨNH VIỄN, không thể hoàn tác trên Facebook.
                 </div>
               </div>
             </div>
 
             {/* LIVE LOG CONSOLE TERMINAL (Col Span 8) */}
-            <div className="md:col-span-8 flex flex-col bg-black/40 border border-white/10 rounded-2xl p-3 shadow-inner">
-              <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-2 shrink-0">
+            <div className="md:col-span-8 flex flex-col bg-black/40 border border-white/10 rounded-xl p-2 md:p-2.5 shadow-inner">
+              <div className="flex items-center justify-between border-b border-white/5 pb-1 mb-1 shrink-0">
                 <span className="text-[9px] uppercase tracking-wider text-green-400 font-bold font-mono">
-                  &gt;_ Console nhật ký thời gian thực (nhịp trễ 300ms–500ms)
+                  &gt;_ Nhật ký console thời gian thực (nhịp trễ 300ms–500ms)
                 </span>
                 <button 
                   onClick={() => setLogs([])}
@@ -1667,7 +1608,7 @@ export default function App() {
 
               <div 
                 ref={logContainerRef}
-                className="flex-1 overflow-y-auto max-h-[110px] space-y-1 font-mono text-[10px] text-green-300 custom-scrollbar pr-1"
+                className="overflow-y-auto h-[68px] max-h-[68px] space-y-1 font-mono text-[9px] text-green-300 custom-scrollbar pr-1"
               >
                 {logs.length === 0 ? (
                   <p className="text-white/30 italic">Chưa có nhật ký hoạt động nào...</p>
