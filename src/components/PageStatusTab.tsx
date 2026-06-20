@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
   ShieldAlert, 
   CheckCircle, 
@@ -14,410 +14,454 @@ import {
 } from "lucide-react";
 
 interface PageStatusRecord {
-  pageId: string;
-  name: string;
-  category: string;
-  tasks: string[];
-  status: string;
-  detail: string;
-  hasPageAccessToken: boolean;
-  postsSuccess: boolean;
-  postsCountFetched: number;
-  postSample: any;
-  checkedAt: string;
+pageId: string;
+name: string;
+category: string;
+tasks: string[];
+status: string;
+detail: string;
+hasPageAccessToken: boolean;
+postsSuccess: boolean;
+postsCountFetched: number;
+postSample: any;
+checkedAt: string;
 }
 
 interface PageStatusTabProps {
-  pages: any[];
-  userToken: string;
+pages: any[];
+userToken: string;
 }
 
 export default function PageStatusTab({ pages, userToken }: PageStatusTabProps) {
-  const [pageStatuses, setPageStatuses] = useState<PageStatusRecord[]>([]);
-  const [scanning, setScanning] = useState(false);
-  const [logs, setLogs] = useState<{ id: string; time: string; pageName: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+const [pageStatuses, setPageStatuses] = useState<PageStatusRecord[]>([]);
+const [scanning, setScanning] = useState(false);
+const [logs, setLogs] = useState<{ id: string; time: string; pageName: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
+const [progress, setProgress] = useState({ current: 0, total: 0 });
+const cancelScanRef = useRef<boolean>(false);
 
-  const addLog = (pageName: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
-    const time = new Date().toLocaleTimeString("vi-VN");
-    setLogs(prev => [
-      { id: Date.now().toString() + Math.random(), time, pageName, message, status },
-      ...prev
-    ]);
-  };
+const addLog = (pageName: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
+  const time = new Date().toLocaleTimeString("vi-VN");
+  setLogs(prev => [
+    { id: Date.now().toString() + Math.random(), time, pageName, message, status },
+    ...prev
+  ]);
+};
 
-  const runPageStatusScan = async () => {
-    if (!userToken) {
-      // Use logs instead of intrusive alert windows inside iframe sandbox
-      addLog("Hệ thống", "Không tìm thấy token Facebook của người dùng. Vui lòng kết nối trước.", "failed");
-      return;
+const runPageStatusScan = async () => {
+  if (!userToken) {
+    addLog("Hệ thống", "Không tìm thấy token Facebook của người dùng. Vui lòng kết nối trước.", "failed");
+    return;
+  }
+  if (pages.length === 0) {
+    addLog("Hệ thống", "Không có Fanpage nào để quét. Hãy chắc chắn bạn đã tải danh sách Fanpage thành công.", "skipped");
+    return;
+  }
+
+  setScanning(true);
+  cancelScanRef.current = false;
+  setPageStatuses([]);
+  setLogs([]);
+  setProgress({ current: 0, total: pages.length });
+
+  addLog("Hàng đợi", `Bắt đầu quét kiểm tra trạng thái toàn bộ ${pages.length} Fanpage...`, "processing");
+
+  let itemsProcessed = 0;
+  
+  for (const page of pages) {
+    if (cancelScanRef.current) {
+      addLog("Hàng đợi", "Đã dừng chương trình kiểm tra bởi yêu cầu người dùng.", "skipped");
+      break;
     }
-    if (pages.length === 0) {
-      addLog("Hệ thống", "Không có Fanpage nào để quét. Hãy chắc chắn bạn đã tải danh sách Fanpage thành công.", "skipped");
-      return;
-    }
+    setProgress({ current: itemsProcessed, total: pages.length });
+    addLog(page.name, `Đang quét kiểm tra quyền và kết nối...`, "processing");
 
-    setScanning(true);
-    setPageStatuses([]);
-    setLogs([]);
-    setProgress({ current: 0, total: pages.length });
+    try {
+      await new Promise(resolve => setTimeout(resolve, 350));
 
-    addLog("Hàng đợi", `Bắt đầu quét kiểm tra trạng thái toàn bộ ${pages.length} Fanpage...`, "processing");
-
-    let itemsProcessed = 0;
-    
-    for (const page of pages) {
-      setProgress({ current: itemsProcessed, total: pages.length });
-      addLog(page.name, `Đang quét kiểm tra quyền và kết nối...`, "processing");
-
-      try {
-        // Safe await delay of 350ms to stay within instructions range 300ms-500ms
-        await new Promise(resolve => setTimeout(resolve, 350));
-
-        const res = await fetch("/api/page-status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userToken,
-            pageId: page.id,
-            pageAccessToken: page.access_token
-          })
-        });
-
-        const text = await res.text();
-        let data: any;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          throw new Error("Phản hồi từ server không phải định dạng JSON hợp lệ.");
-        }
-
-        if (data.success && data.data) {
-          const record: PageStatusRecord = data.data;
-          setPageStatuses(prev => {
-            const filtered = prev.filter(p => p.pageId !== record.pageId);
-            return [...filtered, record];
-          });
-          
-          let logStatus: "success" | "failed" = "success";
-          if (record.status.includes("lỗi") || record.status.includes("Thiếu quyền")) {
-            logStatus = "failed";
-          }
-          addLog(page.name, `Trạng thái: [${record.status}]. Chi tiết: ${record.detail || "Hoạt động bình thường"}`, logStatus);
-        } else {
-          throw new Error(data.error || "Không thể kiểm tra phản hồi khả dụng.");
-        }
-      } catch (err: any) {
-        const fallbackRecord: PageStatusRecord = {
+      const res = await fetch("/api/page-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userToken,
           pageId: page.id,
-          name: page.name,
-          category: page.category || "Không xác định",
-          tasks: page.tasks || [],
-          status: "Token lỗi / hết hạn",
-          detail: err.message || "Không thể gửi yêu cầu máy chủ.",
-          hasPageAccessToken: !!page.access_token,
-          postsSuccess: false,
-          postsCountFetched: 0,
-          postSample: null,
-          checkedAt: new Date().toISOString()
-        };
-        setPageStatuses(prev => {
-          const filtered = prev.filter(p => p.pageId !== fallbackRecord.pageId);
-          return [...filtered, fallbackRecord];
-        });
-        addLog(page.name, `Quét thất bại: ${err.message || "Lỗi mạng hoặc server"}`, "failed");
+          pageAccessToken: page.access_token
+        })
+      });
+
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Phản hồi từ server không phải định dạng JSON hợp lệ.");
       }
 
-      itemsProcessed++;
+      if (data.success && data.data) {
+        const record: PageStatusRecord = data.data;
+        setPageStatuses(prev => {
+          const filtered = prev.filter(p => p.pageId !== record.pageId);
+          return [...filtered, record];
+        });
+        
+        let logStatus: "success" | "failed" = "success";
+        if (record.status.includes("lỗi") || record.status.includes("Thiếu quyền")) {
+          logStatus = "failed";
+        }
+        addLog(page.name, `Trạng thái: [${record.status}]. Chi tiết: ${record.detail || "Hoạt động bình thường"}`, logStatus);
+      } else {
+        throw new Error(data.error || "Không thể kiểm tra phản hồi khả dụng.");
+      }
+    } catch (err: any) {
+      const fallbackRecord: PageStatusRecord = {
+        pageId: page.id,
+        name: page.name,
+        category: page.category || "Không xác định",
+        tasks: page.tasks || [],
+        status: "Token lỗi / hết hạn",
+        detail: err.message || "Không thể gửi yêu cầu máy chủ.",
+        hasPageAccessToken: !!page.access_token,
+        postsSuccess: false,
+        postsCountFetched: 0,
+        postSample: null,
+        checkedAt: new Date().toISOString()
+      };
+      setPageStatuses(prev => {
+        const filtered = prev.filter(p => p.pageId !== fallbackRecord.pageId);
+        return [...filtered, fallbackRecord];
+      });
+      addLog(page.name, `Quét thất bại: ${err.message || "Lỗi mạng hoặc server"}`, "failed");
     }
 
-    setProgress({ current: pages.length, total: pages.length });
-    setScanning(false);
-    addLog("Hàng đợi", `Đã hoàn tất kiểm tra trạng thái ${pages.length} Fanpage kết nối!`, "success");
-  };
+    itemsProcessed++;
+  }
 
-  const handleExportCSV = () => {
-    if (pageStatuses.length === 0) {
-      addLog("Hệ thống", "Không có dữ liệu để xuất CSV. Vui lòng chạy Quét trạng thái trước.", "skipped");
-      return;
-    }
-    const headers = ["Tên Page", "Page ID", "Category", "Quyền", "Có Token riêng", "Quét bài viết", "Trạng thái", "Chi tiết lỗi"];
-    const rows = pageStatuses.map(ps => [
-      `"${ps.name.replace(/"/g, '""')}"`,
-      `"${ps.pageId}"`,
-      `"${(ps.category || "Không xác định").replace(/"/g, '""')}"`,
-      `"${(ps.tasks || []).join(", ")}"`,
-      ps.hasPageAccessToken ? "Có" : "Không",
-      ps.postsSuccess ? "Có" : "Không",
-      `"${ps.status}"`,
-      `"${(ps.detail || "").replace(/"/g, '""').replace(/\n/g, ' ')}"`
-    ]);
+  setProgress({ current: pages.length, total: pages.length });
+  setScanning(false);
+  addLog("Hàng đợi", `Đã hoàn tất kiểm tra trạng thái ${pages.length} Fanpage kết nối!`, "success");
+};
+
+const handleExportCSV = () => {
+  if (pageStatuses.length === 0) {
+    addLog("Hệ thống", "Không có dữ liệu để xuất CSV. Vui lòng chạy Quét trạng thái trước.", "skipped");
+    return;
+  }
+  const headers = ["Tên Page", "Page ID", "Category", "Quyền", "Có Token riêng", "Quét bài viết", "Trạng thái", "Chi tiết lỗi"];
+  const rows = pageStatuses.map(ps => [
+    `"${ps.name.replace(/"/g, '""')}"`,
+    `"${ps.pageId}"`,
+    `"${(ps.category || "Không xác định").replace(/"/g, '""')}"`,
+    `"${(ps.tasks || []).join(", ")}"`,
+    ps.hasPageAccessToken ? "Có" : "Không",
+    ps.postsSuccess ? "Có" : "Không",
+    `"${ps.status}"`,
+    `"${(ps.detail || "").replace(/"/g, '""').replace(/\n/g, ' ')}"`
+  ]);
+  
+  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+    + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Trang_Thai_PageMeta_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Trang_Thai_PageMeta_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
-  // Metrics calculator
-  const totalChecked = pageStatuses.length;
-  const normalCount = pageStatuses.filter(s => s.status === "Bình thường").length;
-  const missingPermsCount = pageStatuses.filter(s => s.status.includes("Thiếu quyền")).length;
-  const tokenErrorCount = pageStatuses.filter(s => s.status.includes("Token lỗi") || s.status.includes("hết hạn")).length;
-  const restrictedCount = pageStatuses.filter(s => s.status.includes("Nghi bị hạn chế") || s.status.includes("hạn chế")).length;
+// Metrics calculator
+const totalChecked = pageStatuses.length;
+const normalCount = pageStatuses.filter(s => s.status === "Bình thường").length;
+const missingPermsCount = pageStatuses.filter(s => s.status.includes("Thiếu quyền")).length;
+const tokenErrorCount = pageStatuses.filter(s => s.status.includes("Token lỗi") || s.status.includes("hết hạn")).length;
+const restrictedCount = pageStatuses.filter(s => s.status.includes("Nghi bị hạn chế") || s.status.includes("hạn chế")).length;
 
-  return (
-    <div className="flex flex-col gap-4 min-h-0 w-full text-white">
-      {/* 1. METRICS DASHBOARD */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center transition-all hover:bg-white/10">
-          <p className="text-[10px] uppercase font-bold tracking-wider text-white/50">TỔNG PAGE</p>
-          <p className="text-2xl font-black text-white mt-1 select-none font-mono">{pages.length}</p>
-          <div className="text-[9px] text-white/30 mt-1">Đã kết nối</div>
-        </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3.5 text-center transition-all hover:bg-emerald-500/15">
-          <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-300">BÌNH THƯỜNG</p>
-          <p className="text-2xl font-black text-emerald-400 mt-1 select-none font-mono">
-            {totalChecked > 0 ? normalCount : "-"}
-          </p>
-          <div className="text-[9px] text-emerald-400/40 mt-1">Hoạt động tốt</div>
-        </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 text-center transition-all hover:bg-amber-500/15">
-          <p className="text-[10px] uppercase font-bold tracking-wider text-amber-300">THIẾU QUYỀN</p>
-          <p className="text-2xl font-black text-amber-400 mt-1 select-none font-mono">
-            {totalChecked > 0 ? missingPermsCount : "-"}
-          </p>
-          <div className="text-[9px] text-amber-400/40 mt-1">Cần cấp lại</div>
-        </div>
-        <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-3.5 text-center transition-all hover:bg-rose-500/15">
-          <p className="text-[10px] uppercase font-bold tracking-wider text-rose-300">TOKEN LỖI</p>
-          <p className="text-2xl font-black text-rose-400 mt-1 select-none font-mono">
-            {totalChecked > 0 ? tokenErrorCount : "-"}
-          </p>
-          <div className="text-[9px] text-rose-400/40 mt-1">Hết hạn phiên</div>
-        </div>
-        <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-3.5 text-center col-span-2 md:col-span-1 transition-all hover:bg-purple-500/15">
-          <p className="text-[10px] uppercase font-bold tracking-wider text-purple-300">NGHI HẠN CHẾ</p>
-          <p className="text-2xl font-black text-purple-400 mt-1 select-none font-mono">
-            {totalChecked > 0 ? restrictedCount : "-"}
-          </p>
-          <div className="text-[9px] text-purple-400/40 mt-1">Hạn chế tính năng</div>
-        </div>
+return (
+  <div className="flex flex-col gap-4 min-h-0 h-full w-full text-slate-100">
+    {/* 1. METRICS DASHBOARD */}
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
+      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 text-center hover:bg-slate-850 transition-all shadow-md">
+        <p className="text-xs uppercase font-extrabold tracking-wider text-slate-400">TỔNG PAGE</p>
+        <p className="text-3xl font-black text-white mt-1 select-none font-mono">{pages.length}</p>
+        <div className="text-[11px] text-slate-400 mt-1">Đã kết nối</div>
+      </div>
+      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 text-center hover:bg-emerald-950/60 transition-all shadow-md">
+        <p className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">BÌNH THƯỜNG</p>
+        <p className="text-3xl font-black text-emerald-400 mt-1 select-none font-mono">
+          {totalChecked > 0 ? normalCount : "-"}
+        </p>
+        <div className="text-[11px] text-emerald-400/80 mt-1">Hoạt động tốt</div>
+      </div>
+      <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-4 text-center hover:bg-amber-950/60 transition-all shadow-md">
+        <p className="text-xs uppercase font-extrabold tracking-wider text-amber-400">THIẾU QUYỀN</p>
+        <p className="text-3xl font-black text-amber-400 mt-1 select-none font-mono">
+          {totalChecked > 0 ? missingPermsCount : "-"}
+        </p>
+        <div className="text-[11px] text-amber-400/80 mt-1">Cần cấp lại quyền</div>
+      </div>
+      <div className="bg-rose-950/40 border border-rose-500/30 rounded-2xl p-4 text-center hover:bg-rose-950/60 transition-all shadow-md">
+        <p className="text-xs uppercase font-extrabold tracking-wider text-rose-400">TOKEN LỖI</p>
+        <p className="text-3xl font-black text-rose-400 mt-1 select-none font-mono">
+          {totalChecked > 0 ? tokenErrorCount : "-"}
+        </p>
+        <div className="text-[11px] text-rose-400/80 mt-1">Hết hạn phiên</div>
+      </div>
+      <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 text-center col-span-2 md:col-span-1 hover:bg-purple-950/60 transition-all shadow-md">
+        <p className="text-xs uppercase font-extrabold tracking-wider text-purple-400">NGHI HẠN CHẾ</p>
+        <p className="text-3xl font-black text-purple-400 mt-1 select-none font-mono">
+          {totalChecked > 0 ? restrictedCount : "-"}
+        </p>
+        <div className="text-[11px] text-purple-400/80 mt-1">Cảnh báo tính năng</div>
+      </div>
+    </div>
+
+    {/* 2. COMMAND ACTION BAR & PROGRESS */}
+    <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 shadow-lg">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-sm font-black tracking-wide uppercase text-slate-100 flex items-center gap-1.5">
+          <Activity className="w-5 h-5 text-blue-400" />
+          Trình quét & Kiểm tra Trạng thái API
+        </h3>
+        <p className="text-xs text-slate-400 font-medium">Kiểm tra thông tin chi tiết quyền tác vụ của từng Fanpage đã kết nối</p>
       </div>
 
-      {/* 2. COMMAND ACTION BAR & PROGRESS */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-xs font-extrabold tracking-wide uppercase text-white/90">Trình quét & Kiểm tra Trạng thái API</h3>
-          <p className="text-[11px] text-white/50">Kiểm tra thông tin chi tiết quyền tác vụ của từng Fanpage đã kết nối</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {pageStatuses.length > 0 && (
-            <button
-              onClick={handleExportCSV}
-              className="px-3.5 py-1.5 bg-white/10 hover:bg-white/25 text-white border border-white/25 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Xuất CSV
-            </button>
-          )}
-
+      <div className="flex items-center gap-2.5">
+        {pageStatuses.length > 0 && (
           <button
-            onClick={runPageStatusScan}
-            disabled={scanning || pages.length === 0}
-            className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-white/5 disabled:to-white/5 disabled:text-white/40 disabled:border-white/5 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-blue-900/30 border border-blue-500/30"
+            type="button"
+            onClick={handleExportCSV}
+            className="px-5 h-11 bg-slate-800 hover:bg-slate-750 border border-slate-700/50 hover:border-slate-500 text-white rounded-xl font-bold text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer select-none active:scale-95"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
-            {scanning ? "Đang quét..." : "Kiểm tra lại toàn bộ"}
+            <Download className="w-4 h-4 text-slate-300" />
+            Xuất CSV
           </button>
-        </div>
-      </div>
+        )}
 
-      {/* PROGRESS BAR */}
-      {scanning && (
-        <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl shrink-0">
-          <div className="flex justify-between items-center text-[10px] mb-1.5 font-bold select-none text-white/80">
-            <span>TIẾN TRÌNH QUÉT CHI TIẾT SYSTEM:</span>
-            <span>{progress.current} / {progress.total} Pages ({Math.round((progress.current / progress.total) * 100)}%)</span>
+        {scanning ? (
+          <button
+            type="button"
+            onClick={() => {
+              cancelScanRef.current = true;
+              addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
+            }}
+            className="px-6 h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs md:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer border border-rose-500/30 animate-pulse"
+          >
+            <XOctagon className="w-4 h-4 text-white" />
+            Dừng kiểm tra
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={runPageStatusScan}
+            disabled={pages.length === 0}
+            className="px-6 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 text-white rounded-xl font-black text-xs md:text-sm tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-lg tracking-wide active:scale-95 cursor-pointer border border-blue-500/30"
+          >
+            <RotateCw className="w-4 h-4 text-blue-100" />
+            Chạy kiểm tra toàn bộ
+          </button>
+        )}
+      </div>
+    </div>
+
+    <div className="flex-1 bg-slate-900 border border-slate-700/60 rounded-2xl flex flex-col overflow-hidden min-h-0 shadow-lg">
+      <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+        <table className="w-full text-left border-collapse">
+          <thead className="sticky top-0 bg-slate-950 z-10 border-b border-slate-800 select-none">
+            <tr>
+              <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[15%]">Fanpage</th>
+              <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[12%]">Page ID</th>
+              <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[10%]">Category</th>
+              <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[12%]">Quyền tác vụ</th>
+              <th className="p-3.5 text-center text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[8%]">Token riêng</th>
+              <th className="p-3.5 text-center text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[8%]">Lấy bài viết</th>
+              <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[10%]">Trạng thái</th>
+              <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-amber-400 w-[15%]">Chi tiết lỗi</th>
+              <th className="p-3.5 text-center text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[10%]">Hành động của Meta</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800 text-xs font-medium text-slate-200">
+            {pageStatuses.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="p-12 text-center text-slate-400">
+                  <Info className="w-10 h-10 mx-auto opacity-40 mb-3 text-slate-300" />
+                  <p className="text-sm font-bold text-slate-100">Chưa có thông tin kiểm tra</p>
+                  <p className="text-xs text-slate-400 mt-1">Vui lòng click nút <strong className="text-blue-400">"Chạy kiểm tra toàn bộ"</strong> để bắt đầu quét quyền hoạt động.</p>
+                </td>
+              </tr>
+            ) : (
+              pageStatuses.map((row) => {
+                let statusColor = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                if (row.status.includes("Thiếu quyền")) {
+                  statusColor = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                } else if (row.status.includes("lỗi") || row.status.includes("hết hạn")) {
+                  statusColor = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                } else if (row.status.includes("hạn chế") || row.status.includes("Nghi bị hạn chế")) {
+                  statusColor = "bg-purple-500/10 text-purple-400 border border-purple-500/20";
+                } else if (row.status.includes("kiểm tra thủ công")) {
+                  statusColor = "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20";
+                }
+
+                return (
+                  <tr key={row.pageId} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="p-3.5 font-bold select-all font-sans text-xs flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-blue-600/30 overflow-hidden flex items-center justify-center border border-slate-700 shrink-0">
+                        <span className="text-xs font-black text-blue-300">{row.name.substring(0, 1).toUpperCase()}</span>
+                      </div>
+                      <span className="truncate max-w-[140px] text-slate-100 leading-snug" title={row.name}>{row.name}</span>
+                    </td>
+                    <td className="p-3.5 font-mono text-xs select-all text-slate-300 opacity-90">{row.pageId}</td>
+                    <td className="p-3.5 text-slate-400 truncate max-w-[110px]">{row.category}</td>
+                    <td className="p-3.5 text-xs font-sans">
+                      <div className="flex flex-wrap gap-1">
+                        {row.tasks.length === 0 ? (
+                          <span className="opacity-50 font-mono text-[10px]">Không có</span>
+                        ) : (
+                          row.tasks.map((task, i) => (
+                            <span key={i} className="bg-slate-800 border border-slate-700/80 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider text-slate-300">
+                              {task}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3.5 text-center">
+                      {row.hasPageAccessToken ? (
+                        <span className="text-emerald-400 font-extrabold text-xs">CÓ</span>
+                      ) : (
+                        <span className="text-rose-400 font-extrabold text-xs">KHÔNG</span>
+                      )}
+                    </td>
+                    <td className="p-3.5 text-center">
+                      {row.postsSuccess ? (
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl px-2 py-0.5 text-[10px] font-bold">Thành công</span>
+                      ) : (
+                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-xl px-2 py-0.5 text-[10px] font-bold">Thất bại</span>
+                      )}
+                    </td>
+                    <td className="p-3.5">
+                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black tracking-wide inline-block leading-none ${statusColor}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-xs max-w-[170px] truncate text-rose-300/90 font-mono" title={row.detail}>
+                      {row.detail || <span className="text-slate-500 italic">Không tìm thấy lỗi</span>}
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <div className="grid grid-cols-2 gap-1.5 w-[210px] mx-auto">
+                        <a 
+                          href={`https://www.facebook.com/${row.pageId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 text-blue-300 transition-all border border-slate-750"
+                        >
+                          <ExternalLink className="w-3 h-3 text-blue-400" />
+                          Mở Page
+                        </a>
+                        <a 
+                          href={`https://business.facebook.com/latest/home?asset_id=${row.pageId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 text-indigo-300 transition-all border border-slate-750"
+                        >
+                          <ExternalLink className="w-3 h-3 text-indigo-400" />
+                          Meta Suite
+                        </a>
+                        <a 
+                          href="https://business.facebook.com/latest/page_quality"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 text-amber-300 transition-all border border-slate-750 col-span-1"
+                        >
+                          <ShieldAlert className="w-3 h-3 text-amber-400" />
+                          Chất lượng
+                        </a>
+                        <a 
+                          href="https://business.facebook.com/latest/monetization"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 text-purple-300 transition-all border border-slate-750 col-span-1"
+                        >
+                          <AlertCircle className="w-3 h-3 text-purple-400" />
+                          Kiếm tiền
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* 4. LOWER SECTION: BATCH ACTION LOGGER AND FOOTER LOGS */}
+    <footer className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-905 border border-slate-700/60 rounded-2xl p-4.5 shadow-2xl shrink-0">
+      {/* PROGRESS BAR PANEL (Col Span 5) */}
+      <div className="md:col-span-5 flex flex-col justify-center gap-3 min-h-0">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs uppercase font-extrabold text-slate-300">
+            <span>Tiến trình quét trạng thái API</span>
+            <span className="font-mono text-blue-400 text-sm bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded">
+              {progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%"}
+            </span>
           </div>
-          <div className="w-full bg-[#051121] rounded-full h-2 overflow-hidden border border-white/5">
+          
+          <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner">
             <div 
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300"
-              style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              className="bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(96,165,250,0.5)]"
+              style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
             ></div>
           </div>
-        </div>
-      )}
 
-      {/* 3. TABLE OF RESULTS */}
-      <div className="flex-1 min-h-[220px] bg-white/5 border border-white/10 rounded-2xl flex flex-col overflow-hidden min-h-0">
-        <div className="overflow-x-auto overflow-y-auto max-h-[350px] min-h-[140px] flex-1">
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-[#071322] z-10 border-b border-white/15 select-none">
-              <tr>
-                <th className="p-3.5 text-left text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[18%]">Fanpage</th>
-                <th className="p-3.5 text-left text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[15%]">Page ID</th>
-                <th className="p-3.5 text-left text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[12%]">Category</th>
-                <th className="p-3.5 text-left text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[15%]">Quyền tác vụ</th>
-                <th className="p-3.5 text-center text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[8%]">Token</th>
-                <th className="p-3.5 text-center text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[10%]">Lấy bài viết</th>
-                <th className="p-3.5 text-left text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[12%]">Trạng thái</th>
-                <th className="p-3.5 text-left text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[15%] text-amber-200">Chi tiết lỗi</th>
-                <th className="p-3.5 text-center text-[10px] font-extrabold tracking-wider uppercase text-white/50 w-[15%]">Hành động</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-[11px] font-medium text-white/95">
-              {pageStatuses.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-8 text-center text-white/40">
-                    <Info className="w-8 h-8 mx-auto opacity-35 mb-2" />
-                    Không có thông tin kiểm tra. Vui lòng click nút <strong className="text-white/70">"Kiểm tra lại toàn bộ"</strong> để bắt đầu phân tích trạng thái các Page.
-                  </td>
-                </tr>
-              ) : (
-                pageStatuses.map((row) => {
-                  let statusColor = "bg-emerald-500/20 text-emerald-300 border-emerald-500/25";
-                  if (row.status.includes("Thiếu quyền")) {
-                    statusColor = "bg-amber-500/20 text-amber-300 border-amber-500/25";
-                  } else if (row.status.includes("lỗi") || row.status.includes("hết hạn")) {
-                    statusColor = "bg-rose-500/20 text-rose-300 border-rose-500/25";
-                  } else if (row.status.includes("hạn chế") || row.status.includes("Nghi bị hạn chế")) {
-                    statusColor = "bg-purple-500/20 text-purple-300 border-purple-500/25";
-                  } else if (row.status.includes("kiểm tra thủ công")) {
-                    statusColor = "bg-cyan-500/20 text-cyan-300 border-cyan-500/25";
-                  }
-
-                  return (
-                    <tr key={row.pageId} className="hover:bg-white/5 transition-colors">
-                      <td className="p-3 font-semibold select-all font-sans text-xs flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-600/20 overflow-hidden flex items-center justify-center border border-white/10 shrink-0">
-                          <span className="text-[10px] font-bold text-blue-300">{row.name.substring(0, 1).toUpperCase()}</span>
-                        </div>
-                        <span className="truncate max-w-[120px]" title={row.name}>{row.name}</span>
-                      </td>
-                      <td className="p-3 font-mono text-[10px] select-all opacity-80">{row.pageId}</td>
-                      <td className="p-3 text-white/70 truncate max-w-[100px]">{row.category}</td>
-                      <td className="p-3 text-[10px] font-sans">
-                        <div className="flex flex-wrap gap-1">
-                          {row.tasks.length === 0 ? (
-                            <span className="opacity-50 font-mono text-[9px]">Không xác định</span>
-                          ) : (
-                            row.tasks.map((task, i) => (
-                              <span key={i} className="bg-white/15 px-1 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-white/90">
-                                {task}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        {row.hasPageAccessToken ? (
-                          <span className="text-emerald-400 font-bold font-sans">CÓ</span>
-                        ) : (
-                          <span className="text-rose-400 font-bold font-sans">KHÔNG</span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        {row.postsSuccess ? (
-                          <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-full px-1.5 py-0.5 text-[9px]">OKE CHÉC</span>
-                        ) : (
-                          <span className="bg-rose-500/20 text-rose-300 border border-rose-500/20 rounded-full px-1.5 py-0.5 text-[9px]">LỖI ĐỌC</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-bold inline-block leading-tight ${statusColor}`}>
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-[10px] max-w-[160px] truncate text-rose-300/80 font-mono" title={row.detail}>
-                        {row.detail || <span className="text-white/30 italic">Không có lỗi</span>}
-                      </td>
-                      <td className="p-3">
-                        <div className="grid grid-cols-2 gap-1 w-[200px]">
-                          <a 
-                            href={`https://www.facebook.com/${row.pageId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-white/10 hover:bg-white/20 px-1.5 py-1 rounded text-[9px] font-bold text-center flex items-center justify-center gap-0.5 text-blue-200 transition-all border border-white/5"
-                          >
-                            <ExternalLink className="w-2.5 h-2.5" />
-                            Mở Page
-                          </a>
-                          <a 
-                            href={`https://business.facebook.com/latest/home?asset_id=${row.pageId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-white/10 hover:bg-white/20 px-1.5 py-1 rounded text-[9px] font-bold text-center flex items-center justify-center gap-0.5 text-indigo-200 transition-all border border-white/5"
-                          >
-                            <ExternalLink className="w-2.5 h-2.5" />
-                            Suite
-                          </a>
-                          <a 
-                            href="https://business.facebook.com/latest/page_quality"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-white/10 hover:bg-white/20 px-1.5 py-1 rounded text-[9px] font-bold text-center flex items-center justify-center gap-0.5 text-amber-200 transition-all border border-white/5 col-span-1"
-                          >
-                            <ShieldAlert className="w-2.5 h-2.5 text-amber-300" />
-                            Page Quality
-                          </a>
-                          <a 
-                            href="https://business.facebook.com/latest/monetization"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-white/10 hover:bg-white/20 px-1.5 py-1 rounded text-[9px] font-bold text-center flex items-center justify-center gap-0.5 text-purple-200 transition-all border border-white/5 col-span-1"
-                          >
-                            <AlertCircle className="w-2.5 h-2.5 text-purple-300" />
-                            Kiếm tiền
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <span className="text-xs font-bold text-slate-200">
+              Thực hiện: <span className="font-mono text-sm text-indigo-300 font-black">{progress.current}</span> / <span className="font-mono text-sm text-slate-400 font-bold">{progress.total}</span> Pages.
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* 4. REAL-TIME LOG AREA */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 shrink-0">
-        <h4 className="text-[10px] font-extrabold tracking-wider text-white/60 mb-2 uppercase flex items-center gap-1.5 border-b border-white/10 pb-1.5 select-none">
-          <Activity className="w-3.5 h-3.5 text-blue-300 animate-pulse" />
-          Nhật ký Quét Trạng thái Thời gian thực (Real-time Console)
-        </h4>
+      {/* LIVE LOG CONSOLE TERMINAL (Col Span 7) */}
+      <div className="md:col-span-7 flex flex-col bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-inner">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1.5 shrink-0">
+          <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-extrabold font-mono flex items-center gap-1.5">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+            &gt;_ Nhật ký quét trạng thái thời gian thực
+          </span>
+          <button 
+            type="button"
+            onClick={() => setLogs([])}
+            className="text-xs hover:underline text-slate-400 hover:text-white font-bold"
+          >
+            Xóa Nhật ký
+          </button>
+        </div>
 
-        <div className="bg-[#030a13] border border-white/5 rounded-xl p-2.5 font-mono text-[9px] text-white/90 h-[100px] overflow-y-auto flex flex-col-reverse custom-scrollbar">
+        <div className="overflow-y-auto h-[78px] max-h-[78px] space-y-1.5 font-mono text-[10px] text-emerald-300 custom-scrollbar pr-1 flex flex-col-reverse">
           {logs.length === 0 ? (
-            <div className="text-white/30 italic select-none">Chưa có bản ghi hoạt động nào. Tiến trình quét trạng thái sẽ được ghi lại chi tiết trực tiếp tại đây...</div>
+            <p className="text-white/30 italic">Chưa có bản ghi hoạt động nào. Tiến trình quét trạng thái sẽ được ghi lại chi tiết trực tiếp tại đây...</p>
           ) : (
             logs.map((log) => {
               let tagColor = "text-blue-300";
-              if (log.status === "success") tagColor = "text-emerald-400";
-              if (log.status === "failed") tagColor = "text-rose-400 font-bold";
-              if (log.status === "skipped") tagColor = "text-white/50";
+              if (log.status === "success") tagColor = "text-emerald-400 font-extrabold";
+              if (log.status === "failed") tagColor = "text-rose-400 font-black";
+              if (log.status === "skipped") tagColor = "text-slate-400";
 
               return (
-                <div key={log.id} className="py-0.5 border-b border-white/5 leading-relaxed flex gap-2">
-                  <span className="text-white/40 font-semibold select-none">{log.time}</span>
-                  <span className={`${tagColor} max-w-[120px] truncate select-none border-r border-white/10 pr-2 font-bold`}>
+                <div key={log.id} className="py-1 border-b border-slate-900 leading-normal flex gap-2.5">
+                  <span className="text-slate-500 font-bold select-none">[{log.time}]</span>
+                  <span className={`${tagColor} max-w-[140px] truncate select-none border-r border-slate-800 pr-2.5 font-black`}>
                     [{log.pageName}]
                   </span>
-                  <span className="text-white/90 whitespace-pre-wrap select-text">{log.message}</span>
+                  <span className="text-slate-200 whitespace-pre-wrap select-text leading-relaxed">{log.message}</span>
                 </div>
               );
             })
           )}
         </div>
       </div>
-    </div>
-  );
+    </footer>
+  </div>
+);
 }

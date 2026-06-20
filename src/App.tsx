@@ -169,21 +169,21 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-between w-full h-6 bg-[#05111d]/60 hover:bg-[#071728]/80 border border-white/20 disabled:border-white/10 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 rounded-lg px-2 py-0.5 text-[10px] text-left text-white disabled:opacity-35 cursor-pointer font-medium select-none transition-all animate-none"
+        className="relative flex items-center justify-between w-full h-9 bg-slate-900/90 hover:bg-slate-950 border border-slate-700/60 disabled:border-slate-800 hover:border-blue-500 focus:border-blue-500 rounded-xl px-3 text-xs text-left text-white disabled:opacity-35 cursor-pointer font-bold select-none transition-all shadow-sm"
       >
-        <span className={`${value ? "text-white" : "text-white/40"} font-mono`}>
+        <span className={`${value ? "text-white" : "text-white/40"} font-semibold font-mono`}>
           {displayValue()}
         </span>
-        <Calendar className="w-3 h-3 text-white/50 ml-1 shrink-0" />
+        <Calendar className="w-3.5 h-3.5 text-white/50 ml-1 shrink-0" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 z-[99] w-[260px] bg-[#092233] border border-white/25 rounded-2xl shadow-2xl p-3.5 text-white select-none transition-all">
-          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+        <div className="absolute right-0 top-full mt-2 z-[99] w-[270px] bg-slate-950 border border-slate-700/80 rounded-2xl shadow-2xl p-4 text-white select-none transition-all">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <button
               type="button"
               onClick={() => changeMonth(-1)}
-              className="p-1 hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-white/70 hover:text-white"
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-white/70 hover:text-white"
             >
               <ChevronRight className="w-4 h-4 rotate-180" />
             </button>
@@ -193,15 +193,15 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
             <button
               type="button"
               onClick={() => changeMonth(1)}
-              className="p-1 hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-white/70 hover:text-white"
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-white/70 hover:text-white"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase font-bold text-white/40 mt-2 font-mono">
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase font-bold text-slate-400 mt-2 font-mono">
             {["H", "B", "T", "N", "S", "B", "C"].map((d, idx) => (
-              <span key={idx} className={idx >= 5 ? "text-rose-400/70" : ""}>{d}</span>
+              <span key={idx} className={idx >= 5 ? "text-rose-400 font-extrabold" : ""}>{d}</span>
             ))}
           </div>
 
@@ -217,14 +217,14 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
                   key={index}
                   type="button"
                   onClick={() => handleSelectDay(dateStr)}
-                  className={`py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/30 scale-105"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/30 scale-105"
                       : isToday
-                      ? "bg-white/10 text-emerald-300 ring-1 ring-emerald-400/30 font-extrabold"
+                      ? "bg-white/10 text-blue-400 ring-1 ring-blue-500/30 font-extrabold"
                       : isCurrentMonth
                       ? "text-white hover:bg-white/10"
-                      : "text-white/25 hover:bg-white/5"
+                      : "text-white/20 hover:bg-white/5"
                   }`}
                 >
                   {day}
@@ -233,7 +233,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
             })}
           </div>
 
-          <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-white/5 text-[10px] font-bold">
+          <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-slate-800 text-[11px] font-bold">
             <button
               type="button"
               onClick={handleClear}
@@ -244,7 +244,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
             <button
               type="button"
               onClick={handleToday}
-              className="text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer"
+              className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
             >
               Hôm nay
             </button>
@@ -288,14 +288,14 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-1 bg-[#05111d]/60 hover:bg-[#071728]/80 border border-white/20 hover:border-emerald-400 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/50 rounded-lg px-2 h-6 text-[10px] outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[70px]"
+        className="flex items-center justify-between gap-1 bg-slate-900/90 hover:bg-slate-950 border border-slate-700/60 hover:border-blue-500 focus:border-blue-500 rounded-xl px-2.5 h-9 text-xs outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[70px] shadow-sm"
       >
         <span>{selectedOption?.label}</span>
-        <ChevronRight className={`w-3 h-3 text-white/55 transition-transform duration-200 ${isOpen ? "rotate-90 text-emerald-400" : ""}`} />
+        <ChevronRight className={`w-3 h-3 text-white/55 transition-transform duration-200 ${isOpen ? "rotate-90 text-blue-400" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1.5 z-[99] w-[115px] bg-[#092233] border border-white/25 rounded-xl shadow-2xl p-1 overflow-hidden transition-all">
+        <div className="absolute right-0 top-full mt-1.5 z-[99] w-[115px] bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 overflow-hidden transition-all">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -304,14 +304,14 @@ function CustomSelect({
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-between cursor-pointer ${
+              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 value === opt.value
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-blue-600 text-white"
                   : "text-white/80 hover:bg-white/10 hover:text-white"
               }`}
             >
               <span>{opt.label}</span>
-              {value === opt.value && <Check className="w-3 h-3 text-white stroke-[3.5px]" />}
+              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px]" />}
             </button>
           ))}
         </div>
@@ -1035,11 +1035,75 @@ export default function App() {
         </div>
       )}
 
+      {/* 3 MAIN PAGES NAVIGATION */}
+      <nav className="relative z-30 bg-slate-900/60 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-1.5 flex flex-col md:flex-row items-stretch md:items-center gap-2 shrink-0 mb-3.5 shadow-xl">
+        <button
+          id="tab-posts"
+          type="button"
+          onClick={() => {
+            setActiveTab("posts");
+            addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+          }}
+          className={`flex-1 flex items-center justify-center gap-3.5 px-6 py-3.5 rounded-xl transition-all cursor-pointer ${
+            activeTab === "posts"
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/80 scale-[1.01]"
+              : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
+          }`}
+        >
+          <FileText className={`w-5.5 h-5.5 ${activeTab === "posts" ? "text-white animate-pulse" : "text-slate-400"}`} />
+          <div className="text-left select-none">
+            <span className="block text-sm font-black tracking-wide">Quản lý bài viết</span>
+            <span className="block text-[11px] opacity-80 font-normal">Quét bài đăng & Xoá hàng loạt</span>
+          </div>
+        </button>
+
+        <button
+          id="tab-status"
+          type="button"
+          onClick={() => {
+            setActiveTab("status");
+            addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+          }}
+          className={`flex-1 flex items-center justify-center gap-3.5 px-6 py-3.5 rounded-xl transition-all cursor-pointer ${
+            activeTab === "status"
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/80 scale-[1.01]"
+              : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
+          }`}
+        >
+          <Activity className={`w-5.5 h-5.5 ${activeTab === "status" ? "text-white animate-pulse" : "text-slate-400"}`} />
+          <div className="text-left select-none">
+            <span className="block text-sm font-black tracking-wide font-sans">Trạng thái Fanpage</span>
+            <span className="block text-[11px] opacity-80 font-normal font-sans">Kiểm tra kết nối & Quyền hạn</span>
+          </div>
+        </button>
+
+        <button
+          id="tab-admins"
+          type="button"
+          onClick={() => {
+            setActiveTab("admins");
+            addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+          }}
+          className={`flex-1 flex items-center justify-center gap-3.5 px-6 py-3.5 rounded-xl transition-all cursor-pointer ${
+            activeTab === "admins"
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/80 scale-[1.01]"
+              : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
+          }`}
+        >
+          <Users className={`w-5.5 h-5.5 ${activeTab === "admins" ? "text-white animate-pulse" : "text-slate-400"}`} />
+          <div className="text-left select-none">
+            <span className="block text-sm font-black tracking-wide font-sans">Quản trị viên Fanpage</span>
+            <span className="block text-[11px] opacity-80 font-normal font-sans">Phân tích Business Manager & Admins</span>
+          </div>
+        </button>
+      </nav>
+
       {/* MAIN CONTAINER */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch overflow-hidden">
         
-        {/* SIDEBAR: PAGES LIST (Col Span 3) */}
-        <aside className="lg:col-span-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 flex flex-col shadow-xl overflow-hidden min-h-0 h-full">
+        {/* SIDEBAR: PAGES LIST (Col Span 2) */}
+        {activeTab === "posts" && (
+          <aside className="lg:col-span-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 flex flex-col shadow-xl overflow-hidden min-h-0 h-full">
           <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-white/10">
             <div className="flex justify-between items-center">
               <span className="text-xs uppercase tracking-wider text-white/70 font-extrabold flex items-center gap-1.5">
@@ -1210,321 +1274,272 @@ export default function App() {
 
 
         </aside>
+        )}
 
-        {/* MAIN POST AREA & FILTERS (Col Span 9) */}
-        <main className="lg:col-span-9 flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
+        {/* MAIN POST AREA & FILTERS (Col Span 10) */}
+        <main className={`${activeTab === "posts" ? "lg:col-span-10" : "lg:col-span-12"} flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full`}>
           
-          {/* NAVIGATION TABS BAR (GLASS DESIGN & DARK MODE STYLE) */}
-          <nav className="relative z-30 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-1 flex items-center gap-1 shrink-0 shadow-md">
-            <button
-              id="tab-posts"
-              onClick={() => setActiveTab("posts")}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "posts"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30"
-                  : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              Bài viết & Xóa bài
-            </button>
-            <button
-              id="tab-status"
-              onClick={() => setActiveTab("status")}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "status"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30"
-                  : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5 animate-pulse" />
-              Trạng thái Page
-            </button>
-            <button
-              id="tab-admins"
-              onClick={() => setActiveTab("admins")}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "admins"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20 border border-blue-500/30"
-                  : "text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              Quản trị & BM
-            </button>
-          </nav>
-
           {activeTab === "posts" && (
             <>
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 text-white shadow-xl flex flex-col gap-2 shrink-0">
-            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
-              <h2 className="text-xs font-extrabold tracking-wider uppercase text-white/80 flex items-center gap-1.5">
-                <ListFilter className="w-3.5 h-3.5 text-emerald-300" />
-                Bộ lọc bài viết & Thống kê
-              </h2>
-              <div className="flex gap-1.5">
-                <button 
-                  id="preset-all-time"
-                  onClick={() => {
-                    setFilters(f => ({
-                      ...f,
-                      enableOlderThan: false,
-                      enableDateRange: false
-                    }));
-                    addLog("system", "Hủy bộ lọc thời gian - Hiển thị tối đa bài đăng từ trước đến nay.", "success");
-                  }}
-                  className={`px-2 py-0.5 rounded-md text-[9px] uppercase font-bold transition-all ${
-                    !filters.enableOlderThan && !filters.enableDateRange
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25" 
-                      : "bg-white/5 text-white/70 hover:bg-white/10"
-                  }`}
-                >
-                  Từ trước đến nay
-                </button>
-                <button 
-                  id="preset-30-days"
-                  onClick={() => setPresetOlderThan(30)}
-                  className={`px-2 py-0.5 rounded-md text-[9px] uppercase font-bold transition-all ${
-                    filters.enableOlderThan && filters.olderThanDays === 30 
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25" 
-                      : "bg-white/5 text-white/70 hover:bg-white/10"
-                  }`}
-                >
-                  &gt; 30 ngày
-                </button>
-                <button 
-                  id="preset-90-days"
-                  onClick={() => setPresetOlderThan(90)}
-                  className={`px-2 py-0.5 rounded-md text-[9px] uppercase font-bold transition-all ${
-                    filters.enableOlderThan && filters.olderThanDays === 90 
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25" 
-                      : "bg-white/5 text-white/70 hover:bg-white/10"
-                  }`}
-                >
-                  &gt; 90 ngày
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 lg:gap-2.5 relative z-40 w-full text-white">
-              
-              {/* Filter: Older Than X days */}
-              <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
-                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
-                  <div 
-                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
-                      filters.enableOlderThan 
-                        ? "bg-emerald-500 border-emerald-400 text-white shadow-sm" 
-                        : "border-white/30 hover:border-white/50"
-                    }`}
-                  >
-                    {filters.enableOlderThan && <Check className="w-2.5 h-2.5 stroke-[3px]" />}
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    id="chk-filter-older"
-                    checked={filters.enableOlderThan}
-                    onChange={(e) => setFilters(f => ({ ...f, enableOlderThan: e.target.checked }))}
-                    className="sr-only"
-                  />
-                  <span>Cũ hơn:</span>
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <input 
-                    type="number"
-                    id="input-older-days"
-                    min="1"
-                    value={filters.olderThanDays}
-                    disabled={!filters.enableOlderThan}
-                    onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
-                    className="bg-black/40 border border-white/20 rounded-md px-1.5 h-5 text-[10px] font-mono outline-none text-white w-10 text-center font-bold disabled:opacity-30 focus:border-emerald-400 transition-all"
-                  />
-                  <span className="text-[9px] text-white/40">ngày</span>
-                </div>
-              </div>
-
-              {/* Filter: Keyword Search */}
-              <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
-                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none shrink-0">
-                  <div 
-                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
-                      filters.enableKeyword 
-                        ? "bg-emerald-500 border-emerald-400 text-white shadow-sm" 
-                        : "border-white/30 hover:border-white/50"
-                    }`}
-                  >
-                    {filters.enableKeyword && <Check className="w-2.5 h-2.5 stroke-[3px]" />}
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    id="chk-filter-keyword"
-                    checked={filters.enableKeyword}
-                    onChange={(e) => setFilters(f => ({ ...f, enableKeyword: e.target.checked }))}
-                    className="sr-only"
-                  />
-                  <span>Từ khóa:</span>
-                </label>
-                <div className="relative flex-1">
-                  <input 
-                    type="text" 
-                    id="input-keyword"
-                    value={keywordInput}
-                    disabled={!filters.enableKeyword}
-                    onChange={(e) => setKeywordInput(e.target.value)}
-                    placeholder="Tìm..." 
-                    className="bg-black/40 border border-white/20 rounded-md pl-4.5 pr-1 h-5 text-[10px] outline-none text-white w-full disabled:opacity-30 focus:border-emerald-400 transition-all font-medium"
-                  />
-                  <Search className="w-2.5 h-2.5 absolute left-1.5 top-1/2 -translate-y-1/2 text-white/40" />
-                </div>
-              </div>
-
-              {/* Filter: Date Range Selection */}
-              <div className="col-span-1 sm:col-span-6 lg:col-span-4 flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
-                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none shrink-0">
-                  <div 
-                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
-                      filters.enableDateRange 
-                        ? "bg-emerald-500 border-emerald-400 text-white shadow-sm" 
-                        : "border-white/30 hover:border-white/50"
-                    }`}
-                  >
-                    {filters.enableDateRange && <Check className="w-2.5 h-2.5 stroke-[3px]" />}
-                  </div>
-                  <input 
-                    type="checkbox" 
-                    id="chk-filter-range"
-                    checked={filters.enableDateRange}
-                    onChange={(e) => setFilters(f => ({ ...f, enableDateRange: e.target.checked }))}
-                    className="sr-only"
-                  />
-                  <span>Khoảng:</span>
-                </label>
-                <div className="flex items-center gap-1 leading-none shrink-0">
-                  <span className="text-[9px] text-white/40 font-semibold">Từ</span>
-                  <div className="w-[72px] sm:w-[80px]">
-                    <CustomDatePicker
-                      value={filters.dateFrom}
-                      disabled={!filters.enableDateRange}
-                      onChange={(val) => setFilters(f => ({ ...f, dateFrom: val }))}
-                    />
-                  </div>
-                  <span className="text-[9px] text-white/40 font-semibold font-semibold">đến</span>
-                  <div className="w-[72px] sm:w-[80px]">
-                    <CustomDatePicker
-                      value={filters.dateTo}
-                      disabled={!filters.enableDateRange}
-                      onChange={(val) => setFilters(f => ({ ...f, dateTo: val }))}
-                    />
+              <section className="relative z-30 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-4.5 text-slate-100 shadow-2xl flex flex-col gap-3.5 shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <h2 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-2">
+                    <ListFilter className="w-5 h-5 text-blue-400" />
+                    Bộ lọc bài viết & Thống kê
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      id="preset-all-time"
+                      type="button"
+                      onClick={() => {
+                        setFilters(f => ({
+                          ...f,
+                          enableOlderThan: false,
+                          enableDateRange: false
+                        }));
+                        addLog("system", "Hủy bộ lọc thời gian - Hiển thị tối đa bài đăng từ trước đến nay.", "success");
+                      }}
+                      className={`px-3.5 py-2 rounded-xl text-[11px] uppercase font-extrabold tracking-wide transition-all ${
+                        !filters.enableOlderThan && !filters.enableDateRange
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500" 
+                          : "bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-transparent"
+                      }`}
+                    >
+                      Từ trước đến nay
+                    </button>
+                    <button 
+                      id="preset-30-days"
+                      type="button"
+                      onClick={() => setPresetOlderThan(30)}
+                      className={`px-3.5 py-2 rounded-xl text-[11px] uppercase font-extrabold tracking-wide transition-all ${
+                        filters.enableOlderThan && filters.olderThanDays === 30 
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500" 
+                          : "bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-transparent"
+                      }`}
+                    >
+                      &gt; 30 ngày
+                    </button>
+                    <button 
+                      id="preset-90-days"
+                      type="button"
+                      onClick={() => setPresetOlderThan(90)}
+                      className={`px-3.5 py-2 rounded-xl text-[11px] uppercase font-extrabold tracking-wide transition-all ${
+                        filters.enableOlderThan && filters.olderThanDays === 90 
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 border border-blue-500" 
+                          : "bg-slate-800 text-slate-300 hover:bg-slate-750 hover:text-white border border-transparent"
+                      }`}
+                    >
+                      &gt; 90 ngày
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Filter: Max Limits config */}
-              <div className="col-span-1 sm:col-span-6 lg:col-span-2 flex items-center justify-between gap-2 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all min-h-[36px] h-auto w-full">
-                <span className="text-[10px] font-bold text-white/85 flex items-center gap-1 select-none shrink-0">
-                  <SlidersHorizontal className="w-3" />
-                  Giới hạn:
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[9px] text-white/50">Tải</span>
-                    <CustomSelect
-                      value={filters.maxPostsToFetch}
-                      onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
-                      options={[
-                        { value: 10, label: "10" },
-                        { value: 50, label: "50" },
-                        { value: 100, label: "100" },
-                        { value: 250, label: "250" },
-                        { value: 500, label: "500" },
-                        { value: 1000, label: "1000" }
-                      ]}
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 relative z-40 w-full text-slate-100">
+                  
+                  {/* Filter: Older Than X days */}
+                  <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-100 cursor-pointer select-none">
+                      <div 
+                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${
+                          filters.enableOlderThan 
+                            ? "bg-blue-600 border-blue-500 text-white shadow-sm" 
+                            : "border-slate-600 hover:border-slate-400"
+                        }`}
+                      >
+                        {filters.enableOlderThan && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        id="chk-filter-older"
+                        checked={filters.enableOlderThan}
+                        onChange={(e) => setFilters(f => ({ ...f, enableOlderThan: e.target.checked }))}
+                        className="sr-only"
+                      />
+                      <span>Cũ hơn:</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number"
+                        id="input-older-days"
+                        min="1"
+                        value={filters.olderThanDays}
+                        disabled={!filters.enableOlderThan}
+                        onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
+                        className="bg-slate-950 border border-slate-700/80 rounded-xl px-2 h-8 text-xs font-mono outline-none text-white w-14 text-center font-bold disabled:opacity-30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/25 transition-all"
+                      />
+                      <span className="text-[11px] text-slate-400 font-bold">ngày</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5">
-                    <span className="text-[9px] text-white/50">Hiện</span>
-                    <CustomSelect
-                      value={filters.maxPostsToShow}
-                      onChange={(val) => setFilters(f => ({ ...f, maxPostsToShow: val }))}
-                      options={[
-                        { value: 10, label: "10" },
-                        { value: 50, label: "50" },
-                        { value: 100, label: "100" },
-                        { value: 250, label: "250" },
-                        { value: 500, label: "500" },
-                        { value: 1000, label: "1000" }
-                      ]}
-                    />
+
+                  {/* Filter: Keyword Search */}
+                  <div className="col-span-1 sm:col-span-6 lg:col-span-3 flex items-center gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-100 cursor-pointer select-none shrink-0">
+                      <div 
+                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${
+                          filters.enableKeyword 
+                            ? "bg-blue-600 border-blue-500 text-white shadow-sm" 
+                            : "border-slate-600 hover:border-slate-400"
+                        }`}
+                      >
+                        {filters.enableKeyword && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        id="chk-filter-keyword"
+                        checked={filters.enableKeyword}
+                        onChange={(e) => setFilters(f => ({ ...f, enableKeyword: e.target.checked }))}
+                        className="sr-only"
+                      />
+                      <span>Từ khóa:</span>
+                    </label>
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        id="input-keyword"
+                        value={keywordInput}
+                        disabled={!filters.enableKeyword}
+                        onChange={(e) => setKeywordInput(e.target.value)}
+                        placeholder="Tìm theo nội dung..." 
+                        className="bg-slate-950 border border-slate-700/80 rounded-xl pl-8 pr-2 h-8 text-xs outline-none text-white w-full disabled:opacity-30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/25 transition-all font-medium"
+                      />
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+
+                  {/* Filter: Date Range Selection */}
+                  <div className="col-span-1 sm:col-span-6 lg:col-span-4 flex items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-100 cursor-pointer select-none shrink-0">
+                      <div 
+                        className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all ${
+                          filters.enableDateRange 
+                            ? "bg-blue-600 border-blue-500 text-white shadow-sm" 
+                            : "border-slate-600 hover:border-slate-400"
+                        }`}
+                      >
+                        {filters.enableDateRange && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        id="chk-filter-range"
+                        checked={filters.enableDateRange}
+                        onChange={(e) => setFilters(f => ({ ...f, enableDateRange: e.target.checked }))}
+                        className="sr-only"
+                      />
+                      <span>Khoảng:</span>
+                    </label>
+                    <div className="flex items-center gap-1.5 leading-none shrink-0">
+                      <span className="text-[11px] text-slate-400 font-bold">Từ</span>
+                      <div className="w-[85px] sm:w-[95px]">
+                        <CustomDatePicker
+                          value={filters.dateFrom}
+                          disabled={!filters.enableDateRange}
+                          onChange={(val) => setFilters(f => ({ ...f, dateFrom: val }))}
+                        />
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-bold">đến</span>
+                      <div className="w-[85px] sm:w-[95px]">
+                        <CustomDatePicker
+                          value={filters.dateTo}
+                          disabled={!filters.enableDateRange}
+                          onChange={(val) => setFilters(f => ({ ...f, dateTo: val }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter: Max Limits config */}
+                  <div className="col-span-1 sm:col-span-6 lg:col-span-2 flex items-center justify-between gap-1 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all min-h-[44px] h-auto w-full">
+                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1 select-none shrink-0">
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      Lọc:
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] text-slate-400">Tải</span>
+                        <CustomSelect
+                          value={filters.maxPostsToFetch}
+                          onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
+                          options={[
+                            { value: 10, label: "10" },
+                            { value: 50, label: "50" },
+                            { value: 100, label: "100" },
+                            { value: 250, label: "250" },
+                            { value: 500, label: "500" },
+                            { value: 1000, label: "1000" }
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* SELECTION CONTROL & RUN BUTTON WORKSPACE */}
+                <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 pt-3.5 border-t border-slate-800">
+                  
+                  {/* Compact Stats Badges inside Footer of Filters Card */}
+                  <div className="flex flex-wrap items-center gap-y-2 gap-x-4 bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-slate-800 select-none font-medium text-slate-200 shadow-inner">
+                    {/* Stat 1: Selection */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-extrabold uppercase tracking-wider text-emerald-400">Đã chọn:</span>
+                      <span className="font-mono font-black text-emerald-300 text-sm bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">{selectedPostIds.length}</span>
+                      <span className="text-slate-400">/ {displayedPosts.length} hiển thị</span>
+                    </div>
+
+                    <span className="w-px h-5 bg-slate-800 hidden md:inline-block" />
+
+                    {/* Stat 2: Total dynamic matches */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-extrabold uppercase tracking-wider text-blue-400 font-sans">Khớp bộ lọc:</span>
+                      <span className="font-mono font-black text-blue-300 text-sm bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/25">{filteredPosts.length}</span>
+                      <span className="text-slate-400">bài</span>
+                    </div>
+
+                    <span className="w-px h-5 bg-slate-800 hidden md:inline-block" />
+
+                    {/* Stat 3: Total cached posts in session */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-extrabold uppercase tracking-wider text-purple-400 font-sans">Tổng nạp:</span>
+                      <span className="font-mono font-black text-purple-300 text-sm bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/25">{posts.length}</span>
+                    </div>
+
+                    <span className="w-px h-5 bg-slate-800 hidden md:inline-block" />
+
+                    {/* Stat 4: Deleted Count */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-extrabold uppercase tracking-wider text-rose-400 font-sans">Đã xóa:</span>
+                      <span className="font-mono font-black text-rose-300 text-sm bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Trigger Buttons - SIGNIFICANTLY INCREASED ACTION SIZES */}
+                  <div className="flex flex-col sm:flex-row items-stretch gap-2.5 shrink-0">
+                    <button
+                      id="btn-load-posts"
+                      type="button"
+                      onClick={fetchPostsFromSelectedPages}
+                      disabled={selectedPageIds.length === 0 || loadingPosts}
+                      className="px-6 py-3.5 h-12 bg-slate-800 hover:bg-slate-750 border border-slate-700/60 hover:border-slate-500 text-white rounded-xl font-black text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer select-none active:scale-95 shadow-md"
+                    >
+                      <RotateCw className={`w-4 h-4 text-blue-300 ${loadingPosts ? "animate-spin" : ""}`} />
+                      Tải lại bài viết
+                    </button>
+
+                    <button 
+                      id="btn-delete-trigger"
+                      type="button"
+                      onClick={() => setShowConfirmModal(true)}
+                      disabled={selectedPostIds.length === 0 || isDeleting}
+                      className="px-8 py-3.5 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-rose-900/30 hover:shadow-rose-900/40 border border-rose-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none cursor-pointer select-none active:scale-95"
+                    >
+                      <Trash2 className="w-4.5 h-4.5 text-rose-100" />
+                      Xóa bài viết đã chọn
+                    </button>
                   </div>
                 </div>
-              </div>
 
-            </div>
-
-            {/* SELECTION CONTROL & RUN BUTTON WORKSPACE */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 mt-0.5 border-t border-white/10">
-              
-              {/* Compact Stats Badges inside Footer of Filters Card */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/15 px-2 py-1 rounded-xl border border-white/5 select-none font-medium">
-                {/* Stat 1: Selection */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  <span className="font-extrabold uppercase tracking-wider text-emerald-300">Đã chọn:</span>
-                  <span className="font-mono font-black text-emerald-400 text-xs">{selectedPostIds.length}</span>
-                  <span className="text-white/40">/ {displayedPosts.length} hiển thị</span>
-                </div>
-
-                <span className="w-1 h-3 border-l border-white/10" />
-
-                {/* Stat 2: Total dynamic matches */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  <span className="font-extrabold uppercase tracking-wider text-blue-300">Khớp lọc:</span>
-                  <span className="font-mono font-black text-blue-300 text-xs">{filteredPosts.length}</span>
-                  <span className="text-white/40">bài</span>
-                </div>
-
-                <span className="w-1 h-3 border-l border-white/10" />
-
-                {/* Stat 3: Total cached posts in session */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  <span className="font-extrabold uppercase tracking-wider text-purple-300">Tổng nạp:</span>
-                  <span className="font-mono font-black text-purple-300 text-xs">{posts.length}</span>
-                </div>
-
-                <span className="w-1 h-3 border-l border-white/10" />
-
-                {/* Stat 4: Deleted Count */}
-                <div className="flex items-center gap-1 text-[10px]">
-                  <span className="font-extrabold uppercase tracking-wider text-rose-300">Đã xóa:</span>
-                  <span className="font-mono font-black text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 px-1 py-0.5 rounded leading-none">{deletedCountSession}</span>
-                </div>
-              </div>
-
-              {/* Action Trigger Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  id="btn-load-posts"
-                  onClick={fetchPostsFromSelectedPages}
-                  disabled={selectedPageIds.length === 0 || loadingPosts}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-[11px] border border-white/15 transition-all flex items-center gap-1 disabled:opacity-50 cursor-pointer select-none active:scale-95"
-                >
-                  <RotateCw className={`w-3 h-3 ${loadingPosts ? "animate-spin" : ""}`} />
-                  Tải lại bài viết
-                </button>
-
-                <button 
-                  id="btn-delete-trigger"
-                  onClick={() => setShowConfirmModal(true)}
-                  disabled={selectedPostIds.length === 0 || isDeleting}
-                  className="px-4 py-1.5 bg-red-500 hover:bg-red-600 active:scale-95 text-white rounded-lg font-bold text-[11px] shadow-md shadow-red-500/25 transition-all flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa bài viết đã chọn
-                </button>
-              </div>
-            </div>
-
-          </section>
+              </section>
 
           {/* POSTS SCREEN CONTAINER */}
           <section className="relative z-10 flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-xl min-h-0">
@@ -1759,58 +1774,88 @@ export default function App() {
           </section>
 
           {/* LOWER SECTION: BATCH ACTION LOGGER AND FOOTER LOGS */}
-          <footer className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-xl shrink-0">
+          <footer className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-905 border border-slate-700/60 rounded-2xl p-4.5 shadow-2xl shrink-0">
             {/* PROGRESS BAR PANEL (Col Span 4) */}
-            <div className="md:col-span-4 flex flex-col justify-between gap-2 p-0.5 min-h-0">
-              <div>
-                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-white/55 mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <span>Tiến trình tác vụ</span>
-                    {isDeleting && (
-                      <button
-                        id="btn-stop-deletion"
-                        onClick={() => {
-                          deleteCancelledRef.current = true;
-                          addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
-                        }}
-                        className="px-1.5 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 text-[8px] font-black tracking-wide uppercase transition-all shrink-0 cursor-pointer animate-pulse"
-                        title="Click để dừng tiến trình xóa ngay lập tức"
-                      >
-                        Dừng xóa
-                      </button>
-                    )}
-                  </div>
-                  <span className="font-mono text-emerald-300">{progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%"}</span>
+            <div className="md:col-span-5 flex flex-col justify-between gap-3 min-h-0">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs uppercase font-extrabold text-slate-300">
+                  <span>Tiến trình tác vụ {loadingPosts ? "(Tải bài viết)" : "(Xoá bài viết)"}</span>
+                  <span className="font-mono text-blue-400 text-sm bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded">
+                    {loadingPosts 
+                      ? (scanProgress.total > 0 ? `${Math.round((scanProgress.current / scanProgress.total) * 100)}%` : "0%")
+                      : (progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%")
+                    }
+                  </span>
                 </div>
-                <div className="w-full h-2 bg-black/25 rounded-full overflow-hidden shadow-inner border border-white/5">
+                
+                <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner">
                   <div 
-                    className="bg-gradient-to-r from-blue-400 via-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(96,165,250,0.5)]"
-                    style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+                    className="bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(96,165,250,0.5)]"
+                    style={{ width: `${loadingPosts 
+                      ? (scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0)
+                      : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%` 
+                    }}
                   ></div>
                 </div>
-                <span className="text-[9px] text-white/55 mt-0.5 block">
-                  Đã thực hiện: {progress.current} / {progress.total} bài viết.
-                </span>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <span className="text-xs font-bold text-slate-200">
+                    {loadingPosts ? (
+                      <>Thực hiện: <span className="font-mono text-sm text-indigo-300 font-black">{scanProgress.current}</span> / <span className="font-mono text-sm text-slate-400 font-bold">{scanProgress.total}</span> trang.</>
+                    ) : (
+                      <>Thực hiện: <span className="font-mono text-sm text-indigo-300 font-black">{progress.current}</span> / <span className="font-mono text-sm text-slate-400 font-bold">{progress.total}</span> bài viết.</>
+                    )}
+                  </span>
+
+                  {isDeleting && (
+                    <button
+                      id="btn-stop-deletion"
+                      type="button"
+                      onClick={() => {
+                        deleteCancelledRef.current = true;
+                        addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white border border-rose-500/30 text-[10px] font-black tracking-widest uppercase transition-all shrink-0 cursor-pointer animate-pulse shadow-md shadow-rose-900/30"
+                      title="Click để dừng tiến trình xóa ngay lập tức"
+                    >
+                      Dừng xóa bài
+                    </button>
+                  )}
+                  {loadingPosts && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        scanCancelledRef.current = true;
+                        addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white border border-orange-500/30 text-[10px] font-black tracking-widest uppercase transition-all shrink-0 cursor-pointer animate-pulse shadow-md shadow-orange-900/30"
+                    >
+                      Dừng nạp bài
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl flex items-start gap-1.5 mt-0.5">
-                <ShieldAlert className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
-                <div className="text-[9px] text-rose-200 font-medium leading-normal">
-                  <span className="font-bold text-rose-100 block">CẢNH BÁO QUAN TRỌNG:</span>
-                  Xóa bài viết là VĨNH VIỄN, không thể hoàn tác trên Facebook.
+              <div className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl flex items-start gap-2">
+                <ShieldAlert className="w-4.5 h-4.5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] text-rose-200 font-semibold leading-relaxed">
+                  <span className="font-black text-rose-100 block uppercase tracking-wide">CẢNH BÁO QUAN TRỌNG:</span>
+                  Hành động xóa bài viết là VĨNH VIỄN và phản hồi API trực tiếp tới Meta. Không thể khôi phục sau khi xóa.
                 </div>
               </div>
             </div>
 
-            {/* LIVE LOG CONSOLE TERMINAL (Col Span 8) */}
-            <div className="md:col-span-8 flex flex-col bg-black/40 border border-white/10 rounded-xl p-2 md:p-2.5 shadow-inner">
-              <div className="flex items-center justify-between border-b border-white/5 pb-1 mb-1 shrink-0">
-                <span className="text-[9px] uppercase tracking-wider text-green-400 font-bold font-mono">
-                  &gt;_ Nhật ký console thời gian thực (nhịp trễ 300ms–500ms)
+            {/* LIVE LOG CONSOLE TERMINAL (Col Span 7) */}
+            <div className="md:col-span-7 flex flex-col bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-inner">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1.5 shrink-0">
+                <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-extrabold font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+                  &gt;_ Nhật ký tác vụ thời gian thực
                 </span>
                 <button 
+                  type="button"
                   onClick={() => setLogs([])}
-                  className="text-[9px] hover:underline text-white/40 hover:text-white"
+                  className="text-xs hover:underline text-slate-400 hover:text-white font-bold"
                 >
                   Xóa Nhật ký
                 </button>
@@ -1818,7 +1863,7 @@ export default function App() {
 
               <div 
                 ref={logContainerRef}
-                className="overflow-y-auto h-[68px] max-h-[68px] space-y-1 font-mono text-[9px] text-green-300 custom-scrollbar pr-1"
+                className="overflow-y-auto h-[78px] max-h-[78px] space-y-1.5 font-mono text-[10px] text-emerald-300 custom-scrollbar pr-1"
               >
                 {logs.length === 0 ? (
                   <p className="text-white/30 italic">Chưa có nhật ký hoạt động nào...</p>
@@ -1855,13 +1900,13 @@ export default function App() {
           )}
 
           {activeTab === "status" && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
               <PageStatusTab pages={pages} userToken={userToken} />
             </div>
           )}
 
           {activeTab === "admins" && (
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
               <PageAdminsTab pages={pages} userToken={userToken} />
             </div>
           )}

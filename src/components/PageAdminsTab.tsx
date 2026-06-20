@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
   Users, 
   Briefcase, 
@@ -38,6 +38,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [hasBmPermission, setHasBmPermission] = useState<boolean | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const cancelScanRef = useRef<boolean>(false);
 
   const addLog = (context: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
     const time = new Date().toLocaleTimeString("vi-VN");
@@ -78,6 +79,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
     }
 
     setScanning(true);
+    cancelScanRef.current = false;
     setPageAdmins([]);
     setLogs([]);
     setBusinesses([]);
@@ -108,7 +110,6 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
     }
 
     // 2. Scan each business and mapping connected pages
-    // progress totals = businesses counts + pages check
     const totalSteps = pages.length + (bmList.length > 0 ? bmList.length : 0);
     setProgress({ current: 0, total: totalSteps });
     
@@ -117,6 +118,11 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
 
     if (bmList.length > 0) {
       for (const bm of bmList) {
+        if (cancelScanRef.current) {
+          addLog("Hàng đợi", "Đã dừng tiến trình quét phân tích Business Manager.", "skipped");
+          setScanning(false);
+          return;
+        }
         currentStepNum++;
         setProgress({ current: currentStepNum, total: totalSteps });
         addLog(bm.name, `Đang phân tích các Page trực thuộc Business Manager...`, "processing");
@@ -160,6 +166,11 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
     const records: PageAdminRecord[] = [];
 
     for (const page of pages) {
+      if (cancelScanRef.current) {
+        addLog("Hàng đợi", "Đã dừng tiến trình hợp nhất quyền tác vụ các trang hoặc BM.", "skipped");
+        setScanning(false);
+        return;
+      }
       currentStepNum++;
       setProgress({ current: currentStepNum, total: totalSteps });
       
@@ -167,7 +178,6 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
       const tasks = page.tasks || [];
       const hasPageToken = !!page.access_token;
       
-      // Compute status based on tasks
       const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
       const hasCreateContent = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");
       
@@ -257,61 +267,61 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
   const missingCount = pageAdmins.filter(r => r.status === "Thiếu quyền").length;
 
   return (
-    <div className="flex flex-col gap-4 min-h-0 w-full text-white">
+    <div className="flex flex-col gap-4 min-h-0 h-full w-full text-slate-100">
       {/* 1. BM PERMISSION ALERT STATEMENT */}
       {hasBmPermission === false && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 flex items-start gap-3 text-amber-200 shrink-0">
-          <ShieldAlert className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
-          <div className="text-[11px] leading-relaxed">
-            <strong className="block text-amber-300 font-semibold mb-0.5">Quyền business_management Chưa Sẵn Sàng:</strong>
-            Mã truy cập Facebook của bạn chưa chứa quyền phân lớp quản lý BM. App sẽ tiếp tục quét các mô hình page, tuy nhiên sẽ không thể map chéo tên Business Manager sở hữu. Bạn có thể cấp thêm quyền này khi đăng nhập lại.
+        <div className="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3.5 text-amber-200 shrink-0 shadow-md">
+          <ShieldAlert className="w-5.5 h-5.5 shrink-0 text-amber-400 mt-0.5" />
+          <div className="text-xs leading-relaxed">
+            <strong className="block text-amber-300 font-extrabold mb-0.5 uppercase tracking-wide">Quyền business_management Chưa Sẵn Sàng:</strong>
+            Mã truy cập Facebook của bạn chưa chứa quyền phân lớp quản lý BM. App vẫn hiển thị quyền hạn, nhưng không thể định vị chéo tên Business Manager sở hữu. Bạn có thể cấp thêm quyền này khi đăng nhập lại.
           </div>
         </div>
       )}
 
       {/* 2. KPI METRICS DASHBOARD */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 shrink-0">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-2.5 text-center transition-all hover:bg-white/10">
-          <p className="text-[9px] uppercase font-bold tracking-wider text-white/50">TỔNG PAGE</p>
-          <p className="text-xl font-black text-white mt-0.5 font-mono">{pages.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 shrink-0">
+        <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 text-center hover:bg-slate-850 transition-all shadow-md">
+          <p className="text-xs uppercase font-extrabold tracking-wider text-slate-400">TỔNG PAGE</p>
+          <p className="text-3xl font-black text-white mt-1 select-none font-mono">{pages.length}</p>
         </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-2.5 text-center transition-all hover:bg-emerald-500/15">
-          <p className="text-[9px] uppercase font-bold tracking-wider text-emerald-300">QUYỀN QUẢN LÝ</p>
-          <p className="text-xl font-black text-emerald-400 mt-0.5 font-mono">
+        <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 text-center hover:bg-emerald-950/60 transition-all shadow-md">
+          <p className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">QUYỀN QUẢN LÝ</p>
+          <p className="text-3xl font-black text-emerald-400 mt-1 select-none font-mono">
             {pageAdmins.length > 0 ? hasManageRights : "-"}
           </p>
         </div>
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-2.5 text-center transition-all hover:bg-blue-500/15">
-          <p className="text-[9px] uppercase font-bold tracking-wider text-blue-300">QUYỀN ĐĂNG BÀI</p>
-          <p className="text-xl font-black text-blue-400 mt-0.5 font-mono">
+        <div className="bg-blue-950/40 border border-blue-500/30 rounded-2xl p-4 text-center hover:bg-blue-950/60 transition-all shadow-md">
+          <p className="text-xs uppercase font-extrabold tracking-wider text-blue-400">QUYỀN ĐĂNG BÀI</p>
+          <p className="text-3xl font-black text-blue-400 mt-1 select-none font-mono">
             {pageAdmins.length > 0 ? hasCreateRights : "-"}
           </p>
         </div>
-        <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-2.5 text-center transition-all hover:bg-purple-500/15">
-          <p className="text-[9px] uppercase font-bold tracking-wider text-purple-300">NẰM TRONG BM</p>
-          <p className="text-xl font-black text-purple-400 mt-0.5 font-mono">
+        <div className="bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 text-center hover:bg-purple-950/60 transition-all shadow-md">
+          <p className="text-xs uppercase font-extrabold tracking-wider text-purple-400">NẰM TRONG BM</p>
+          <p className="text-3xl font-black text-purple-400 mt-1 select-none font-mono">
             {pageAdmins.length > 0 ? inBmCount : "-"}
           </p>
         </div>
-        <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-2.5 text-center transition-all hover:bg-teal-500/15">
-          <p className="text-[9px] uppercase font-bold tracking-wider text-teal-300">CHƯA XÁC ĐỊNH BM</p>
-          <p className="text-xl font-black text-teal-400 mt-0.5 font-mono">
+        <div className="bg-teal-950/40 border border-teal-500/30 rounded-2xl p-4 text-center hover:bg-teal-950/60 transition-all shadow-md">
+          <p className="text-xs uppercase font-extrabold tracking-wider text-teal-400">CHƯA KIÊN KẾT BM</p>
+          <p className="text-3xl font-black text-teal-400 mt-1 select-none font-mono">
             {pageAdmins.length > 0 ? noBmCount : "-"}
           </p>
         </div>
-        <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-2.5 text-center transition-all hover:bg-rose-500/15">
-          <p className="text-[9px] uppercase font-bold tracking-wider text-rose-300">PAGE THIẾU QUYỀN</p>
-          <p className="text-xl font-black text-rose-400 mt-0.5 font-mono">
+        <div className="bg-rose-950/40 border border-rose-500/30 rounded-2xl p-4 text-center hover:bg-rose-950/60 transition-all shadow-md">
+          <p className="text-xs uppercase font-extrabold tracking-wider text-rose-400">THIẾU QUYỀN HẠN</p>
+          <p className="text-3xl font-black text-rose-400 mt-1 select-none font-mono">
             {pageAdmins.length > 0 ? missingCount : "-"}
           </p>
         </div>
       </div>
 
       {/* 3. CONTROL CENTER BAR */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
-        {/* Filters Group */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] text-white/50 uppercase font-black tracking-wide mr-1 select-none">Lọc Danh Sách:</span>
+      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4.5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-lg">
+        {/* Filters Group - LARGER ACTION HIT TARGETS */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-300 uppercase font-black tracking-wider mr-2 select-none">Lọc Bộ Lọc:</span>
           {[
             { id: "all", label: "Tất cả" },
             { id: "manage", label: "Có quyền quản lý" },
@@ -323,14 +333,15 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
           ].map((type) => (
             <button
               key={type.id}
+              type="button"
               onClick={() => {
                 setFilterType(type.id);
                 addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${type.label}]`, "skipped");
               }}
-              className={`px-3 py-1.5 rounded-xl text-[10.5px] font-bold transition-all border ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold tracking-wide transition-all border shrink-0 cursor-pointer ${
                 filterType === type.id
-                  ? "bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-500/25"
-                  : "bg-white/5 border-white/10 hover:bg-white/10 text-white/80"
+                  ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25 scale-[1.01]"
+                  : "bg-slate-800 border-slate-700/65 text-slate-300 hover:text-white hover:bg-slate-750"
               }`}
             >
               {type.label}
@@ -339,141 +350,144 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         </div>
 
         {/* Buttons Group */}
-        <div className="flex items-center gap-2 self-end md:self-auto">
+        <div className="flex items-center gap-2.5 self-stretch xl:self-auto justify-end">
           {pageAdmins.length > 0 && (
             <button
+              type="button"
               onClick={handleExportCSV}
-              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5"
+              className="px-5 h-11 bg-slate-800 hover:bg-slate-750 border border-slate-700/50 hover:border-slate-500 text-white rounded-xl font-bold text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer select-none active:scale-95"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-4 h-4 text-slate-300" />
               Xuất CSV
             </button>
           )}
 
-          <button
-            onClick={runAdminsBMScan}
-            disabled={scanning || pages.length === 0}
-            className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-white/5 disabled:to-white/5 disabled:text-white/40 disabled:border-white/5 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-blue-900/30 border border-blue-500/30 font-sans"
-          >
-            <RotateCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
-            {scanning ? "Đang check..." : "Kiểm tra quyền & BM"}
-          </button>
+          {scanning ? (
+            <button
+              type="button"
+              onClick={() => {
+                cancelScanRef.current = true;
+                addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
+              }}
+              className="px-6 h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 cursor-pointer border border-rose-500/30 animate-pulse"
+            >
+              <XOctagon className="w-4 h-4 text-white" />
+              Dừng kiểm tra
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={runAdminsBMScan}
+              disabled={pages.length === 0}
+              className="px-6 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 shadow-lg tracking-wide active:scale-95 cursor-pointer border border-blue-500/30"
+            >
+              <RotateCw className="w-4 h-4 text-blue-100" />
+              Kiểm tra quyền & BM
+            </button>
+          )}
         </div>
       </div>
 
-      {/* PROGRESS CONTAINER */}
-      {scanning && (
-        <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl shrink-0 select-none">
-          <div className="flex justify-between items-center text-[10px] mb-1.5 font-bold text-white/80">
-            <span>TIẾN ĐỘ KIỂM TRA MÔ HÌNH HỆ THỐNG:</span>
-            <span>{progress.current} / {progress.total} bước ({Math.round((progress.current / progress.total) * 100)}%)</span>
-          </div>
-          <div className="w-full bg-[#051121] rounded-full h-2 overflow-hidden border border-white/5">
-            <div 
-              className="bg-gradient-to-r from-teal-500 to-blue-500 h-full transition-all duration-300"
-              style={{ width: `${(progress.current / progress.total) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-      )}
+  
 
       {/* 4. MAIN INTERACTIVE TABLE */}
-      <div className="flex-1 min-h-[200px] bg-white/5 border border-white/10 rounded-2xl flex flex-col overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[350px] min-h-[140px] flex-1">
+      <div className="flex-1 bg-slate-900 border border-slate-700/60 rounded-2xl flex flex-col overflow-hidden min-h-0 shadow-lg">
+        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-[#071322] z-10 border-b border-white/15 select-none text-[10px] uppercase font-extrabold tracking-wider text-white/50">
+            <thead className="sticky top-0 bg-slate-950 z-10 border-b border-slate-800 select-none">
               <tr>
-                <th className="p-3.5 text-left w-[20%]">Fanpage</th>
-                <th className="p-3.5 text-left w-[15%]">Page ID</th>
-                <th className="p-3.5 text-left w-[12%]">Category</th>
-                <th className="p-3.5 text-left w-[20%]">Quyền của tôi</th>
-                <th className="p-3.5 text-left w-[15%]">Business Manager</th>
-                <th className="p-3.5 text-left w-[15%]">Business ID</th>
-                <th className="p-3.5 text-left w-[12%]">Loại Page</th>
-                <th className="p-3.5 text-left w-[10%]">Trạng thái</th>
-                <th className="p-3.5 text-center w-[12%]">Hành động</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[15%]">Fanpage</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[12%]">Page ID</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[10%]">Category</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[15%]">Quyền của tôi</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[12%]">Business Manager</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[12%]">Business ID</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-400 w-[8%]">Phân loại</th>
+                <th className="p-3.5 text-left text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[8%]">Trạng thái</th>
+                <th className="p-3.5 text-center text-xs font-black tracking-wider uppercase whitespace-nowrap text-slate-300 w-[8%]">FB Link</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-[11px] font-medium text-white/95">
+            <tbody className="divide-y divide-slate-800 text-xs font-medium text-slate-200">
               {filteredPageAdmins.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-white/40">
-                    <Info className="w-8 h-8 mx-auto opacity-35 mb-2" />
-                    Không tìm thấy bản ghi nào khớp bộ lọc. Nhấn nút <strong className="text-white/70">"Kiểm tra quyền & BM"</strong> để quét thông tin cấu trúc quản trị.
+                  <td colSpan={9} className="p-12 text-center text-slate-400">
+                    <Info className="w-10 h-10 mx-auto opacity-40 mb-3 text-slate-300" />
+                    <p className="text-sm font-bold text-slate-100">Chứa kết quả quyền hạn quản trị</p>
+                    <p className="text-xs text-slate-400 mt-1">Vui lòng click <strong className="text-blue-400">"Kiểm tra quyền & BM"</strong> để trích xuất quyền và mô hình BM.</p>
                   </td>
                 </tr>
               ) : (
                 filteredPageAdmins.map((row) => {
-                  let statusBg = "bg-emerald-500/20 text-emerald-300 border-emerald-500/25";
+                  let statusBg = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
                   if (row.status === "Thiếu quyền") {
-                    statusBg = "bg-amber-500/20 text-amber-300 border-amber-500/25";
+                    statusBg = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
                   } else if (row.status === "Token lỗi") {
-                    statusBg = "bg-rose-500/20 text-rose-300 border-rose-500/25";
+                    statusBg = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
                   }
 
-                  let typeBg = "bg-white/10 text-white/60 border-white/10";
+                  let typeBg = "bg-slate-850 text-slate-400 border border-slate-750";
                   if (row.businessType === "Owned Page") {
-                    typeBg = "bg-purple-500/20 text-purple-300 border-purple-500/25";
+                    typeBg = "bg-purple-500/10 text-purple-400 border border-purple-500/20";
                   } else if (row.businessType === "Client Page") {
-                    typeBg = "bg-teal-500/20 text-teal-300 border-teal-500/25";
+                    typeBg = "bg-teal-500/10 text-teal-400 border border-teal-500/20";
                   }
 
                   return (
-                    <tr key={row.pageId} className="hover:bg-white/5 transition-colors">
-                      <td className="p-3 font-semibold text-xs flex items-center gap-2 select-all">
-                        <div className="w-6 h-6 rounded-full bg-blue-600/20 overflow-hidden flex items-center justify-center border border-white/10 shrink-0">
-                          <span className="text-[10px] font-bold text-blue-300">{row.name.substring(0,1).toUpperCase()}</span>
+                    <tr key={row.pageId} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="p-3.5 font-bold select-all font-sans text-xs flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-blue-600/30 overflow-hidden flex items-center justify-center border border-slate-700 shrink-0">
+                          <span className="text-xs font-black text-blue-300">{row.name.substring(0,1).toUpperCase()}</span>
                         </div>
-                        <span className="truncate max-w-[140px]" title={row.name}>{row.name}</span>
+                        <span className="truncate max-w-[140px] text-slate-100 leading-snug" title={row.name}>{row.name}</span>
                       </td>
-                      <td className="p-3 font-mono text-[10px] opacity-80 select-all">{row.pageId}</td>
-                      <td className="p-3 text-white/60 truncate max-w-[100px]" title={row.category}>{row.category}</td>
-                      <td className="p-3 text-[10.5px]">
-                        <span className="font-semibold text-white/90">{getTaskLabels(row.tasks)}</span>
+                      <td className="p-3.5 font-mono text-xs select-all text-slate-300 opacity-90">{row.pageId}</td>
+                      <td className="p-3.5 text-slate-400 truncate max-w-[110px]" title={row.category}>{row.category}</td>
+                      <td className="p-3.5 text-xs font-sans">
+                        <span className="font-extrabold text-slate-100">{getTaskLabels(row.tasks)}</span>
                       </td>
-                      <td className="p-3 font-semibold text-xs capitalize truncate max-w-[120px]" title={row.businessName}>
+                      <td className="p-3.5 font-extrabold text-xs capitalize truncate max-w-[130px] text-slate-200" title={row.businessName}>
                         {row.businessName === "N/A" ? (
-                          <span className="opacity-45 font-mono italic text-[10px]">Không xác định</span>
+                          <span className="opacity-45 font-mono italic text-[11px] text-slate-500">Ngoại vi (N/A)</span>
                         ) : (
                           row.businessName
                         )}
                       </td>
-                      <td className="p-3 font-mono text-[10px] opacity-70">
+                      <td className="p-3.5 font-mono text-xs text-slate-350 select-all">
                         {row.businessId === "N/A" ? (
-                          <span className="opacity-35 font-mono">—</span>
+                          <span className="opacity-35 font-mono text-slate-500">—</span>
                         ) : (
                           row.businessId
                         )}
                       </td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded border text-[9.5px] font-bold ${typeBg}`}>
+                      <td className="p-3.5">
+                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${typeBg}`}>
                           {row.businessType}
                         </span>
                       </td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded-full border text-[9.5px] font-bold ${statusBg}`}>
+                      <td className="p-3.5">
+                        <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black tracking-wide ${statusBg}`}>
                           {row.status}
                         </span>
                       </td>
-                      <td className="p-3 text-center">
-                        <div className="flex flex-col gap-1 w-[120px] mx-auto">
+                      <td className="p-3.5 text-center">
+                        <div className="flex flex-col gap-1 w-[130px] mx-auto">
                           <a 
                             href={`https://www.facebook.com/${row.pageId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-white/10 hover:bg-white/20 px-1.5 py-1 rounded text-[9px] font-bold text-center flex items-center justify-center gap-0.5 text-blue-200 transition-all border border-white/5"
+                            className="bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 text-blue-300 transition-all border border-slate-750"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" />
-                            Mở Page
+                            <ExternalLink className="w-3 h-3 text-blue-400" />
+                            Mở Page FB
                           </a>
                           <a 
                             href={`https://business.facebook.com/latest/home?asset_id=${row.pageId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-white/10 hover:bg-white/20 px-1.5 py-1 rounded text-[9px] font-bold text-center flex items-center justify-center gap-0.5 text-indigo-200 transition-all border border-white/5"
+                            className="bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 text-indigo-300 transition-all border border-slate-755"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" />
-                            Business Suite
+                            <ExternalLink className="w-3 h-3 text-indigo-400" />
+                            Meta Suite
                           </a>
                         </div>
                       </td>
@@ -486,36 +500,73 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         </div>
       </div>
 
-      {/* 5. MONITOR LOGS LOGGING AREA */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 shrink-0">
-        <h4 className="text-[10px] font-extrabold tracking-wider text-white/60 mb-2 uppercase flex items-center gap-1.5 border-b border-white/10 pb-1.5 select-none">
-          <Activity className="w-3.5 h-3.5 text-teal-300 animate-pulse" />
-          Nhật ký Kiểm tra Quản trị & business_management (BM Console)
-        </h4>
+      {/* 5. LOWER SECTION: BATCH ACTION LOGGER AND FOOTER LOGS */}
+      <footer className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-905 border border-slate-700/60 rounded-2xl p-4.5 shadow-2xl shrink-0">
+        {/* PROGRESS BAR PANEL (Col Span 5) */}
+        <div className="md:col-span-5 flex flex-col justify-center gap-3 min-h-0">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs uppercase font-extrabold text-slate-300">
+              <span>Tiến độ thực hiện</span>
+              <span className="font-mono text-blue-400 text-sm bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded">
+                {progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%"}
+              </span>
+            </div>
+            
+            <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner">
+              <div 
+                className="bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(96,165,250,0.5)]"
+                style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+              ></div>
+            </div>
 
-        <div className="bg-[#030a13] border border-white/5 rounded-xl p-2.5 font-mono text-[9px] text-white/90 h-[100px] overflow-y-auto flex flex-col-reverse custom-scrollbar">
-          {logs.length === 0 ? (
-            <div className="text-white/30 italic select-none">Chưa có nhật ký hoạt động kiểm tra quyền quản trị nào được chạy. Click vào "Kiểm tra quyền & BM" để bắt đầu nạp log trực tiếp...</div>
-          ) : (
-            logs.map((log) => {
-              let tagColor = "text-teal-300";
-              if (log.status === "success") tagColor = "text-emerald-400";
-              if (log.status === "failed") tagColor = "text-rose-400 font-bold";
-              if (log.status === "skipped") tagColor = "text-white/50";
-
-              return (
-                <div key={log.id} className="py-0.5 border-b border-white/5 leading-relaxed flex gap-2">
-                  <span className="text-white/40 font-semibold select-none">{log.time}</span>
-                  <span className={`${tagColor} max-w-[120px] truncate select-none border-r border-white/10 pr-2 font-bold`}>
-                    [{log.context}]
-                  </span>
-                  <span className="text-white/90 whitespace-pre-wrap select-text">{log.message}</span>
-                </div>
-              );
-            })
-          )}
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-xs font-bold text-slate-200">
+                Thực hiện: <span className="font-mono text-sm text-indigo-300 font-black">{progress.current}</span> / <span className="font-mono text-sm text-slate-400 font-bold">{progress.total}</span> bước.
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* LIVE LOG CONSOLE TERMINAL (Col Span 7) */}
+        <div className="md:col-span-7 flex flex-col bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-inner">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1.5 shrink-0">
+            <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-extrabold font-mono flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+              &gt;_ Nhật ký kiểm tra quản trị & business_management
+            </span>
+            <button 
+              type="button"
+              onClick={() => setLogs([])}
+              className="text-xs hover:underline text-slate-400 hover:text-white font-bold"
+            >
+              Xóa Nhật ký
+            </button>
+          </div>
+
+          <div className="overflow-y-auto h-[78px] max-h-[78px] space-y-1.5 font-mono text-[10px] text-emerald-300 custom-scrollbar pr-1 flex flex-col-reverse">
+            {logs.length === 0 ? (
+              <p className="text-white/30 italic">Chưa có nhật ký hoạt động kiểm tra quyền quản trị nào được chạy. Click vào "Kiểm tra quyền & BM" để bắt đầu nạp log trực tiếp...</p>
+            ) : (
+              logs.map((log) => {
+                let tagColor = "text-teal-300";
+                if (log.status === "success") tagColor = "text-emerald-400 font-extrabold";
+                if (log.status === "failed") tagColor = "text-rose-400 font-black";
+                if (log.status === "skipped") tagColor = "text-slate-400";
+
+                return (
+                  <div key={log.id} className="py-1 border-b border-slate-900 leading-normal flex gap-2.5">
+                    <span className="text-slate-500 font-bold select-none">[{log.time}]</span>
+                    <span className={`${tagColor} max-w-[140px] truncate select-none border-r border-slate-800 pr-2.5 font-black`}>
+                      [{log.context}]
+                    </span>
+                    <span className="text-slate-200 whitespace-pre-wrap select-text leading-relaxed">{log.message}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
