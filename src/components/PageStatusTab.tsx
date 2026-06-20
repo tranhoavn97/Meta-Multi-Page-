@@ -180,7 +180,7 @@ return (
     <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full text-slate-100">
       <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-hidden h-full">
         {/* TOP CONTROL CENTER: METRICS */}
-        <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-lg">
+        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-xl">
           
           {/* Metrics Row */}
           <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -215,7 +215,7 @@ return (
           </div>
         </div>
 
-        <div className="flex-1 bg-slate-900 border border-slate-700/60 rounded-2xl flex flex-col overflow-hidden min-h-0 shadow-lg">
+        <div className="flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl flex flex-col overflow-hidden min-h-0 shadow-xl">
           <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
           <thead className="sticky top-0 bg-slate-950 z-10 border-b border-slate-800 select-none">

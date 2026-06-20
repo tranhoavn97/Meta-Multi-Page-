@@ -1004,34 +1004,22 @@ export default function App() {
         <aside className={`w-full transition-all duration-300 glass-card rounded-2xl p-4 shrink-0 flex flex-col gap-6 shadow-xl relative z-30 h-auto md:h-full overflow-y-auto ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[220px] xl:w-[240px]'}`}>
           {/* Logo & Branding */}
           <div className="flex items-center gap-3 w-full justify-between">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 neu-button-primary rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0" title="Meta Page Manager">
+            <div 
+              className="flex items-center gap-3 overflow-hidden cursor-pointer group"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title="Thu gọn / Mở rộng"
+            >
+              <div className="w-10 h-10 neu-button-primary rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105 shrink-0">
                 <Facebook className="w-5 h-5 text-white fill-current" />
               </div>
               {!isSidebarCollapsed && (
                 <div className="hidden sm:block whitespace-nowrap">
-                  <h1 className="text-sm xl:text-base font-extrabold tracking-tight glass-text leading-tight">
+                  <h1 className="text-sm xl:text-base font-extrabold tracking-tight glass-text leading-tight group-hover:text-white transition-colors">
                     Meta Page Manager
                   </h1>
                   <p className="text-[10px] text-white/50 mt-0.5 whitespace-nowrap">Phát triển bởi Hoà Trần</p>
                 </div>
               )}
-            </div>
-            
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-amber-400"
-                title="Sáng / Tối"
-              >
-                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="hidden md:flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white"
-              >
-                {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-              </button>
             </div>
           </div>
 
@@ -1099,18 +1087,26 @@ export default function App() {
           {/* System status and user actions */}
           <div className="flex flex-row md:flex-col items-center md:items-stretch justify-between md:justify-start gap-3 w-full shrink-0">
              {userToken ? (
-              <div className={`bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-inner ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Connected" : undefined}>
+              <div className={`bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-inner ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
                 <span className="w-2 h-2 shrink-0 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                {!isSidebarCollapsed && <span>Connected</span>}
+                {!isSidebarCollapsed && <span>Đã kết nối</span>}
               </div>
             ) : (
-              <div className={`bg-amber-500/10 border border-amber-400/20 text-amber-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Auth Required" : undefined}>
+              <div className={`bg-amber-500/10 border border-amber-400/20 text-amber-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
                 <span className="w-2 h-2 shrink-0 bg-amber-400 rounded-full animate-ping"></span>
-                {!isSidebarCollapsed && <span>Auth Required</span>}
+                {!isSidebarCollapsed && <span>Cần đăng nhập</span>}
               </div>
             )}
 
             <div className={`flex ${isSidebarCollapsed ? 'flex-col' : 'gap-2'}`}>
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className={`flex justify-center items-center p-2.5 neu-button text-white/90 transition-colors hover:text-amber-400 ${isSidebarCollapsed ? 'mb-2' : ''} shrink-0`}
+                title="Sáng / Tối"
+              >
+                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
+              
               <button 
                 id="btn-settings"
                 onClick={() => setShowConfig(!showConfig)}
@@ -1729,7 +1725,7 @@ export default function App() {
                                 href={post.permalink_url} 
                                 target="_blank" 
                                 rel="noreferrer" 
-                                className="text-[9px] text-indigo-300 font-bold hover:text-indigo-200 hover:underline flex items-center justify-center py-1 px-1.5 rounded bg-white/5 hover:bg-white/10 transition-colors"
+                                className="text-[9px] text-indigo-300 font-bold hover:text-indigo-200 hover:underline flex items-center justify-center py-1 px-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
                               >
                                 <ExternalLink className="w-2.5 h-2.5" />
                               </a>

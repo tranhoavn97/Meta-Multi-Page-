@@ -1,8 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -43,9 +42,14 @@ body {
     -5px -5px 20px 0 rgba(255, 255, 255, 0.03);
 }
 
+button {
+  border-radius: 9999px !important;
+}
+
 .neu-button {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
   backdrop-filter: blur(12px);
+  border-radius: 9999px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.5);
@@ -72,6 +76,7 @@ body {
 
 .neu-button-pressed {
   background: rgba(0, 0, 0, 0.25);
+  border-radius: 9999px !important;
   box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.6), inset -2px -2px 6px rgba(255, 255, 255, 0.05);
   border-top: 1px solid rgba(0, 0, 0, 0.4);
   border-left: 1px solid rgba(0, 0, 0, 0.3);
@@ -82,6 +87,7 @@ body {
 .neu-button-primary {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.6));
   backdrop-filter: blur(12px);
+  border-radius: 9999px !important;
   border-top: 1px solid rgba(255, 255, 255, 0.3);
   border-left: 1px solid rgba(255, 255, 255, 0.2);
   border-bottom: 1px solid rgba(0, 0, 0, 0.4);
@@ -157,4 +163,18 @@ html.light-theme {
 html.light-theme img:not(.bg-backdrop),
 html.light-theme video:not(.bg-backdrop) {
   filter: invert(1) hue-rotate(180deg);
+}
+
+/* Fix light mode transparency for UI elements */
+html.light-theme .glass-card {
+  background: rgba(0, 0, 0, 0.85);
+}
+html.light-theme .neu-input,
+html.light-theme .absolute.glass-card,
+html.light-theme .absolute.neu-input {
+  background: rgba(0, 0, 0, 0.95);
+}
+html.light-theme select.neu-input option {
+  background: #000;
+  color: #fff;
 }

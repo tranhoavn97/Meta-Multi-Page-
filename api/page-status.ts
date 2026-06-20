@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
 
   const method = req.method;
   if (method !== "POST") {
-    return res.status(405).json({ success: false, error: "Method Not Allowed" });
+    return res.status(405).json({ success: false, error: "Phương thức không được phép" });
   }
 
   const userToken = (req.body?.userToken || req.body?.user_token) as string;
@@ -38,12 +38,12 @@ export default async function handler(req: any, res: any) {
   const pageAccessToken = req.body?.pageAccessToken as string;
 
   if (!pageId) {
-    return res.status(400).json({ success: false, error: "Missing pageId" });
+    return res.status(400).json({ success: false, error: "Thiếu pageId" });
   }
 
   const activeToken = pageAccessToken || userToken;
   if (!activeToken) {
-    return res.status(400).json({ success: false, error: "Missing facebook access token" });
+    return res.status(400).json({ success: false, error: "Thiếu facebook access token" });
   }
 
   try {
@@ -59,7 +59,7 @@ export default async function handler(req: any, res: any) {
       const data = await backendFetchJson(infoUrl);
       if (data.error) {
         // Safe access token extraction
-        const errMsg = data.error.message || "Unknown error";
+        const errMsg = data.error.message || "Lỗi không xác định";
         infoError = errMsg;
         if (errMsg.includes("OAuthException") || errMsg.includes("expired") || errMsg.includes("session")) {
           isOAuthError = true;
@@ -72,7 +72,7 @@ export default async function handler(req: any, res: any) {
         tasks = data.tasks || [];
       }
     } catch (e: any) {
-      infoError = e.message || "Failed to fetch page info";
+      infoError = e.message || "Lỗi khi lấy thông tin trang";
     }
 
     // 2. Check Post Retrieval
@@ -85,7 +85,7 @@ export default async function handler(req: any, res: any) {
       try {
         const postsData = await backendFetchJson(postsUrl);
         if (postsData.error) {
-          postsError = postsData.error.message || "Failed to retrieve posts";
+          postsError = postsData.error.message || "Không thể tải bài viết";
           if (postsError.includes("permission") || postsError.includes("tasks") || postsError.includes("privilege")) {
             isPermissionError = true;
           }
@@ -96,7 +96,7 @@ export default async function handler(req: any, res: any) {
           }
         }
       } catch (e: any) {
-        postsError = e.message || "Failed to fetch posts";
+        postsError = e.message || "Lỗi tải bài viết";
       }
     }
 
@@ -154,7 +154,7 @@ export default async function handler(req: any, res: any) {
   } catch (error: any) {
     return res.status(500).json({
       success: false,
-      error: error.message || "Internal server error check page status"
+      error: error.message || "Lỗi hệ thống khi kiểm tra trạng thái trang"
     });
   }
 }
