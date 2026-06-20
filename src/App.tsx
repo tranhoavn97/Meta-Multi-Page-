@@ -19,6 +19,8 @@ import {
   Lock,
   ListFilter,
   Check,
+  PanelLeftClose,
+  PanelLeftOpen,
   ChevronRight,
   FileText,
   SlidersHorizontal,
@@ -170,7 +172,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-between w-full h-9 bg-slate-900/90 hover:bg-slate-950 border border-slate-700/60 disabled:border-slate-800 hover:border-blue-500 focus:border-blue-500 rounded-xl px-3 text-xs text-left text-white disabled:opacity-35 cursor-pointer font-bold select-none transition-all shadow-sm"
+        className="relative flex items-center justify-between w-full h-9 neu-input hover:brightness-110 disabled:border-slate-800 hover:border-blue-500 focus:border-blue-500 rounded-xl px-3 text-xs text-left text-white disabled:opacity-35 cursor-pointer font-bold select-none transition-all shadow-sm"
       >
         <span className={`${value ? "text-white" : "text-white/40"} font-semibold font-mono`}>
           {displayValue()}
@@ -179,7 +181,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 z-[99] w-[270px] bg-slate-950 border border-slate-700/80 rounded-2xl shadow-2xl p-4 text-white select-none transition-all">
+        <div className="absolute right-0 top-full mt-2 z-[99] w-[270px] neu-input rounded-2xl shadow-2xl p-4 text-white select-none transition-all">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <button
               type="button"
@@ -220,7 +222,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
                   onClick={() => handleSelectDay(dateStr)}
                   className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/30 scale-105"
+                      ? "neu-button-primary text-white shadow-md shadow-blue-500/30 scale-105"
                       : isToday
                       ? "bg-white/10 text-blue-400 ring-1 ring-blue-500/30 font-extrabold"
                       : isCurrentMonth
@@ -289,14 +291,14 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-1 bg-slate-900/90 hover:bg-slate-950 border border-slate-700/60 hover:border-blue-500 focus:border-blue-500 rounded-xl px-2.5 h-9 text-xs outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[70px] shadow-sm"
+        className="flex items-center justify-between gap-1 neu-input hover:brightness-110 hover:border-blue-500 focus:border-blue-500 rounded-xl px-2.5 h-9 text-xs outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[70px] shadow-sm"
       >
         <span>{selectedOption?.label}</span>
         <ChevronRight className={`w-3 h-3 text-white/55 transition-transform duration-200 ${isOpen ? "rotate-90 text-blue-400" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1.5 z-[99] w-[115px] bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 overflow-hidden transition-all">
+        <div className="absolute right-0 top-full mt-1.5 z-[99] w-[115px] neu-input rounded-xl shadow-2xl p-1 overflow-hidden transition-all">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -307,7 +309,7 @@ function CustomSelect({
               }}
               className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 value === opt.value
-                  ? "bg-blue-600 text-white"
+                  ? "neu-button-primary text-white"
                   : "text-white/80 hover:bg-white/10 hover:text-white"
               }`}
             >
@@ -362,6 +364,7 @@ export default function App() {
     timeRangePreset: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
+  const [showTimeDropdown, setShowTimeDropdown] = useState<boolean>(false);
   const [tempDateFrom, setTempDateFrom] = useState<string>("");
   const [tempDateTo, setTempDateTo] = useState<string>("");
 
@@ -397,6 +400,7 @@ export default function App() {
 
   // Active Tab state for Page Status and Admin/Business views integration
   const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins">("posts");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // References for logging & scroll
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -965,165 +969,165 @@ export default function App() {
       </div>
 
       {/* FOREGROUND CONTENT */}
-      <div className="relative z-10 w-full h-full flex flex-col p-3 md:p-4 overflow-hidden min-h-0 flex-1">
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-3 md:gap-4 overflow-hidden min-h-0 flex-1 max-w-[2000px] mx-auto">
       
-      {/* HEADER BAR */}
-      <header className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 mb-3 shrink-0 flex flex-col xl:flex-row items-center justify-between gap-3 shadow-xl relative z-30">
-        
-        {/* 1. LEFT: Logo */}
-        <div className="flex items-center gap-2.5 w-full xl:w-auto justify-between xl:justify-start">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0">
-              <Facebook className="w-5 h-5 text-white fill-current" />
+        {/* LEFT COMPACT/MAIN NAVIGATION SIDEBAR */}
+        <aside className={`w-full transition-all duration-300 glass-card rounded-2xl p-4 shrink-0 flex flex-col gap-6 shadow-xl relative z-30 h-auto md:h-full overflow-y-auto ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[220px] xl:w-[240px]'}`}>
+          {/* Logo & Branding */}
+          <div className="flex items-center gap-3 w-full justify-between">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 neu-button-primary rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0" title="Meta Page Manager">
+                <Facebook className="w-5 h-5 text-white fill-current" />
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="hidden sm:block whitespace-nowrap">
+                  <h1 className="text-sm xl:text-base font-extrabold tracking-tight glass-text leading-tight">
+                    Meta Page Manager
+                  </h1>
+                  <p className="text-[10px] text-white/50 mt-0.5 whitespace-nowrap">Phát triển bởi Hoà Trần</p>
+                </div>
+              )}
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent leading-none whitespace-nowrap">
-                Meta Page Manager
-              </h1>
-              <p className="text-[10px] text-white/70 mt-0.5">Phát triển bởi Hoà Trần</p>
-            </div>
+            
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="hidden md:flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white shrink-0"
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
           </div>
-          
-          {/* Mobile Right: Small action if needed or just empty space */}
-          <div className="xl:hidden">
-            {/* Quick Info Mobile */}
-            {userToken ? (
-              <span className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-inner">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                Connected
-              </span>
-            ) : null}
-          </div>
-        </div>
 
-        {/* 2. MIDDLE: Navigation Tabs */}
-        <nav className="flex-1 w-full xl:w-auto bg-slate-900/60 border border-slate-700/60 rounded-xl p-1.5 flex items-center gap-1.5 max-w-xl">
-          <button
-            id="tab-posts"
-            type="button"
-            onClick={() => {
-              setActiveTab("posts");
-              addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "posts"
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/80"
-                : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
-            }`}
-          >
-            <FileText className={`w-4 h-4 shrink-0 ${activeTab === "posts" ? "text-white animate-pulse" : "text-slate-400"}`} />
-            <div className="text-left select-none hidden min-[400px]:block">
-              <span className="block text-xs font-black tracking-wide">Bài viết</span>
-            </div>
-          </button>
+          <div className="hidden sm:block w-px h-px md:w-full md:h-px bg-white/10" />
 
-          <button
-            id="tab-status"
-            type="button"
-            onClick={() => {
-              setActiveTab("status");
-              addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "status"
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/80"
-                : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
-            }`}
-          >
-            <Activity className={`w-4 h-4 shrink-0 ${activeTab === "status" ? "text-white animate-pulse" : "text-slate-400"}`} />
-            <div className="text-left select-none hidden min-[400px]:block">
-              <span className="block text-xs font-black tracking-wide font-sans whitespace-nowrap">Trạng thái API</span>
-            </div>
-          </button>
+          {/* Navigation Links */}
+          <nav className="flex flex-row md:flex-col gap-2 flex-1 w-full justify-between md:justify-start">
+            <button
+              id="tab-posts"
+              type="button"
+              onClick={() => {
+                setActiveTab("posts");
+                addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+              }}
+              title={isSidebarCollapsed ? "Bài viết" : undefined}
+              className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 md:py-3 rounded-xl transition-all cursor-pointer ${
+                activeTab === "posts"
+                  ? "neu-button-primary text-white"
+                  : "text-slate-300 hover:text-white neu-flat hover:brightness-125 border border-transparent hover:border-white/10"
+              }`}
+            >
+              <FileText className={`w-4 h-4 shrink-0 ${activeTab === "posts" ? "text-white animate-pulse" : "text-slate-400"}`} />
+              {!isSidebarCollapsed && <span className="hidden sm:block text-xs font-black tracking-wide font-sans whitespace-nowrap">Bài viết</span>}
+            </button>
 
-          <button
-            id="tab-admins"
-            type="button"
-            onClick={() => {
-              setActiveTab("admins");
-              addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "admins"
-                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 border border-blue-400/80"
-                : "text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent"
-            }`}
-          >
-            <Users className={`w-4 h-4 shrink-0 ${activeTab === "admins" ? "text-white animate-pulse" : "text-slate-400"}`} />
-            <div className="text-left select-none hidden min-[400px]:block">
-              <span className="block text-xs font-black tracking-wide font-sans whitespace-nowrap">Quản trị viên</span>
-            </div>
-          </button>
-        </nav>
+            <button
+              id="tab-status"
+              type="button"
+              onClick={() => {
+                setActiveTab("status");
+                addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+              }}
+              title={isSidebarCollapsed ? "Trạng thái API" : undefined}
+              className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 md:py-3 rounded-xl transition-all cursor-pointer ${
+                activeTab === "status"
+                  ? "neu-button-primary text-white"
+                  : "text-slate-300 hover:text-white neu-flat hover:brightness-125 border border-transparent hover:border-white/10"
+              }`}
+            >
+              <Activity className={`w-4 h-4 shrink-0 ${activeTab === "status" ? "text-white animate-pulse" : "text-slate-400"}`} />
+              {!isSidebarCollapsed && <span className="hidden sm:block text-xs font-black tracking-wide font-sans whitespace-nowrap">Trạng thái API</span>}
+            </button>
 
-        {/* 3. RIGHT: Actions */}
-        <div className="flex flex-wrap items-center justify-end gap-2 w-full xl:w-auto">
-          {/* Quick Info (Desktop) */}
-          <div className="hidden xl:block">
-            {userToken ? (
-              <span className="bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-inner">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                Connected
-              </span>
+            <button
+              id="tab-admins"
+              type="button"
+              onClick={() => {
+                setActiveTab("admins");
+                addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+              }}
+              title={isSidebarCollapsed ? "Quản trị viên" : undefined}
+              className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 md:py-3 rounded-xl transition-all cursor-pointer ${
+                activeTab === "admins"
+                  ? "neu-button-primary text-white"
+                  : "text-slate-300 hover:text-white neu-flat hover:brightness-125 border border-transparent hover:border-white/10"
+              }`}
+            >
+              <Users className={`w-4 h-4 shrink-0 ${activeTab === "admins" ? "text-white animate-pulse" : "text-slate-400"}`} />
+              {!isSidebarCollapsed && <span className="hidden sm:block text-xs font-black tracking-wide font-sans whitespace-nowrap">Quản trị viên</span>}
+            </button>
+          </nav>
+
+          <div className="hidden sm:block w-full h-px bg-white/10 mt-auto" />
+
+          {/* System status and user actions */}
+          <div className="flex flex-row md:flex-col items-center md:items-stretch justify-between md:justify-start gap-3 w-full shrink-0">
+             {userToken ? (
+              <div className={`bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-inner ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Connected" : undefined}>
+                <span className="w-2 h-2 shrink-0 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                {!isSidebarCollapsed && <span>Connected</span>}
+              </div>
             ) : (
-              <span className="bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-ping"></span>
-                Auth Required
-              </span>
+              <div className={`bg-amber-500/10 border border-amber-400/20 text-amber-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Auth Required" : undefined}>
+                <span className="w-2 h-2 shrink-0 bg-amber-400 rounded-full animate-ping"></span>
+                {!isSidebarCollapsed && <span>Auth Required</span>}
+              </div>
             )}
+
+            <div className={`flex ${isSidebarCollapsed ? 'flex-col' : 'gap-2'}`}>
+              <button 
+                id="btn-settings"
+                onClick={() => setShowConfig(!showConfig)}
+                className={`flex-1 flex justify-center items-center gap-2 p-2.5 neu-button text-xs font-bold text-white/90 ${isSidebarCollapsed ? 'mb-2' : ''}`}
+                title="Cài đặt thông số API"
+              >
+                <Settings className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="hidden xl:block whitespace-nowrap">Cài đặt API</span>}
+              </button>
+
+              {!userToken ? (
+                <button
+                  id="btn-login"
+                  onClick={handleOAuthLogin}
+                  className="flex-1 p-2.5 neu-button-primary text-xs font-bold flex items-center justify-center gap-2 text-white"
+                  title={isSidebarCollapsed ? "Đăng nhập" : undefined}
+                >
+                  <Facebook className="w-4 h-4 fill-current shrink-0" />
+                  {!isSidebarCollapsed && <span className="hidden xl:block whitespace-nowrap">Đăng nhập</span>}
+                </button>
+              ) : (
+                <button
+                  id="btn-logout"
+                  onClick={clearCredentials}
+                  className="flex-1 p-2.5 neu-button !bg-rose-600/80 !border-rose-500/50 hover:!bg-rose-500 text-xs font-bold flex items-center justify-center gap-2 text-white"
+                  title={isSidebarCollapsed ? "Đăng xuất" : undefined}
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                  {!isSidebarCollapsed && <span className="hidden xl:block whitespace-nowrap">Đăng xuất</span>}
+                </button>
+              )}
+            </div>
           </div>
+        </aside>
 
-          {/* Access Token Quick settings Trigger */}
-          <button 
-            id="btn-settings"
-            onClick={() => setShowConfig(!showConfig)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold border border-white/20 transition-all text-white/90"
-            title="Cài đặt thông số API"
-          >
-            <Settings className="w-3.5 h-3.5" />
-            <span className="hidden sm:block">Cài đặt API</span>
-          </button>
-
-          {/* Connect / OAuth Action */}
-          {!userToken ? (
-            <button
-              id="btn-login"
-              onClick={handleOAuthLogin}
-              className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-bold text-xs shadow-md shadow-blue-900/30 border border-blue-500/30 transition-all flex items-center gap-1.5"
-            >
-              <Facebook className="w-3.5 h-3.5 fill-current" />
-              Đăng nhập
-            </button>
-          ) : (
-            <button
-              id="btn-logout"
-              onClick={clearCredentials}
-              className="px-3 py-1.5 bg-rose-600/30 hover:bg-rose-600/50 text-rose-200 border border-rose-500/30 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Đăng xuất
-            </button>
+        {/* RIGHT MASTER CONTENT AREA */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-20 w-full">
+          
+          {/* ERROR ALERT BOX */}
+          {apiError && (
+            <div className="mb-3 backdrop-blur-md bg-rose-500/10 border-l-4 border-rose-500 p-3 rounded-r-xl flex items-start gap-3 text-rose-100 shadow-md shrink-0 relative z-20">
+              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div className="text-xs flex-1">
+                <span className="font-semibold block text-[12px] text-rose-300">Sự cố kết nối hoặc xác thực:</span>
+                <p className="mt-1 font-mono text-[10px] sm:text-[11px] opacity-80 truncate max-w-full" title={apiError}>{apiError}</p>
+              </div>
+            </div>
           )}
-        </div>
-      </header>
 
-      {/* ERROR ALERT BOX */}
-      {apiError && (
-        <div className="mb-2.5 bg-rose-500/20 border border-rose-500/40 backdrop-blur-md p-2.5 rounded-2xl flex items-start gap-2.5 text-rose-100 shadow-md shrink-0 relative z-20">
-          <AlertTriangle className="w-4.5 h-4.5 text-rose-400 shrink-0 mt-0.5" />
-          <div className="text-xs flex-1">
-            <span className="font-semibold block text-[11px]">Sự cố kết nối hoặc xác thực:</span>
-            <p className="mt-0.5 font-mono text-[10px] opacity-90 truncate max-w-full" title={apiError}>{apiError}</p>
-          </div>
-        </div>
-      )}
-
-      {/* MAIN CONTAINER */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch overflow-hidden">
+          {/* MAIN CONTAINER */}
+          <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3.5 items-stretch overflow-hidden">
         
-        {/* SIDEBAR: PAGES LIST (Col Span 2) */}
-        {activeTab === "posts" && (
-          <aside className="lg:col-span-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 flex flex-col shadow-xl overflow-hidden min-h-0 h-full">
+            {/* SUB-SIDEBAR: PAGES LIST */}
+            {activeTab === "posts" && (
+              <aside className="w-full xl:w-[260px] 2xl:w-[280px] glass-card rounded-2xl p-3.5 flex flex-col shadow-xl overflow-hidden min-h-0 xl:h-full shrink-0">
           <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-white/10">
             <div className="flex justify-between items-center">
               <span className="text-xs uppercase tracking-wider text-white/70 font-extrabold flex items-center gap-1.5">
@@ -1296,101 +1300,133 @@ export default function App() {
         </aside>
         )}
 
-        {/* MAIN POST AREA & FILTERS (Col Span 10) */}
-        <main className={`${activeTab === "posts" ? "lg:col-span-10" : "lg:col-span-12"} flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full`}>
+        {/* MAIN POST AREA & FILTERS */}
+        <main className="flex-1 w-full flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
           
           {activeTab === "posts" && (
-            <>
+            <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
+              <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-hidden h-full">
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 bg-slate-900/90 border border-slate-700/60 rounded-2xl p-4.5 text-slate-100 shadow-2xl flex flex-col gap-3.5 shrink-0">
+              <section className="relative z-30 glass-card rounded-2xl p-3 text-slate-100 shadow-2xl shrink-0">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-40">
-                  <h2 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-2 shrink-0">
-                    <ListFilter className="w-5 h-5 text-blue-400" />
-                    Bộ lọc bài viết & Thống kê
-                  </h2>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 w-full xl:w-auto">
+                  {/* Left: Filter Controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 shrink-0">
-                      <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide select-none">
-                        Thời gian:
-                      </span>
-                      <select 
-                        value={filters.timeRangePreset} 
-                        onChange={(e) => {
-                          const val = e.target.value as "today" | "week" | "month" | "year" | "all" | "custom";
-                          if (val === "custom") {
-                            setTempDateFrom(filters.dateFrom);
-                            setTempDateTo(filters.dateTo);
-                            setShowCustomDateModal(true);
-                          } else {
-                            // Automatically calculate dates
-                            const today = new Date();
-                            let dFrom = "";
-                            let dTo = "";
-                            if (val === "today") {
-                              dFrom = today.toISOString().split('T')[0];
-                              dTo = dFrom;
-                            } else if (val === "week") {
-                              const day = today.getDay();
-                              const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-                              const monday = new Date(today.setDate(diff));
-                              dFrom = monday.toISOString().split('T')[0];
-                              dTo = new Date().toISOString().split('T')[0];
-                            } else if (val === "month") {
-                              const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                              dFrom = startOfMonth.toISOString().split('T')[0];
-                              dTo = new Date().toISOString().split('T')[0];
-                            } else if (val === "year") {
-                              const startOfYear = new Date(today.getFullYear(), 0, 1);
-                              dFrom = startOfYear.toISOString().split('T')[0];
-                              dTo = new Date().toISOString().split('T')[0];
-                            }
-                            
-                            setFilters(f => ({ 
-                              ...f, 
-                              timeRangePreset: val,
-                              dateFrom: dFrom,
-                              dateTo: dTo,
-                              enableDateRange: val !== "all"
-                            }));
-                            addLog("system", `Đã đổi bộ lọc thời gian thành: ${e.target.options[e.target.selectedIndex].text}`, "success");
-                          }
-                        }}
-                        className="bg-slate-900 border border-slate-700/80 rounded-lg h-7 px-2 text-xs font-bold text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
-                      >
-                        <option value="today">Hôm nay</option>
-                        <option value="week">Tuần này</option>
-                        <option value="month">Tháng này</option>
-                        <option value="year">Năm nay</option>
-                        <option value="all">Từ trước đến nay</option>
-                        <option value="custom">Tuỳ chỉnh...</option>
-                      </select>
-                      
-                      {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
-                         <div 
-                           onClick={() => {
-                             setTempDateFrom(filters.dateFrom);
-                             setTempDateTo(filters.dateTo);
-                             setShowCustomDateModal(true);
-                           }}
-                           className="text-[10px] text-blue-400 font-bold bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded cursor-pointer transition-colors ml-1 border border-blue-500/20"
-                           title="Sửa ngày tuỳ chỉnh"
-                         >
-                           {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
-                         </div>
+                    <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0">
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 w-full">
+                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide select-none shrink-0 border-r border-slate-700 pr-2">
+                          Thời gian
+                        </span>
+                        
+                        <div 
+                          className="relative neu-input rounded-lg h-7 px-3 flex items-center justify-between gap-2 cursor-pointer min-w-[120px]"
+                          onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                        >
+                          <span className="text-[11px] font-bold text-slate-200 truncate">
+                            {filters.timeRangePreset === "today" && "Hôm nay"}
+                            {filters.timeRangePreset === "week" && "Tuần này"}
+                            {filters.timeRangePreset === "month" && "Tháng này"}
+                            {filters.timeRangePreset === "year" && "Năm nay"}
+                            {filters.timeRangePreset === "all" && "Tất cả"}
+                            {filters.timeRangePreset === "custom" && "Tuỳ chỉnh..."}
+                          </span>
+                          <span className="text-slate-400 text-[10px]">▼</span>
+                        </div>
+                        
+                        {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
+                           <div 
+                             onClick={() => {
+                               setTempDateFrom(filters.dateFrom);
+                               setTempDateTo(filters.dateTo);
+                               setShowCustomDateModal(true);
+                             }}
+                             className="text-[10px] text-blue-400 font-bold bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded cursor-pointer transition-colors border border-blue-500/20 whitespace-nowrap"
+                             title="Sửa ngày tuỳ chỉnh"
+                           >
+                             {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
+                           </div>
+                        )}
+                      </div>
+
+                      {/* Dropdown Menu */}
+                      {showTimeDropdown && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowTimeDropdown(false)}
+                          />
+                          <div className="absolute top-[110%] left-0 right-0 z-50 glass-card border border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
+                            {[
+                              { id: "today", label: "Hôm nay" },
+                              { id: "week", label: "Tuần này" },
+                              { id: "month", label: "Tháng này" },
+                              { id: "year", label: "Năm nay" },
+                              { id: "all", label: "Từ trước đến nay" },
+                              { id: "custom", label: "Tuỳ chỉnh..." }
+                            ].map((preset) => (
+                              <button
+                                key={preset.id}
+                                className={`text-left px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                                  filters.timeRangePreset === preset.id 
+                                    ? "neu-button-primary text-white" 
+                                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                                }`}
+                                onClick={() => {
+                                  const val = preset.id;
+                                  if (val === "custom") {
+                                    setTempDateFrom(filters.dateFrom);
+                                    setTempDateTo(filters.dateTo);
+                                    setShowCustomDateModal(true);
+                                  } else {
+                                    const today = new Date();
+                                    let dFrom = "";
+                                    let dTo = "";
+                                    if (val === "today") {
+                                      dFrom = today.toISOString().split('T')[0];
+                                      dTo = dFrom;
+                                    } else if (val === "week") {
+                                      const day = today.getDay();
+                                      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                                      const monday = new Date(today.setDate(diff));
+                                      dFrom = monday.toISOString().split('T')[0];
+                                      dTo = new Date().toISOString().split('T')[0];
+                                    } else if (val === "month") {
+                                      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                                      dFrom = startOfMonth.toISOString().split('T')[0];
+                                      dTo = new Date().toISOString().split('T')[0];
+                                    } else if (val === "year") {
+                                      const startOfYear = new Date(today.getFullYear(), 0, 1);
+                                      dFrom = startOfYear.toISOString().split('T')[0];
+                                      dTo = new Date().toISOString().split('T')[0];
+                                    }
+                                    
+                                    setFilters(f => ({ 
+                                      ...f, 
+                                      timeRangePreset: val as any,
+                                      dateFrom: dFrom,
+                                      dateTo: dTo,
+                                      enableDateRange: val !== "all"
+                                    }));
+                                    addLog("system", `Đã đổi bộ lọc thời gian thành: ${preset.label}`, "success");
+                                  }
+                                  setShowTimeDropdown(false);
+                                }}
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
                       )}
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-2 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 shrink-0">
-                      <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5 select-none shrink-0">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
-                        Lọc:
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 shrink-0">
+                      <span className="text-[11px] font-bold text-slate-100 flex items-center gap-1.5 select-none shrink-0 border-r border-slate-700 pr-2">
+                        Tải
                       </span>
                       <div className="flex items-center gap-1">
-                        <span className="text-[11px] text-slate-400 pr-1">Tải</span>
                         <CustomSelect
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
@@ -1407,69 +1443,39 @@ export default function App() {
                     </div>
 
                   </div>
-                </div>
 
-                {/* SELECTION CONTROL & RUN BUTTON WORKSPACE */}
-                <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 pt-3.5 border-t border-slate-800">
-                  
-                  {/* Compact Stats Badges inside Footer of Filters Card */}
-                  <div className="flex flex-wrap items-center gap-y-2 gap-x-4 bg-slate-950/80 px-4 py-2.5 rounded-2xl border border-slate-800 select-none font-medium text-slate-200 shadow-inner">
+                  {/* Right: Stats Badges */}
+                  <div className="flex items-center gap-1.5 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 select-none font-medium text-slate-200 shadow-inner shrink-0 overflow-x-auto custom-scrollbar h-10">
                     {/* Stat 1: Selection */}
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-extrabold uppercase tracking-wider text-emerald-400">Đã chọn:</span>
-                      <span className="font-mono font-black text-emerald-300 text-sm bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">{selectedPostIds.length}</span>
-                      <span className="text-slate-400">/ {displayedPosts.length} hiển thị</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-extrabold uppercase tracking-wider text-emerald-400">Chọn:</span>
+                      <span className="font-mono font-black text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/25">{selectedPostIds.length}</span>
+                      <span className="text-slate-400">/ {displayedPosts.length}</span>
                     </div>
 
-                    <span className="w-px h-5 bg-slate-800 hidden md:inline-block" />
+                    <span className="w-px h-3.5 bg-slate-700" />
 
                     {/* Stat 2: Total dynamic matches */}
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-extrabold uppercase tracking-wider text-blue-400 font-sans">Khớp bộ lọc:</span>
-                      <span className="font-mono font-black text-blue-300 text-sm bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/25">{filteredPosts.length}</span>
-                      <span className="text-slate-400">bài</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-extrabold uppercase tracking-wider text-blue-400 font-sans">Lọc:</span>
+                      <span className="font-mono font-black text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/25">{filteredPosts.length}</span>
                     </div>
 
-                    <span className="w-px h-5 bg-slate-800 hidden md:inline-block" />
+                    <span className="w-px h-3.5 bg-slate-700" />
 
                     {/* Stat 3: Total cached posts in session */}
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-extrabold uppercase tracking-wider text-purple-400 font-sans">Tổng nạp:</span>
-                      <span className="font-mono font-black text-purple-300 text-sm bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/25">{posts.length}</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-extrabold uppercase tracking-wider text-purple-400 font-sans">Nạp:</span>
+                      <span className="font-mono font-black text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/25">{posts.length}</span>
                     </div>
 
-                    <span className="w-px h-5 bg-slate-800 hidden md:inline-block" />
+                    <span className="w-px h-3.5 bg-slate-700" />
 
                     {/* Stat 4: Deleted Count */}
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-extrabold uppercase tracking-wider text-rose-400 font-sans">Đã xóa:</span>
-                      <span className="font-mono font-black text-rose-300 text-sm bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-extrabold uppercase tracking-wider text-rose-400 font-sans">Xóa:</span>
+                      <span className="font-mono font-black text-rose-300 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
                     </div>
-                  </div>
-
-                  {/* Action Trigger Buttons - SIGNIFICANTLY INCREASED ACTION SIZES */}
-                  <div className="flex flex-col sm:flex-row items-stretch gap-2.5 shrink-0">
-                    <button
-                      id="btn-load-posts"
-                      type="button"
-                      onClick={fetchPostsFromSelectedPages}
-                      disabled={selectedPageIds.length === 0 || loadingPosts}
-                      className="px-6 py-3.5 h-12 bg-slate-800 hover:bg-slate-750 border border-slate-700/60 hover:border-slate-500 text-white rounded-xl font-black text-xs md:text-sm tracking-wide uppercase transition-all flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer select-none active:scale-95 shadow-md"
-                    >
-                      <RotateCw className={`w-4 h-4 text-blue-300 ${loadingPosts ? "animate-spin" : ""}`} />
-                      Tải lại bài viết
-                    </button>
-
-                    <button 
-                      id="btn-delete-trigger"
-                      type="button"
-                      onClick={() => setShowConfirmModal(true)}
-                      disabled={selectedPostIds.length === 0 || isDeleting}
-                      className="px-8 py-3.5 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs md:text-sm tracking-widest uppercase shadow-lg shadow-rose-900/30 hover:shadow-rose-900/40 border border-rose-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none cursor-pointer select-none active:scale-95"
-                    >
-                      <Trash2 className="w-4.5 h-4.5 text-rose-100" />
-                      Xóa bài viết đã chọn
-                    </button>
                   </div>
                 </div>
 
@@ -1581,18 +1587,18 @@ export default function App() {
                   <p className="text-[10px] text-white/40">Vui lòng tắt bớt các điều kiện lọc (Khoảng ngày, Từ khóa, Số ngày) để kiểm tra.</p>
                 </div>
               ) : (
-                <div className="min-w-[700px] flex flex-col gap-2">
+                <div className="min-w-[700px] flex flex-col gap-1.5">
                   {/* Table Header */}
-                  <div className="grid grid-cols-[40px_54px_1fr_145px_70px] gap-3 items-center px-2.5 pb-2 border-b border-white/10 text-[10px] font-bold uppercase tracking-wider text-white/45 select-none">
+                  <div className="grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center px-1.5 pb-1 border-b border-white/10 text-[9px] font-bold uppercase tracking-wider text-white/45 select-none">
                     <div className="text-center">Chọn</div>
-                    <div>Ảnh</div>
+                    <div className="text-center">Ảnh</div>
                     <div>Nội dung bài viết</div>
                     <div className="text-center">Thời gian đăng</div>
-                    <div className="text-center">FB Link</div>
+                    <div className="text-center">Link</div>
                   </div>
 
                   {/* Table Rows */}
-                  <div className="space-y-2 pt-1.5">
+                  <div className="space-y-1 pt-1">
                     {displayedPosts.map((post) => {
                       const isChecked = selectedPostIds.includes(post.id);
                       const formattedDate = new Date(post.created_time).toLocaleString("vi-VN", {
@@ -1612,7 +1618,7 @@ export default function App() {
                           id={`post-row-${post.id}`}
                           key={post.id}
                           onClick={() => togglePostSelection(post.id)}
-                          className={`group grid grid-cols-[40px_54px_1fr_145px_70px] gap-3 items-center p-2.5 rounded-xl transition-all cursor-pointer border border-white/5 shadow-sm ${
+                          className={`group grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center p-1.5 rounded-xl transition-all cursor-pointer border border-white/5 shadow-sm ${
                             isChecked 
                               ? "bg-white/15 border-white/30 translate-x-0.5" 
                               : "bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10"
@@ -1622,7 +1628,7 @@ export default function App() {
                           <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
                             <div 
                               onClick={() => togglePostSelection(post.id)}
-                              className={`w-4 h-4 rounded flex items-center justify-center border transition-all cursor-pointer ${
+                              className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center border transition-all cursor-pointer ${
                                 isChecked 
                                   ? "bg-emerald-500 border-emerald-400 text-white shadow shadow-emerald-500/20 scale-105" 
                                   : "border-white/30 hover:border-white/50"
@@ -1633,41 +1639,41 @@ export default function App() {
                           </div>
 
                           {/* Thumbnail Column */}
-                          <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
                             {post.full_picture ? (
-                              <div className="relative rounded-lg overflow-hidden border border-white/15 w-[44px] h-[44px] bg-black/40">
+                              <div className="relative rounded overflow-hidden border border-white/15 w-[36px] h-[36px] bg-black/40">
                                 <img 
                                   src={post.full_picture} 
                                   alt="Preview" 
                                   referrerPolicy="no-referrer"
-                                  className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform duration-300"
                                 />
                                 {/* Video Play icon attachment overlay */}
                                 {post.status_type === "added_video" && (
                                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                    <Play className="w-3.5 h-3.5 fill-current text-white animate-pulse" />
+                                    <Play className="w-3 h-3 fill-current text-white animate-pulse" />
                                   </div>
                                 )}
                               </div>
                             ) : (
-                              <div className="rounded-lg border border-white/10 bg-white/5 w-[44px] h-[44px] flex items-center justify-center text-white/30">
-                                <Facebook className="w-4 h-4" />
+                              <div className="rounded border border-white/10 bg-white/5 w-[36px] h-[36px] flex items-center justify-center text-white/30">
+                                <Facebook className="w-3.5 h-3.5" />
                               </div>
                             )}
                           </div>
 
                           {/* Content Column */}
-                          <div className="flex flex-col gap-1 min-w-0 pr-2">
+                          <div className="flex flex-col gap-0.5 min-w-0 pr-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="bg-emerald-500/20 text-emerald-300 text-[9px] px-1.5 py-0.5 rounded-md font-bold border border-emerald-400/20 truncate max-w-[140px]" title={post.pageName}>
+                              <span className="bg-emerald-500/20 text-emerald-300 text-[8px] px-1 py-0.5 rounded leading-none font-bold border border-emerald-400/20 truncate max-w-[120px]" title={post.pageName}>
                                 {post.pageName}
                               </span>
-                              <span className="text-[9px] text-white/40 font-mono select-all">
+                              <span className="text-[8px] text-white/30 font-mono select-all">
                                 ID: {post.id}
                               </span>
                             </div>
                             
-                            <p className="text-white/95 text-[11px] leading-snug line-clamp-2 break-all" title={post.message || ""}>
+                            <p className="text-white/95 text-[10px] leading-snug line-clamp-2 break-all" title={post.message || ""}>
                               {post.message ? (
                                 post.message
                               ) : (
@@ -1677,9 +1683,9 @@ export default function App() {
                           </div>
 
                           {/* Time */}
-                          <div className="text-center flex flex-col gap-0.5 shrink-0 select-none">
-                            <span className="text-[11px] font-mono text-white/85">{formattedDate}</span>
-                            <span className="text-[9px] text-white/40 font-mono">({diffDays} ngày trước)</span>
+                          <div className="text-center flex flex-col gap-0 shrink-0 select-none">
+                            <span className="text-[10px] font-mono text-white/85">{formattedDate}</span>
+                            <span className="text-[8px] text-white/40 font-mono">({diffDays} ngày trước)</span>
                           </div>
 
                           {/* Action Button Link to Facebook */}
@@ -1689,9 +1695,8 @@ export default function App() {
                                 href={post.permalink_url} 
                                 target="_blank" 
                                 rel="noreferrer" 
-                                className="text-[10px] text-indigo-300 font-bold hover:text-indigo-200 hover:underline flex items-center justify-center gap-0.5 py-1 px-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                className="text-[9px] text-indigo-300 font-bold hover:text-indigo-200 hover:underline flex items-center justify-center py-1 px-1.5 rounded bg-white/5 hover:bg-white/10 transition-colors"
                               >
-                                Mở
                                 <ExternalLink className="w-2.5 h-2.5" />
                               </a>
                             ) : (
@@ -1706,15 +1711,16 @@ export default function App() {
               )}
             </div>
           </section>
+          </div>
 
-          {/* LOWER SECTION: BATCH ACTION LOGGER AND FOOTER LOGS */}
-          <footer className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-905 border border-slate-700/60 rounded-2xl p-4.5 shadow-2xl shrink-0">
-            {/* PROGRESS BAR PANEL (Col Span 4) */}
-            <div className="md:col-span-5 flex flex-col justify-between gap-3 min-h-0">
+          {/* RIGHT SIDEBAR: PROGRESS AND LOGS */}
+          <aside className="w-full xl:w-[260px] 2xl:w-[300px] glass-card rounded-2xl p-3 shrink-0 flex flex-col gap-4 shadow-xl h-[auto] xl:h-full overflow-y-auto">
+            {/* PROGRESS BAR PANEL */}
+            <div className="flex flex-col gap-3 min-h-0 shrink-0">
               <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs uppercase font-extrabold text-slate-300">
-                  <span>Tiến trình tác vụ {loadingPosts ? "(Tải bài viết)" : "(Xoá bài viết)"}</span>
-                  <span className="font-mono text-blue-400 text-sm bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded">
+                <div className="flex justify-between items-center text-[10px] uppercase font-extrabold text-slate-300">
+                  <span>{loadingPosts ? "Tải bài viết" : "Xoá bài viết"}</span>
+                  <span className="font-mono text-blue-400 text-[10px] bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded">
                     {loadingPosts 
                       ? (scanProgress.total > 0 ? `${Math.round((scanProgress.current / scanProgress.total) * 100)}%` : "0%")
                       : (progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%")
@@ -1722,7 +1728,7 @@ export default function App() {
                   </span>
                 </div>
                 
-                <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner">
+                <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner">
                   <div 
                     className="bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(96,165,250,0.5)]"
                     style={{ width: `${loadingPosts 
@@ -1732,75 +1738,106 @@ export default function App() {
                   ></div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <span className="text-xs font-bold text-slate-200">
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] font-bold text-slate-200">
                     {loadingPosts ? (
-                      <>Thực hiện: <span className="font-mono text-sm text-indigo-300 font-black">{scanProgress.current}</span> / <span className="font-mono text-sm text-slate-400 font-bold">{scanProgress.total}</span> trang.</>
+                      <><span className="text-indigo-300 font-black">{scanProgress.current}</span> / <span>{scanProgress.total}</span> trang</>
                     ) : (
-                      <>Thực hiện: <span className="font-mono text-sm text-indigo-300 font-black">{progress.current}</span> / <span className="font-mono text-sm text-slate-400 font-bold">{progress.total}</span> bài viết.</>
+                      <><span className="text-indigo-300 font-black">{progress.current}</span> / <span>{progress.total}</span> bài</>
                     )}
                   </span>
-
-                  {isDeleting && (
-                    <button
-                      id="btn-stop-deletion"
-                      type="button"
-                      onClick={() => {
-                        deleteCancelledRef.current = true;
-                        addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white border border-rose-500/30 text-[10px] font-black tracking-widest uppercase transition-all shrink-0 cursor-pointer animate-pulse shadow-md shadow-rose-900/30"
-                      title="Click để dừng tiến trình xóa ngay lập tức"
-                    >
-                      Dừng xóa bài
-                    </button>
-                  )}
-                  {loadingPosts && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        scanCancelledRef.current = true;
-                        addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white border border-orange-500/30 text-[10px] font-black tracking-widest uppercase transition-all shrink-0 cursor-pointer animate-pulse shadow-md shadow-orange-900/30"
-                    >
-                      Dừng nạp bài
-                    </button>
-                  )}
                 </div>
+                
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    id="btn-load-posts"
+                    type="button"
+                    onClick={fetchPostsFromSelectedPages}
+                    disabled={selectedPageIds.length === 0 || loadingPosts}
+                    className="flex-1 py-2 neu-button text-white rounded-lg font-black text-[9px] xl:text-[10px] tracking-wide uppercase transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow-md"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 text-blue-300 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
+                    Tải bài viết
+                  </button>
+
+                  <button 
+                    id="btn-delete-trigger"
+                    type="button"
+                    onClick={() => setShowConfirmModal(true)}
+                    disabled={selectedPostIds.length === 0 || isDeleting}
+                    className={`flex-1 py-2 text-white rounded-lg font-black text-[9px] xl:text-[10px] tracking-wide uppercase transition-all flex items-center justify-center gap-1 disabled:pointer-events-none cursor-pointer select-none active:scale-95 shadow-md border ${
+                      selectedPostIds.length > 0 
+                        ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-900/30 border-rose-500/50' 
+                        : 'bg-white/5 text-white/30 border-white/10 opacity-60'
+                    }`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                    Xóa bài viết
+                  </button>
+                </div>
+
+                {(isDeleting || loadingPosts) && (
+                  <div className="flex gap-2 w-full mt-1">
+                    {isDeleting && (
+                      <button
+                        id="btn-stop-deletion"
+                        type="button"
+                        onClick={() => {
+                          deleteCancelledRef.current = true;
+                          addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
+                        }}
+                        className="w-full py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white border border-rose-500/30 text-[9px] font-black tracking-wider uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-rose-900/30"
+                      >
+                        Dừng xóa
+                      </button>
+                    )}
+                    {loadingPosts && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          scanCancelledRef.current = true;
+                          addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
+                        }}
+                        className="w-full py-1.5 rounded-md bg-orange-600 hover:bg-orange-700 text-white border border-orange-500/30 text-[9px] font-black tracking-wider uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-900/30"
+                      >
+                        Dừng nạp
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl flex items-start gap-2">
-                <ShieldAlert className="w-4.5 h-4.5 text-rose-400 shrink-0 mt-0.5" />
-                <div className="text-[11px] text-rose-200 font-semibold leading-relaxed">
-                  <span className="font-black text-rose-100 block uppercase tracking-wide">CẢNH BÁO QUAN TRỌNG:</span>
-                  Hành động xóa bài viết là VĨNH VIỄN và phản hồi API trực tiếp tới Meta. Không thể khôi phục sau khi xóa.
+              <div className="bg-rose-950/40 border border-rose-500/30 p-2 rounded-lg flex items-start gap-1.5 text-rose-200">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="text-[9px] font-semibold leading-relaxed">
+                  <span className="font-black text-rose-100 uppercase block mb-0.5">Lưu ý:</span>
+                  Xóa bài viết là VĨNH VIỄN.
                 </div>
               </div>
             </div>
 
-            {/* LIVE LOG CONSOLE TERMINAL (Col Span 7) */}
-            <div className="md:col-span-7 flex flex-col bg-slate-950/80 border border-slate-800 rounded-xl p-3 shadow-inner">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-1.5 shrink-0">
-                <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-extrabold font-mono flex items-center gap-1.5">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
-                  &gt;_ Nhật ký tác vụ thời gian thực
+            {/* LIVE LOG CONSOLE TERMINAL */}
+            <div className="flex-1 flex flex-col neu-panel rounded-xl p-2.5 shadow-inner min-h-[150px] overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 shrink-0">
+                <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-extrabold font-mono flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                  Logs
                 </span>
                 <button 
                   type="button"
                   onClick={() => setLogs([])}
-                  className="text-xs hover:underline text-slate-400 hover:text-white font-bold"
+                  className="text-[9px] hover:underline text-slate-400 hover:text-white font-bold"
                 >
-                  Xóa Nhật ký
+                  Xóa
                 </button>
               </div>
 
               <div 
                 ref={logContainerRef}
-                className="overflow-y-auto h-[78px] max-h-[78px] space-y-1.5 font-mono text-[10px] text-emerald-300 custom-scrollbar pr-1"
+                className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[9px] text-emerald-300 custom-scrollbar pr-1"
               >
                 {logs.length === 0 ? (
-                  <p className="text-white/30 italic">Chưa có nhật ký hoạt động nào...</p>
+                  <p className="text-white/30 italic">Chưa có nhật ký...</p>
                 ) : (
                   logs.map((log) => {
                     let colorClass = "text-white/60";
@@ -1810,27 +1847,28 @@ export default function App() {
                       colorClass = "text-emerald-400 font-medium";
                       prefix = "✔";
                     } else if (log.status === "failed") {
-                      colorClass = "text-rose-400 font-bold";
-                      prefix = "✘ [LỖI]";
+                       colorClass = "text-rose-400 font-bold";
+                       prefix = "✘ LỖI";
                     } else if (log.status === "processing") {
-                      colorClass = "text-yellow-300 animate-pulse";
-                      prefix = "➜";
+                       colorClass = "text-yellow-300 animate-pulse";
+                       prefix = "➜";
                     } else if (log.status === "pending") {
-                      colorClass = "text-blue-300";
-                      prefix = "⏱";
+                       colorClass = "text-blue-300";
+                       prefix = "⏱";
                     }
 
                     return (
-                      <p key={log.id} className={colorClass}>
-                        [{log.timestamp}] {prefix} {log.postMessageSnippet}
-                      </p>
+                      <div key={log.id} className={`${colorClass} flex gap-1.5 leading-snug break-words`}>
+                        <span className="shrink-0">[{log.timestamp.split(" ")[1]}] {prefix}</span>
+                        <span>{log.postMessageSnippet}</span>
+                      </div>
                     );
                   })
                 )}
               </div>
             </div>
-          </footer>
-          </>
+          </aside>
+          </div>
           )}
 
           {activeTab === "status" && (
@@ -1846,6 +1884,7 @@ export default function App() {
           )}
 
         </main>
+      </div>
       </div>
 
       {/* CUSTOM DATE MODAL */}
@@ -1875,7 +1914,7 @@ export default function App() {
       {/* MODAL 1: APP SETTINGS PANEL MODAL (Interactive Configuration override) */}
       {showConfig && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900/95 border border-white/20 p-6 rounded-[32px] shadow-2xl w-full max-w-[500px]">
+          <div className="glass-card p-6 rounded-[32px] shadow-2xl w-full max-w-[500px]">
             <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
               <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
                 <Settings className="w-5 h-5 text-indigo-400" />
@@ -1903,7 +1942,7 @@ export default function App() {
                   value={appId}
                   onChange={(e) => setAppId(e.target.value)}
                   placeholder="Điền Meta App ID (ví dụ: 89431872124...)"
-                  className="w-full bg-white/5 border border-white/15 rounded-xl px-3 bg-slate-950/50 text-white font-mono py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full neu-input rounded-xl px-3 bg-slate-950/50 text-white font-mono py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
@@ -1915,7 +1954,7 @@ export default function App() {
                   value={appSecret}
                   onChange={(e) => setAppSecret(e.target.value)}
                   placeholder="Điền Meta App Secret"
-                  className="w-full bg-white/5 border border-white/15 rounded-xl px-3 bg-slate-950/50 text-white font-mono py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full neu-input rounded-xl px-3 bg-slate-950/50 text-white font-mono py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
@@ -1929,7 +1968,7 @@ export default function App() {
                   value={userToken}
                   onChange={(e) => setUserToken(e.target.value)}
                   placeholder="Mã Access Token EAAB... (Lấy nhanh từ Trình rà lỗi Meta Graph API Explorer)"
-                  className="w-full bg-slate-950/50 border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  className="w-full neu-input rounded-xl px-3 py-2 text-xs font-mono text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
                 <span className="text-[10px] text-white/40 block mt-1">
                   Cách này giúp bạn chạy trực tiếp mà không cần cấu hình nút OAuth qua cổng máy chủ trung gian.
@@ -1953,7 +1992,7 @@ export default function App() {
       {/* CONFIRMATION DIALOG MODAL (Surgical Confirmation Overlays) */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-950/95 border border-rose-500/30 p-6 md:p-8 rounded-[40px] shadow-2xl w-full max-w-[480px] text-center">
+          <div className="glass-card !border-rose-500/50 !shadow-[0_0_30px_rgba(244,63,94,0.3)] p-6 md:p-8 rounded-[40px] shadow-2xl w-full max-w-[480px] text-center">
             <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-950/50">
               <Trash2 className="w-8 h-8" />
             </div>

@@ -50,11 +50,11 @@ export default function DateRangePickerModal({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       {/* Light Theme matching the screenshot slightly but with app colors */}
-      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl w-full max-w-[650px] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+      <div className="glass-card rounded-2xl w-full max-w-[650px] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         
         {/* Header Inputs */}
-        <div className="p-4 border-b border-slate-700/60 flex items-center gap-4 bg-slate-950/40">
-          <div className="flex-1 flex items-center bg-slate-950 border border-slate-700/80 rounded-lg px-3 h-10 transition-colors focus-within:border-blue-500">
+        <div className="p-4 border-b border-white/10 flex items-center gap-4 bg-slate-950/40">
+          <div className="flex-1 flex items-center neu-input rounded-lg px-3 h-10 transition-colors focus-within:border-blue-500">
             <input 
               type="text" 
               readOnly 
@@ -66,7 +66,7 @@ export default function DateRangePickerModal({
           
           <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
           
-          <div className="flex-1 flex items-center bg-slate-950 border border-slate-700/80 rounded-lg px-3 h-10 transition-colors focus-within:border-blue-500">
+          <div className="flex-1 flex items-center neu-input rounded-lg px-3 h-10 transition-colors focus-within:border-blue-500">
             <input 
               type="text" 
               readOnly 
@@ -79,7 +79,7 @@ export default function DateRangePickerModal({
         </div>
 
         {/* Calendar Grid */}
-        <div className="p-4 flex justify-center bg-slate-900">
+        <div className="p-4 flex justify-center bg-transparent">
           <DayPicker
             mode="range"
             defaultMonth={month}
@@ -102,9 +102,9 @@ export default function DateRangePickerModal({
               head_row: "flex",
               head_cell: "text-slate-400 rounded-md w-9 font-bold text-[12px] uppercase",
               row: "flex w-full mt-2",
-              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-blue-600/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 transition-all",
+              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:neu-button-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 transition-all",
               day: "h-9 w-9 p-0 font-medium hover:bg-slate-800 rounded-md transition-colors aria-selected:opacity-100",
-              day_selected: "bg-blue-600 text-white hover:bg-blue-500 focus:bg-blue-600 font-bold",
+              day_selected: "neu-button-primary text-white hover:bg-blue-500 focus:neu-button-primary font-bold",
               day_today: "text-blue-400 bg-blue-500/10 font-bold",
               day_outside: "text-slate-600 opacity-50",
               day_disabled: "text-slate-600 opacity-50",
@@ -119,11 +119,11 @@ export default function DateRangePickerModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-700/60 bg-slate-950/40 flex justify-end gap-3">
+        <div className="p-4 border-t border-white/10 bg-slate-950/40 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 border border-slate-700 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-bold transition-all"
+            className="px-5 py-2 neu-button text-slate-300 rounded-lg text-sm font-bold transition-all"
           >
             Đóng
           </button>
@@ -131,7 +131,7 @@ export default function DateRangePickerModal({
             type="button"
             onClick={handleApply}
             disabled={!dateRange?.from}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
+            className="px-5 py-2 neu-button-primary disabled:opacity-50 disabled:hover:neu-button-primary text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
           >
             Áp dụng
           </button>
