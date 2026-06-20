@@ -58,7 +58,7 @@ export default async function handler(req: any, res: any) {
       nextUrl = (data.paging && data.paging.next) || null;
     }
 
-    return res.status(250).status(200).json({ data: allPages });
+    return res.status(200).json({ data: allPages });
   } catch (error: any) {
     console.error("Lỗi khi tải danh sách Fanpages:", error);
     return res.status(500).json({ error: error.message || "Lỗi máy chủ khi lấy trang" });
