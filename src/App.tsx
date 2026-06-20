@@ -33,6 +33,8 @@ import {
   X
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
+// @ts-ignore
+import bgImage from "./assets/images/cosmic_swirl_bg_1781941929717.jpg";
 
 // ==========================================
 // CUSTOM UI COMPONENTS (UNIFIED DESIGN)
@@ -801,7 +803,7 @@ export default function App() {
       {/* BACKGROUND IMAGE LAYER */}
       <div className="absolute inset-0 z-0 pointer-events-none w-full h-full">
         <img 
-          src="/src/assets/images/cosmic_swirl_bg_1781941929717.jpg" 
+          src={bgImage} 
           alt="Cosmic backdrop" 
           className="w-full h-full object-cover scale-[1.03] blur-[6px] opacity-75 brightness-[0.38]"
           referrerPolicy="no-referrer"
@@ -1116,10 +1118,10 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 relative z-40 w-full text-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 relative z-40 w-full text-white">
               
               {/* Filter: Older Than X days */}
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0">
+              <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
                 <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
@@ -1139,21 +1141,23 @@ export default function App() {
                   />
                   <span>Cũ hơn:</span>
                 </label>
-                <input 
-                  type="number"
-                  id="input-older-days"
-                  min="1"
-                  value={filters.olderThanDays}
-                  disabled={!filters.enableOlderThan}
-                  onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
-                  className="bg-black/40 border border-white/20 rounded-md px-1.5 h-5 text-[10px] font-mono outline-none text-white w-10 text-center font-bold disabled:opacity-30 focus:border-emerald-400 transition-all"
-                />
-                <span className="text-[9px] text-white/40">ngày</span>
+                <div className="flex items-center gap-1.5">
+                  <input 
+                    type="number"
+                    id="input-older-days"
+                    min="1"
+                    value={filters.olderThanDays}
+                    disabled={!filters.enableOlderThan}
+                    onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 0 }))}
+                    className="bg-black/40 border border-white/20 rounded-md px-1.5 h-5 text-[10px] font-mono outline-none text-white w-10 text-center font-bold disabled:opacity-30 focus:border-emerald-400 transition-all"
+                  />
+                  <span className="text-[9px] text-white/40">ngày</span>
+                </div>
               </div>
 
               {/* Filter: Keyword Search */}
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0 min-w-[130px] max-w-[180px] flex-1">
-                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none shrink-0">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
                       filters.enableKeyword 
@@ -1187,8 +1191,8 @@ export default function App() {
               </div>
 
               {/* Filter: Date Range Selection */}
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0">
-                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none">
+              <div className="flex items-center justify-between gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/90 cursor-pointer select-none shrink-0">
                   <div 
                     className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
                       filters.enableDateRange 
@@ -1205,11 +1209,11 @@ export default function App() {
                     onChange={(e) => setFilters(f => ({ ...f, enableDateRange: e.target.checked }))}
                     className="sr-only"
                   />
-                  <span>Khoảng ngày:</span>
+                  <span>Khoảng:</span>
                 </label>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 leading-none shrink-0">
                   <span className="text-[9px] text-white/40">Từ</span>
-                  <div className="w-[85px]">
+                  <div className="w-[72px] sm:w-[80px]">
                     <CustomDatePicker
                       value={filters.dateFrom}
                       disabled={!filters.enableDateRange}
@@ -1217,7 +1221,7 @@ export default function App() {
                     />
                   </div>
                   <span className="text-[9px] text-white/40">đến</span>
-                  <div className="w-[85px]">
+                  <div className="w-[72px] sm:w-[80px]">
                     <CustomDatePicker
                       value={filters.dateTo}
                       disabled={!filters.enableDateRange}
@@ -1228,40 +1232,42 @@ export default function App() {
               </div>
 
               {/* Filter: Max Limits config */}
-              <div className="flex items-center gap-2 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] shrink-0">
-                <span className="text-[10px] font-bold text-white/85 flex items-center gap-1 select-none">
+              <div className="flex items-center justify-between gap-2 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all h-[30px] w-full">
+                <span className="text-[10px] font-bold text-white/85 flex items-center gap-1 select-none shrink-0">
                   <SlidersHorizontal className="w-3" />
                   Giới hạn:
                 </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[9px] text-white/50">Tải:</span>
-                  <CustomSelect
-                    value={filters.maxPostsToFetch}
-                    onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
-                    options={[
-                      { value: 10, label: "10" },
-                      { value: 50, label: "50" },
-                      { value: 100, label: "100" },
-                      { value: 250, label: "250" },
-                      { value: 500, label: "500" },
-                      { value: 1000, label: "1000" }
-                    ]}
-                  />
-                </div>
-                <div className="flex items-center gap-1 border-l border-white/10 pl-1">
-                  <span className="text-[9px] text-white/50">Hiện:</span>
-                  <CustomSelect
-                    value={filters.maxPostsToShow}
-                    onChange={(val) => setFilters(f => ({ ...f, maxPostsToShow: val }))}
-                    options={[
-                      { value: 10, label: "10" },
-                      { value: 50, label: "50" },
-                      { value: 100, label: "100" },
-                      { value: 250, label: "250" },
-                      { value: 500, label: "500" },
-                      { value: 1000, label: "1000" }
-                    ]}
-                  />
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[9px] text-white/50">Tải</span>
+                    <CustomSelect
+                      value={filters.maxPostsToFetch}
+                      onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
+                      options={[
+                        { value: 10, label: "10" },
+                        { value: 50, label: "50" },
+                        { value: 100, label: "100" },
+                        { value: 250, label: "250" },
+                        { value: 500, label: "500" },
+                        { value: 1000, label: "1000" }
+                      ]}
+                    />
+                  </div>
+                  <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5">
+                    <span className="text-[9px] text-white/50">Hiện</span>
+                    <CustomSelect
+                      value={filters.maxPostsToShow}
+                      onChange={(val) => setFilters(f => ({ ...f, maxPostsToShow: val }))}
+                      options={[
+                        { value: 10, label: "10" },
+                        { value: 50, label: "50" },
+                        { value: 100, label: "100" },
+                        { value: 250, label: "250" },
+                        { value: 500, label: "500" },
+                        { value: 1000, label: "1000" }
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
 
