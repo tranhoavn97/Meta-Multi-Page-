@@ -33,7 +33,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture{url}&access_token=${META_ACCESS_TOKEN}&limit=100`;
+    const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,picture.type(large),access_token,category,tasks&access_token=${META_ACCESS_TOKEN}&limit=100`;
     let allPages: any[] = [];
     let nextUrl: string | null = url;
 
@@ -57,6 +57,29 @@ export default async function handler(req: any, res: any) {
 
       nextUrl = (data.paging && data.paging.next) || null;
     }
+
+    // Call fallback picture API concurrently for pages missing an avatar
+    const fallbackPromises = allPages.map(async (page: any) => {
+      if (page.picture?.data?.url) {
+        return;
+      }
+      try {
+        const pageToken = page.access_token || META_ACCESS_TOKEN;
+        const picUrl = `https://graph.facebook.com/v19.0/${page.id}/picture?type=large&redirect=false&access_token=${pageToken}`;
+        const picData = await backendFetchJson(picUrl);
+        if (picData?.data?.url) {
+          page.picture = {
+            data: {
+              url: picData.data.url
+            }
+          };
+        }
+      } catch (err: any) {
+        console.error(`Lỗi khi lấy avatar cho page ${page.id}:`, err.message || err);
+      }
+    });
+
+    await Promise.all(fallbackPromises);
 
     return res.status(200).json({ data: allPages });
   } catch (error: any) {

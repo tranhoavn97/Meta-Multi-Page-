@@ -325,12 +325,81 @@ function CustomSelect({
   );
 }
 
+interface PageAvatarProps {
+  pageId: string;
+  pageName: string;
+  picUrl?: string;
+}
+
+function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (!picUrl) {
+      setHasError(true);
+      setIsLoading(false);
+    } else {
+      setHasError(false);
+      setIsLoading(true);
+    }
+  }, [picUrl]);
+
+  const firstLetter = pageName.trim().charAt(0).toUpperCase() || "P";
+
+  return (
+    <div className="relative w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-accent/20 text-accent font-bold text-sm border border-border select-none">
+      {isLoading && !hasError && (
+        <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground">...</span>
+        </div>
+      )}
+      {!hasError && picUrl ? (
+        <img
+          src={picUrl}
+          alt={pageName}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+          className={`w-full h-full object-cover rounded-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        />
+      ) : (
+        <span>{firstLetter}</span>
+      )}
+    </div>
+  );
+}
+
+const getPermissionBadges = (tasks: string[] = []) => {
+  const badges: { label: string; color: string }[] = [];
+  
+  const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
+  const hasCreate = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");
+  const hasAnalyze = tasks.includes("ANALYZE");
+
+  if (hasManage) {
+    badges.push({ label: "Quản lý", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" });
+  }
+  if (hasCreate) {
+    badges.push({ label: "Tạo nội dung", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" });
+  }
+  if (hasAnalyze) {
+    badges.push({ label: "Phân tích", color: "bg-purple-500/10 text-purple-400 border-purple-200" });
+  }
+
+  if (badges.length === 0) {
+    badges.push({ label: "Thiếu quyền", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" });
+  }
+
+  return badges;
+};
+
 export default function App() {
   const toast = useToast();
-
   const [isDark, setIsDark] = useState<boolean>(true);
-
-  const { config, setConfig } = useThemeConfig(true); // Instantiate global theme styles
+  const { config, setConfig } = useThemeConfig(true);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -1306,40 +1375,79 @@ export default function App() {
 
                 return filteredList.map((page) => {
                   const isSelected = selectedPageIds.includes(page.id);
-                  // Extract photo URL if possible
-                  const picUrl = page.picture?.data?.url || `https://graph.facebook.com/${page.id}/picture?type=small`;
-                  
                   return (
                     <div 
                       id={`page-card-${page.id}`}
                       key={page.id}
                       onClick={() => togglePageSelection(page.id)}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-[14px] border transition-all cursor-pointer select-none group ${
+                      className={`flex flex-col gap-2.5 p-3 rounded-[16px] border transition-all cursor-pointer select-none group/card ${
                         isSelected 
                           ? "bg-muted border-accent/40 shadow-sm" 
                           : "bg-transparent border-transparent hover:bg-muted"
                       }`}
                     >
-                      <img 
-                        src={picUrl} 
-                        alt="" 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${page.id}`;
-                        }}
-                        className="w-9 h-9 rounded-full shadow-sm flex-shrink-0 object-cover bg-white"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate text-foreground leading-tight group-hover:text-accent transition-colors">{page.name}</p>
-                        <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">ID: {page.id}</p>
+                      {/* Top row: Avatar, Name & ID, and selection checkbox */}
+                      <div className="flex items-start gap-2.5 w-full">
+                        <PageAvatar 
+                          pageId={page.id} 
+                          pageName={page.name} 
+                          picUrl={page.picture?.data?.url} 
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground leading-tight group-hover/card:text-accent transition-colors line-clamp-2" title={page.name}>
+                            {page.name}
+                          </p>
+                          <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">
+                            ID: {page.id}
+                          </p>
+                        </div>
+                        <div className="shrink-0 pt-0.5">
+                          {isSelected ? (
+                            <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
+                              <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-lg border-2 border-border group-hover/card:border-accent/50 transition-colors"></div>
+                          )}
+                        </div>
                       </div>
-                      <div className="shrink-0">
-                        {isSelected ? (
-                          <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
-                            <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
+
+                      {/* Middle row: Badges (Permissions & Monetization) */}
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {/* Permission Badges */}
+                        {getPermissionBadges(page.tasks).map((badge, idx) => (
+                          <span 
+                            key={idx} 
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${badge.color}`}
+                          >
+                            {badge.label}
+                          </span>
+                        ))}
+
+                        {/* Monetization Badge with Tooltip */}
+                        <div className="relative group/tooltip inline-block">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-slate-500/10 text-slate-400 border-slate-500/20 cursor-help flex items-center gap-1">
+                            Kiếm tiền: Chưa xác định
+                            <span className="text-[8px] font-normal opacity-60">ⓘ</span>
+                          </span>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-slate-950/95 backdrop-blur-md text-slate-200 text-[10px] p-2 rounded-lg shadow-xl border border-white/10 w-48 text-center leading-normal z-[100] pointer-events-none transition-all animate-in fade-in slide-in-from-bottom-1 duration-150">
+                            Meta Graph API công khai không cung cấp trạng thái bật/tắt kiếm tiền chung cho mọi Fanpage.
                           </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded-lg border-2 border-border group-hover:border-accent/50 transition-colors"></div>
-                        )}
+                        </div>
+                      </div>
+
+                      {/* Bottom row: Check on Meta Button */}
+                      <div className="flex items-center justify-between border-t border-border/50 pt-2 mt-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`https://business.facebook.com/latest/monetization/overview?asset_id=${page.id}`, '_blank');
+                          }}
+                          className="w-full text-center py-1.5 px-3 bg-muted hover:bg-border border border-border/30 hover:border-accent/30 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Kiểm tra trên Meta</span>
+                        </button>
                       </div>
                     </div>
                   );
