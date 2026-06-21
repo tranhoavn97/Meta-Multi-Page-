@@ -261,14 +261,14 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
   );
 }
 
-function CustomSelect({ 
+function CustomSelect<T extends number | string>({ 
   value, 
   onChange, 
   options 
 }: { 
-  value: number; 
-  onChange: (val: number) => void; 
-  options: { value: number; label: string }[];
+  value: T; 
+  onChange: (val: T) => void; 
+  options: { value: T; label: string }[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -370,7 +370,7 @@ function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
     setIsLoading(false);
   };
 
-  const firstLetter = pageName.trim().charAt(0).toUpperCase() || "P";
+  const firstLetter = (pageName || "").trim().charAt(0).toUpperCase() || "P";
 
   return (
     <div className="relative w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-accent/20 text-accent font-bold text-sm border border-border select-none">
@@ -468,6 +468,7 @@ export default function App() {
     maxPostsToFetch: 1000,
     maxPostsToShow: 1000,
     timeRangePreset: "all",
+    postType: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState<boolean>(false);
@@ -1434,9 +1435,8 @@ export default function App() {
 
   // Helper selectors - Memoized and heavily optimized for maximum speed
   const filteredPosts = useMemo((): FacebookPost[] => {
-    // 1. Precompute loop invariants to avoid repeated properties access, new Date calls, and toLowerCase() calls inside the array filter loop.
-    const enableKeyword = filters.enableKeyword && filters.keyword.trim().length > 0;
-    const kw = enableKeyword ? filters.keyword.trim().toLowerCase() : "";
+    const kw = filters.keyword ? filters.keyword.trim().toLowerCase() : "";
+    const enableKeyword = kw.length > 0;
 
     const enableOlderThan = filters.enableOlderThan;
     const olderThanDays = filters.olderThanDays;
@@ -1444,7 +1444,9 @@ export default function App() {
 
     const enableDateRange = filters.enableDateRange;
     const fromTime = (enableDateRange && filters.dateFrom) ? new Date(filters.dateFrom).getTime() : null;
-    const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null; // add 1 day minus 1ms
+    const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null;
+
+    const postType = filters.postType || "all";
 
     return posts.filter(post => {
       let postTime: number | null = null;
@@ -1470,6 +1472,14 @@ export default function App() {
         }
         if (fromTime !== null && postTime < fromTime) return false;
         if (toTime !== null && postTime > toTime) return false;
+      }
+
+      // 4. Media type: Chỉ video
+      if (postType === "video") {
+        const isVideo = (post.status_type || "").toLowerCase().includes("video") || 
+                        (post.message || "").toLowerCase().includes("video") || 
+                        (post.permalink_url || "").toLowerCase().includes("video");
+        if (!isVideo) return false;
       }
 
       return true;
@@ -1554,7 +1564,7 @@ export default function App() {
           body: JSON.stringify({
             type: "delete_posts",
             pageId,
-            payload: { postIds, dryRun: false }
+            payload: { postIds, dryRun: false, confirm: true }
           })
         });
 
@@ -1890,7 +1900,7 @@ export default function App() {
               {(() => {
                 const query = pageSearchQuery.trim().toLowerCase();
                 const filteredList = pages.filter(
-                  page => page.name.toLowerCase().includes(query) || page.id.includes(query)
+                  page => (page.name || "").toLowerCase().includes(query) || (page.id || "").includes(query)
                 );
 
                 if (filteredList.length === 0) {
@@ -2135,6 +2145,60 @@ export default function App() {
                           ]}
                         />
                       </div>
+                    </div>
+
+                    {/* Filter: Keyword Search */}
+                    <div className="flex flex-1 sm:flex-none items-center gap-2 px-3 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 w-full sm:w-[160px] shadow-sm text-foreground">
+                      <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <input 
+                        type="text"
+                        placeholder="Lọc từ khoá..."
+                        value={keywordInput}
+                        onChange={(e) => setKeywordInput(e.target.value)}
+                        className="bg-transparent border-none text-xs font-semibold placeholder-muted-foreground outline-none w-full"
+                      />
+                    </div>
+
+                    {/* Filter: Media Type Selector */}
+                    <div className="flex flex-1 sm:flex-none items-center gap-2 px-3.5 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 shadow-sm text-foreground">
+                      <div className="flex items-center gap-1.5 shrink-0 border-r border-border pr-2">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none whitespace-nowrap">
+                          Loại
+                        </span>
+                      </div>
+                      <CustomSelect
+                        value={filters.postType || "all"}
+                        onChange={(val) => setFilters(f => ({ ...f, postType: val }))}
+                        options={[
+                          { value: "all", label: "Tất cả bài" },
+                          { value: "video", label: "Chỉ video" }
+                        ]}
+                      />
+                    </div>
+
+                    {/* Filter: Older Than X Days */}
+                    <div className="flex flex-1 sm:flex-none items-center gap-2 px-3 py-2 bg-background border border-border rounded-xl h-10 shadow-sm text-foreground">
+                      <input 
+                        type="checkbox"
+                        checked={filters.enableOlderThan}
+                        onChange={(e) => setFilters(f => ({ ...f, enableOlderThan: e.target.checked }))}
+                        className="w-3.5 h-3.5 accent-accent cursor-pointer"
+                      />
+                      <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none whitespace-nowrap">
+                        Cũ hơn
+                      </span>
+                      <input 
+                        type="number"
+                        min="1"
+                        value={filters.olderThanDays}
+                        onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 30 }))}
+                        className="w-10 bg-muted border border-border/50 rounded px-1.5 py-0.5 text-center text-xs font-bold font-mono outline-none"
+                        disabled={!filters.enableOlderThan}
+                      />
+                      <span className="text-xs text-muted-foreground font-semibold select-none whitespace-nowrap">
+                        ngày
+                      </span>
                     </div>
 
                   </div>

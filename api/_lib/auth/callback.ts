@@ -62,7 +62,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Exchange auth code for user access token
-    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token` +
+    const tokenUrl = `https://graph.facebook.com/v23.0/oauth/access_token` +
       `?client_id=${appId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&client_secret=${appSecret}` +

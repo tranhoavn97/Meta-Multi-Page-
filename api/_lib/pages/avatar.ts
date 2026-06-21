@@ -25,7 +25,7 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "No page access token available to refresh avatar" });
     }
 
-    const fbUrl = `https://graph.facebook.com/v19.0/${pageId}/picture?type=large&redirect=false&access_token=${pageToken}`;
+    const fbUrl = `https://graph.facebook.com/v23.0/${pageId}/picture?type=large&redirect=false&access_token=${pageToken}`;
     const fbRes = await fetchWithTimeout(fbUrl);
     const fbData = await fbRes.json();
 

@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
     const pageId = parts[0];
 
     // 2. Fetch pages list to find the corresponding page_access_token
-    const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
+    const pagesUrl = `https://graph.facebook.com/v23.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
     let pageToken: string | null = null;
     let allPagesData = await backendFetchJson(pagesUrl);
 
@@ -69,7 +69,7 @@ export default async function handler(req: any, res: any) {
     const activeToken = pageToken || META_ACCESS_TOKEN;
 
     // 3. Make the Meta delete-post graph API call
-    const deleteUrl = `https://graph.facebook.com/v19.0/${activePostId}?access_token=${activeToken}`;
+    const deleteUrl = `https://graph.facebook.com/v23.0/${activePostId}?access_token=${activeToken}`;
     const result = await backendFetchJson(deleteUrl, {
       method: "DELETE"
     });

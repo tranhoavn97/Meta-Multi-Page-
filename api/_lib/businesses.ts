@@ -35,7 +35,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const url = `https://graph.facebook.com/v19.0/me/businesses?fields=id,name,primary_page&access_token=${userToken}&limit=100`;
+    const url = `https://graph.facebook.com/v23.0/me/businesses?fields=id,name,primary_page&access_token=${userToken}&limit=100`;
     const data = await backendFetchJson(url);
 
     if (data.error) {

@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const meUrl = `https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${META_ACCESS_TOKEN}`;
+    const meUrl = `https://graph.facebook.com/v23.0/me?fields=id,name&access_token=${META_ACCESS_TOKEN}`;
     const meData = await backendFetchJson(meUrl);
 
     if (meData && meData.error) {
@@ -50,7 +50,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Try fetching count of pages briefly
-    const accountsUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id&access_token=${META_ACCESS_TOKEN}&limit=100`;
+    const accountsUrl = `https://graph.facebook.com/v23.0/me/accounts?fields=id&access_token=${META_ACCESS_TOKEN}&limit=100`;
     const accountsData = await backendFetchJson(accountsUrl);
     const pagesCount = (accountsData && accountsData.data) ? accountsData.data.length : 0;
 
