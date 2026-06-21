@@ -327,12 +327,13 @@ function CustomSelect({
 
 export default function App() {
   const toast = useToast();
-  useThemeConfig(); // Instantiate global theme styles
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark' || 
            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
+
+  const { config, setConfig } = useThemeConfig(isDark); // Instantiate global theme styles
 
   useEffect(() => {
     if (isDark) {
@@ -1089,14 +1090,7 @@ export default function App() {
               <Users className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
               {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Quản trị viên</span>}
             </button>
-          </nav>
 
-          <div className="hidden sm:block w-full h-px bg-border my-2" />
-
-          {/* System status and user actions */}
-          <div className="flex flex-col gap-3 w-full shrink-0 mt-auto">
-             
-            {/* TUỲ BIẾN BUTTON */}
             <button
                id="tab-theme"
                type="button"
@@ -1105,7 +1099,7 @@ export default function App() {
                  addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
                }}
                title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
-               className={`hidden sm:flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
+               className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "theme"
                    ? "neu-button-primary text-white font-bold"
                    : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
@@ -1114,6 +1108,12 @@ export default function App() {
               <Settings className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
               {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Tuỳ biến</span>}
             </button>
+          </nav>
+
+          <div className="hidden sm:block w-full h-px bg-border my-2" />
+
+          {/* System status and user actions */}
+          <div className="flex flex-col gap-3 w-full shrink-0 mt-auto">
 
              {userToken ? (
               <div className={`hidden sm:flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] px-3 py-2.5 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
@@ -1195,10 +1195,10 @@ export default function App() {
           
           {/* ERROR ALERT BOX */}
           {apiError && (
-            <div className="mb-3 backdrop-blur-md bg-rose-500/10 border-l-4 border-rose-500 p-3 rounded-r-xl flex items-start gap-3 text-rose-100 shadow-md shrink-0 relative z-20">
-              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="mb-3 backdrop-blur-md bg-rose-500/10 border-l-4 border-rose-500 p-3 rounded-r-xl flex items-start gap-3 text-rose-800 dark:text-rose-100 shadow-md shrink-0 relative z-20">
+              <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="text-xs flex-1">
-                <span className="font-semibold block text-[12px] text-rose-300">Sự cố kết nối hoặc xác thực:</span>
+                <span className="font-semibold block text-[12px] text-rose-900 dark:text-rose-300">Sự cố kết nối hoặc xác thực:</span>
                 <p className="mt-1 font-mono text-[10px] sm:text-[11px] opacity-80 truncate max-w-full" title={apiError}>{apiError}</p>
               </div>
             </div>
@@ -1966,7 +1966,7 @@ export default function App() {
 
           {activeTab === "theme" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} />
+              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} config={config} setConfig={setConfig} />
             </div>
           )}
 

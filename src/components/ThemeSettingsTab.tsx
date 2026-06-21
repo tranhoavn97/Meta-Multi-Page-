@@ -2,20 +2,20 @@ import React from "react";
 import { 
   Sun, Moon, LayoutTemplate, Type, Settings2, Palette, Box, Check, Image as ImageIcon
 } from "lucide-react";
-import { useThemeConfig, APP_THEMES, COLOR_OPTIONS, FONT_OPTIONS } from "../hooks/useThemeConfig";
+import { APP_THEMES, COLOR_OPTIONS, FONT_OPTIONS, type ThemeConfig } from "../hooks/useThemeConfig";
 
 interface ThemeSettingsTabProps {
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
+  config: ThemeConfig;
+  setConfig: (config: ThemeConfig) => void;
 }
 
 export default function ThemeSettingsTab({
-  isDark, setIsDark
+  isDark, setIsDark, config, setConfig
 }: ThemeSettingsTabProps) {
 
-  const { config, setConfig } = useThemeConfig();
-
-  const handleUpdate = (updates: Partial<typeof config>) => {
+  const handleUpdate = (updates: Partial<ThemeConfig>) => {
     setConfig({ ...config, ...updates });
   };
 
