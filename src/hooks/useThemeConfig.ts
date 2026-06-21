@@ -44,6 +44,10 @@ export interface ThemeConfig {
   blurSize: string;
   fontSize: string; // 'small', 'base', 'large'
   fontFamily: string;
+  bgType?: 'gradient' | 'image';
+  bgImageUrl?: string;
+  blurAmount?: number;
+  borderRadius?: number;
 }
 
 const defaultThemeConfig: ThemeConfig = {
@@ -51,9 +55,13 @@ const defaultThemeConfig: ThemeConfig = {
   primaryColorName: "Cyan Neon",
   glassOpacity: 45,
   bgOverlay: 85,
-  blurSize: "28px",
+  blurSize: "24px",
   fontSize: "base",
-  fontFamily: "Inter"
+  fontFamily: "Inter",
+  bgType: "gradient",
+  bgImageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80",
+  blurAmount: 24,
+  borderRadius: 20
 };
 
 export function useThemeConfig() {
@@ -64,7 +72,11 @@ export function useThemeConfig() {
 
   const setConfig = (newConfig: ThemeConfig) => {
     setConfigState(newConfig);
-    localStorage.setItem("app_theme_config", JSON.stringify(newConfig));
+    try {
+      localStorage.setItem("app_theme_config", JSON.stringify(newConfig));
+    } catch (e) {
+      console.warn("Storage quota exceeded of localStorage, only applying theme in state", e);
+    }
   };
 
   useEffect(() => {
@@ -124,9 +136,10 @@ export function useThemeConfig() {
     }
 
     // Apply blur size
+    const finalBlurAmount = config.blurAmount !== undefined ? config.blurAmount : 24;
+    const finalBorderRadius = config.borderRadius !== undefined ? config.borderRadius : 20;
     
-    // You cannot dynamically change CSS variables used in tailwind `backdrop-blur-*` utility classes easily unless extending the theme or overriding the style dynamically.
-    // Instead, we will inject a custom style block
+    // Instead of predefined static styles, inject custom dynamic properties
     let styleEl = document.getElementById("theme-dynamic-styles");
     if (!styleEl) {
       styleEl = document.createElement("style");
@@ -148,42 +161,136 @@ export function useThemeConfig() {
       html {
         font-size: ${baseFontSize};
       }
-      .neu-panel, .glass-panel, .neu-input, .neu-button, aside, main {
-        backdrop-filter: blur(${config.blurSize}) !important;
-        -webkit-backdrop-filter: blur(${config.blurSize}) !important;
+      
+      /* GLASS & BLUR ACCENTS */
+      .neu-panel, .glass-panel, .neu-input, .neu-button, aside, main, .mac-dropdown {
+        backdrop-filter: blur(${finalBlurAmount}px) !important;
+        -webkit-backdrop-filter: blur(${finalBlurAmount}px) !important;
+      }
+      
+      /* SQUIRCLE APPLE STANDARD BORDERS */
+      .glass-card, aside, main {
+        border-radius: ${finalBorderRadius}px !important;
+      }
+      
+      .glass-panel, .mac-dropdown {
+        border-radius: ${Math.max(finalBorderRadius - 6, 10)}px !important;
+      }
+      
+      .neu-input, .mac-select {
+        border-radius: ${Math.max(finalBorderRadius - 8, 8)}px !important;
       }
       
       /* FUTURISTIC NEON GLASS UI EFFECTS */
       .glass-card {
-        border: 1px solid rgba(${rgbVal}, 0.25) !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.22), 0 0 15px rgba(${rgbVal}, 0.1) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border: 1px solid rgba(${rgbVal}, 0.22) !important;
+        box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.25), 0 0 15px rgba(${rgbVal}, 0.08) !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
       .glass-card:hover {
-        border-color: rgba(${rgbVal}, 0.45) !important;
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.32), 0 0 22px rgba(${rgbVal}, 0.25) !important;
+        border-color: rgba(${rgbVal}, 0.4) !important;
+        box-shadow: 0 15px 45px 0 rgba(0, 0, 0, 0.35), 0 0 25px rgba(${rgbVal}, 0.2) !important;
       }
       
       .glass-panel {
-        border: 1px solid rgba(${rgbVal}, 0.18) !important;
-        box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.18), 0 0 10px rgba(${rgbVal}, 0.08) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border: 1px solid rgba(${rgbVal}, 0.15) !important;
+        box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.15), 0 0 10px rgba(${rgbVal}, 0.06) !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
       .glass-panel:hover {
-        border-color: rgba(${rgbVal}, 0.38) !important;
-        box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.25), 0 0 18px rgba(${rgbVal}, 0.2) !important;
+        border-color: rgba(${rgbVal}, 0.3) !important;
+        box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.2), 0 0 18px rgba(${rgbVal}, 0.15) !important;
       }
       
+      /* IOS / MACOS PREMIUM BUTTONS */
       .neu-button-primary {
-        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-sec) 100%) !important;
-        box-shadow: 0 0 12px 1px rgba(${rgbVal}, 0.32) !important;
-        border: 1px solid rgba(${rgbVal}, 0.3) !important;
-        transition: all 0.25s ease !important;
+        background: var(--accent) !important;
+        box-shadow: 0 4px 14px 0 rgba(${rgbVal}, 0.35) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        border-radius: 9999px !important;
+        font-weight: 700 !important;
+        cursor: pointer;
+      }
+      .neu-button-primary:hover {
+        box-shadow: 0 6px 20px 0 rgba(${rgbVal}, 0.55), 0 4px 15px rgba(0, 0, 0, 0.12) !important;
+        transform: scale(1.025) !important;
+        background: var(--accent) !important;
+        filter: brightness(1.08);
+      }
+      .neu-button-primary:active {
+        transform: scale(0.975) !important;
+        opacity: 0.92 !important;
       }
       
-      .neu-button-primary:hover {
-        box-shadow: 0 0 20px 3px rgba(${rgbVal}, 0.48), 0 4px 12px rgba(0, 0, 0, 0.12) !important;
-        transform: translateY(-2px) !important;
+      .neu-button-secondary {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        color: #ffffff !important;
+        border-radius: 9999px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        cursor: pointer;
+      }
+      .neu-button-secondary:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
+        transform: scale(1.02) !important;
+      }
+      .neu-button-secondary:active {
+        transform: scale(0.98) !important;
+      }
+      
+      /* PRETTY MAC DROPDOWNS & SELECT */
+      .mac-select {
+        background-color: rgba(15, 23, 42, 0.45) !important;
+        border: 1px solid rgba(${rgbVal}, 0.2) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+        color: #f1f5f9 !important;
+        font-weight: 600 !important;
+        outline: none !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer;
+      }
+      .mac-select:focus {
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 10px rgba(${rgbVal}, 0.3) !important;
+      }
+      
+      /* PREMIUM PROGRESS BAR WITH GLOW */
+      .pretty-progress-track {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 9999px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.3) !important;
+      }
+      .pretty-progress-bar {
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-sec) 100%) !important;
+        box-shadow: 0 0 12px 2px rgba(${rgbVal}, 0.5) !important;
+        border-radius: 9999px !important;
+        transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        height: 100% !important;
+        position: relative;
+      }
+      .pretty-progress-bar::after {
+        content: '' !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.25) 50%,
+          transparent
+        ) !important;
+        background-size: 200% 100% !important;
+        animation: loading-shine 1.5s infinite linear !important;
+      }
+      @keyframes loading-shine {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
       }
       
       .neu-input:focus, .neu-input:focus-within {

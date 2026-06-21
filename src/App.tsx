@@ -37,7 +37,8 @@ import {
   Users,
   Briefcase,
   Sun,
-  Moon
+  Moon,
+  Loader2
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 import { safeFetchJson } from "./utils/safeFetchJson";
@@ -225,7 +226,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
                   onClick={() => handleSelectDay(dateStr)}
                   className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-accent text-white shadow-md scale-105"
+                      ? "bg-accent text-white shadow-md border border-white/10"
                       : isToday
                       ? "bg-accent/10 text-accent ring-1 ring-accent/30 font-extrabold"
                       : isCurrentMonth
@@ -328,7 +329,7 @@ function CustomSelect({
 
 export default function App() {
   const toast = useToast();
-  useThemeConfig(); // Instantiate global theme styles
+  const { config } = useThemeConfig(); // Instantiate global theme styles
 
   const isDark = true;
   const setIsDark = () => {};
@@ -360,6 +361,7 @@ export default function App() {
   const [loadingPages, setLoadingPages] = useState<boolean>(false);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [currentlyDeletingId, setCurrentlyDeletingId] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState<boolean>(false);
 
@@ -415,6 +417,7 @@ export default function App() {
 
   // Logs & Progress
   const [logs, setLogs] = useState<DeletionLog[]>([]);
+  const [activeLogTab, setActiveLogTab] = useState<"all" | "error" | "success">("all");
   const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const [scanProgress, setScanProgress] = useState<{ current: number; total: number; currentPageName: string }>({ current: 0, total: 0, currentPageName: "" });
   const [deletedCountSession, setDeletedCountSession] = useState<number>(0);
@@ -424,11 +427,14 @@ export default function App() {
   const [doubleConfirm, setDoubleConfirm] = useState<boolean>(false);
 
   // Active Tab state for Page Status and Admin/Business views integration
-  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">("theme");
+  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">("posts");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // References for logging & scroll
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const postListScrollRef = useRef<HTMLDivElement>(null);
+  const [postListScrollTop, setPostListScrollTop] = useState(0);
+  const [postListContainerHeight, setPostListContainerHeight] = useState(500);
   const scanCancelledRef = useRef<boolean>(false);
   const deleteCancelledRef = useRef<boolean>(false);
 
@@ -571,6 +577,13 @@ export default function App() {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [logs]);
+
+  // Measure container height for virtual scrolling
+  useEffect(() => {
+    if (postListScrollRef.current) {
+      setPostListContainerHeight(postListScrollRef.current.clientHeight);
+    }
+  }, [posts, activeTab, filters]);
 
   // Initiate OAuth window action
   const handleOAuthLogin = async () => {
@@ -916,6 +929,8 @@ export default function App() {
         continue;
       }
 
+      setCurrentlyDeletingId(postId);
+
       const snippet = post.message 
           ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
           : "[Bài viết hình ảnh/video không có tiêu đề]";
@@ -956,6 +971,7 @@ export default function App() {
       }
     }
 
+    setCurrentlyDeletingId(null);
     setIsDeleting(false);
     setDeletedCountSession(prev => prev + countSuccess);
     
@@ -982,20 +998,38 @@ export default function App() {
 
   return (
     <div className={`relative h-screen min-h-screen lg:min-h-0 bg-transparent text-foreground flex flex-col select-none overflow-hidden font-sans`}>
-      {/* BACKGROUND LAYER - Aurora Light Theme */}
-      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full">
-        <div
-          className="absolute inset-0 z-0 opacity-40 blur-3xl"
-          style={{
-            background: `
-              radial-gradient(circle at 0% 0%, var(--color-accent) 0%, transparent 40%),
-              radial-gradient(circle at 100% 100%, var(--color-accent-secondary) 0%, transparent 40%)
-            `,
-          }}
-        />
-        {/* Dot pattern */}
+      {/* BACKGROUND LAYER - Aurora dynamic themes & customizable image wallpapers */}
+      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden">
+        {config?.bgType === 'image' ? (
+          <div 
+            className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
+            style={{ 
+              backgroundImage: `url(${config?.bgImageUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80'})`,
+              filter: `blur(${config?.blurAmount !== undefined ? config.blurAmount * 0.2 : 4}px)` // elegant background layer blur depth
+            }}
+          />
+        ) : (
+          <div
+            className="absolute inset-x-0 top-0 h-full w-full z-0 opacity-45 blur-[120px] transition-all duration-1000 ease-in-out"
+            style={{
+              background: `
+                radial-gradient(circle at 10% 15%, var(--bg-gradient-1) 0%, transparent 55%),
+                radial-gradient(circle at 90% 85%, var(--bg-gradient-2) 0%, transparent 55%),
+                radial-gradient(circle at 50% 50%, var(--bg-gradient-3) 0%, transparent 45%)
+              `,
+            }}
+          />
+        )}
+        
+        {/* Transparent dark cover layer corresponding to dynamically customizable bgOverlay slider */}
         <div 
-          className="absolute inset-0 z-[1] opacity-[0.03]"
+          className="absolute inset-0 z-[2] transition-colors duration-500"
+          style={{ backgroundColor: `rgba(2, 6, 22, ${(config?.bgOverlay ?? 85) / 100})` }}
+        />
+
+        {/* Dot pattern matching the background */}
+        <div 
+          className="absolute inset-0 z-[3] opacity-[0.035]"
           style={{ backgroundImage: 'radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
         />
       </div>
@@ -1004,154 +1038,261 @@ export default function App() {
       <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-3 md:gap-4 overflow-hidden min-h-0 flex-1">
       
         {/* LEFT COMPACT/MAIN NAVIGATION SIDEBAR */}
-        <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-6 shadow-md relative z-30 h-auto md:h-full overflow-y-auto ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[180px] xl:w-[200px]'}`}>
+        <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-5 shadow-lg relative z-30 h-auto md:h-full overflow-y-auto rounded-[24px] border border-white/[0.08] ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
           {/* Logo & Branding */}
-          <div className="flex items-center gap-3 w-full justify-between">
+          <div className="flex items-center gap-3 w-full justify-between select-none px-1">
             <div 
               className="flex items-center gap-3 overflow-hidden cursor-pointer group"
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title="Thu gọn / Mở rộng"
+              title="Mở rộng / Thu gọn Sidebar"
             >
-              <div className="w-10 h-10 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-secondary)] rounded-xl flex items-center justify-center shadow-accent transition-transform group-hover:scale-105 shrink-0">
-                <Facebook className="w-5 h-5 text-white fill-current" />
+              <div className="w-10 h-10 bg-[#1877F2]/10 border border-[#1877F2]/25 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:bg-[#1877F2]/20 shrink-0">
+                <Facebook className="w-5 h-5 text-[#1877F2] fill-current" />
               </div>
               {!isSidebarCollapsed && (
                 <div className="hidden sm:block whitespace-nowrap">
-                  <h1 className="text-[17px] font-display font-medium tracking-tight text-foreground transition-colors">
+                  <h1 className="text-[16px] font-sans font-semibold tracking-tight text-foreground transition-colors">
                     Meta Page
                   </h1>
-                  <p className="text-[10px] text-muted-foreground mt-0 font-mono tracking-wider">MANAGER</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5 font-mono tracking-wider">MANAGER</p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="hidden sm:block w-px h-px md:w-full md:h-px bg-border" />
+          <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
 
-          {/* Navigation Links */}
-          <nav className="flex flex-row md:flex-col gap-2.5 w-full justify-between md:justify-start">
-            <button
-               id="tab-posts"
-               type="button"
-               onClick={() => {
-                 setActiveTab("posts");
-                 addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
-               }}
-               title={isSidebarCollapsed ? "Bài viết" : undefined}
-               className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
-                 activeTab === "posts"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-300 hover:text-white hover:bg-white/[0.06] dark:hover:bg-white/[0.08]"
-               }`}
-            >
-              <FileText className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "posts" ? "text-white" : "text-slate-400 group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-white" : "text-slate-300 group-hover:text-white"}`}>Bài viết</span>}
-            </button>
+          {/* Group 1: Navigation Links */}
+          <div className="flex flex-col gap-3">
+            {!isSidebarCollapsed && (
+              <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
+                Menu chính
+              </span>
+            )}
+            
+            <nav className="flex flex-row md:flex-col gap-1.5 w-full justify-between md:justify-start">
+              {/* Tab: Bài viết */}
+              <button
+                 id="tab-posts"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("posts");
+                   addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Bài viết" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "posts"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "posts" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "posts"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                    : "bg-emerald-500/10 text-emerald-400/80 border-emerald-500/10 group-hover:bg-emerald-500/20 group-hover:text-emerald-400"
+                }`}>
+                  <FileText className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-emerald-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Bài viết
+                  </span>
+                )}
+              </button>
 
-            <button
-               id="tab-status"
-               type="button"
-               onClick={() => {
-                 setActiveTab("status");
-                 addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
-               }}
-               title={isSidebarCollapsed ? "Trạng thái API" : undefined}
-               className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
-                 activeTab === "status"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-300 hover:text-white hover:bg-white/[0.06] dark:hover:bg-white/[0.08]"
-               }`}
-            >
-              <Activity className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "status" ? "text-white" : "text-slate-400 group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-white" : "text-slate-300 group-hover:text-white"}`}>Trạng thái API</span>}
-            </button>
+              {/* Tab: Trạng thái API */}
+              <button
+                 id="tab-status"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("status");
+                   addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Trạng thái API" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "status"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "status" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "status"
+                    ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                    : "bg-blue-500/10 text-blue-400/80 border-blue-500/10 group-hover:bg-blue-500/20 group-hover:text-blue-400"
+                }`}>
+                  <Activity className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-blue-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Trạng thái API
+                  </span>
+                )}
+              </button>
 
-            <button
-               id="tab-admins"
-               type="button"
-               onClick={() => {
-                 setActiveTab("admins");
-                 addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
-               }}
-               title={isSidebarCollapsed ? "Quản trị viên" : undefined}
-               className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
-                 activeTab === "admins"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-300 hover:text-white hover:bg-white/[0.06] dark:hover:bg-white/[0.08]"
-               }`}
-            >
-              <Users className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-400 group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-300 group-hover:text-white"}`}>Quản trị viên</span>}
-            </button>
-          </nav>
+              {/* Tab: Quản trị viên */}
+              <button
+                 id="tab-admins"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("admins");
+                   addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Quản trị viên" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "admins"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "admins" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "admins"
+                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                    : "bg-purple-500/10 text-purple-400/80 border-purple-500/10 group-hover:bg-purple-500/20 group-hover:text-purple-400"
+                }`}>
+                  <Users className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-purple-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Quản trị viên
+                  </span>
+                )}
+              </button>
+            </nav>
+          </div>
 
-          <div className="hidden sm:block w-full h-px bg-border my-2" />
+          <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
 
-          {/* System status and user actions */}
-          <div className="flex flex-col gap-3 w-full shrink-0 mt-auto">
-             
-            {/* TUỲ BIẾN BUTTON */}
-            <button
-               id="tab-theme"
-               type="button"
-               onClick={() => {
-                 setActiveTab("theme");
-                 addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
-               }}
-               title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
-               className={`hidden sm:flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
-                 activeTab === "theme"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-300 hover:text-white hover:bg-white/[0.06] dark:hover:bg-white/[0.08]"
-               }`}
-            >
-              <Settings className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-400 group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-300 group-hover:text-white"}`}>Tuỳ biến</span>}
-            </button>
+          {/* Group 2: System Settings / Utilities */}
+          <div className="flex flex-col gap-3">
+            {!isSidebarCollapsed && (
+              <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
+                Hệ thống
+              </span>
+            )}
 
-             {userToken ? (
-              <div className={`hidden sm:flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] px-3 py-2.5 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
-                <span className="w-2.5 h-2.5 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-white/50"></span>
+            <nav className="flex flex-col gap-1.5 w-full">
+              {/* Tab: Tuỳ biến */}
+              <button
+                 id="tab-theme"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("theme");
+                   addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "theme"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "theme" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "theme"
+                    ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                    : "bg-amber-500/10 text-amber-500/10 border-amber-500/10 group-hover:bg-amber-500/20 group-hover:text-amber-450"
+                }`}>
+                  <Settings className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-amber-450 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Tuỳ biến
+                  </span>
+                )}
+              </button>
+
+              {/* Nút cài đặt API (Bỏ gradient, tạo viên thuốc mờ tinh tế) */}
+              <button 
+                id="btn-settings"
+                type="button"
+                onClick={() => setShowConfig(!showConfig)}
+                className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                  showConfig 
+                    ? "bg-[#1877F2]/15 border-[#1877F2]/30 text-white" 
+                    : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                }`}
+                title={isSidebarCollapsed ? "Cài đặt API" : undefined}
+              >
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  showConfig 
+                    ? "bg-slate-400/20 border-slate-400/30 text-white" 
+                    : "bg-white/[0.03] border-white/[0.06] text-slate-400 group-hover:text-white"
+                }`}>
+                  <Settings className="w-4 h-4 text-slate-300" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className="hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap text-slate-300 group-hover:text-white">
+                    Cài đặt API
+                  </span>
+                )}
+              </button>
+            </nav>
+          </div>
+
+          {/* Footer User Profile & Connection Status */}
+          <div className="mt-auto flex flex-col gap-3 w-full shrink-0">
+            {/* Connection status indicator (Đèn nhấp nháy) */}
+            {userToken ? (
+              <div className={`flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
+                <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-white/50"></span>
                 {!isSidebarCollapsed && <span className="font-mono">Đã kết nối</span>}
               </div>
             ) : (
-              <div className={`hidden sm:flex bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] px-3 py-2.5 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
-                <span className="w-2.5 h-2.5 shrink-0 bg-amber-500 rounded-full animate-ping border border-white/50"></span>
-                {!isSidebarCollapsed && <span className="font-mono">Cần đăng nhập</span>}
+              <div className={`flex bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
+                <span className="w-2   h-2 shrink-0 bg-amber-500 rounded-full animate-ping border border-white/50"></span>
+                {!isSidebarCollapsed && <span className="font-mono text-[11px]">Cần đăng nhập</span>}
               </div>
             )}
 
-            <div className="flex flex-col gap-2.5 w-full">
-              <button 
-                id="btn-settings"
-                onClick={() => setShowConfig(!showConfig)}
-                className={`flex justify-center items-center gap-2 p-2.5 neu-button text-xs font-semibold text-foreground shrink-0 w-full outline-none focus:outline-none focus-visible:outline-none focus:ring-0`}
-                title="Cài đặt thông số API"
-              >
-                <Settings className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="whitespace-nowrap">Cài đặt API</span>}
-              </button>
-
-              {!userToken ? (
-                <button
-                  id="btn-login"
-                  onClick={handleOAuthLogin}
-                  className={`p-2.5 text-xs font-bold flex items-center justify-center gap-2 text-white shrink-0 rounded-xl transition-all shadow-md bg-[#1877F2] hover:bg-[#166FE5] focus:outline-none focus-visible:outline-none focus:ring-0 border border-transparent ${isSidebarCollapsed ? 'px-2.5' : 'px-4'}`}
-                  title={isSidebarCollapsed ? "Đăng nhập" : undefined}
-                >
-                  <Facebook className="w-4 h-4 fill-current shrink-0 text-white" />
-                  {!isSidebarCollapsed && <span className="whitespace-nowrap text-white">Đăng nhập</span>}
-                </button>
-              ) : (
-                <button
-                  id="btn-logout"
-                  onClick={clearCredentials}
-                  className="p-2.5 bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-600 text-xs font-bold flex items-center justify-center gap-2 shrink-0 rounded-xl transition-all shadow-sm outline-none focus:outline-none focus-visible:outline-none focus:ring-0"
-                  title={isSidebarCollapsed ? "Đăng xuất" : undefined}
-                >
-                  <LogOut className="w-4 h-4 shrink-0" />
-                  {!isSidebarCollapsed && <span className="whitespace-nowrap">Đăng xuất</span>}
-                </button>
+            {/* User credentials & Sync status */}
+            <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] transition-all duration-300 overflow-hidden">
+              <div className="relative shrink-0 select-none">
+                <img 
+                  src={userToken ? "https://graph.facebook.com/v19.0/me/picture?access_token=" + userToken : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} 
+                  alt="Avatar" 
+                  className="w-8.5 h-8.5 rounded-full object-cover ring-2 ring-[#1877F2]/30"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${userToken ? "User" : "Hoa Tran"}&background=1877F2&color=fff&size=80`;
+                  }}
+                />
+                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#090D16] ${userToken ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="min-w-0 flex-1 flex items-center justify-between">
+                  <div className="text-left">
+                    <h4 className="text-[12px] font-bold text-slate-200 truncate max-w-[85px] leading-tight select-all">
+                      Hòa Trần
+                    </h4>
+                    <p className="text-[9px] text-slate-500 font-mono tracking-tight leading-none mt-0.5 whitespace-nowrap">
+                      {userToken ? "Hệ thống đồng bộ" : "Chưa kết nối FB"}
+                    </p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (userToken) {
+                        clearCredentials();
+                      } else {
+                        handleOAuthLogin();
+                      }
+                    }}
+                    title={userToken ? "Đăng xuất tài khoản" : "Cấu hình liên kết OAuth"}
+                    className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1331,7 +1472,7 @@ export default function App() {
                       </div>
                       <div className="shrink-0">
                         {isSelected ? (
-                          <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
+                          <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent transition-all">
                             <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
                           </div>
                         ) : (
@@ -1561,7 +1702,17 @@ export default function App() {
             </div>
 
             {/* List Body */}
-            <div className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-white/20 rounded-b-[24px] shadow-sm">
+            <div 
+              ref={postListScrollRef}
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                setPostListScrollTop(target.scrollTop);
+                if (target.clientHeight !== postListContainerHeight) {
+                  setPostListContainerHeight(target.clientHeight);
+                }
+              }}
+              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-white/20 rounded-b-[24px] shadow-sm"
+            >
               {loadingPosts ? (
                 <div className="flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[300px] py-6 max-w-md mx-auto">
                   {/* Circular Spinner & Big Icon */}
@@ -1579,9 +1730,9 @@ export default function App() {
                   </div>
 
                   {/* Progress Bar Container */}
-                  <div className="w-full bg-muted border border-border rounded-full h-3 p-0.5 overflow-hidden shadow-inner">
+                  <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
                     <div 
-                      className="bg-gradient-to-r from-accent to-accent-secondary h-full rounded-full transition-all duration-300 shadow-sm"
+                      className="pretty-progress-bar"
                       style={{ width: `${scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0}%` }}
                     />
                   </div>
@@ -1621,146 +1772,165 @@ export default function App() {
                   <div>
                     <h3 className="font-bold text-[13px] text-foreground">Chưa có bài viết nào</h3>
                     <p className="text-[11px] text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
-                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage. Hệ thống sẽ tự động tải tối đa <br/><span className="font-mono text-accent font-bold">{filters.maxPostsToFetch}</span> bài viết gần nhất.
+                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage. Hệ thống sẽ tự động tải tối đa <br/><span className="font-mono text-accent font-bold">{filters.maxPostsToFetch}</span> bài viết gốc.
                     </p>
                   </div>
                 </div>
-              ) : filteredPosts.length === 0 ? (
-                <div className="flex flex-col justify-center items-center text-center gap-2 h-full min-h-[300px] py-8">
-                  <div className="w-12 h-12 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground shadow-sm mb-2">
-                    <ListFilter className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-bold text-[13px] text-foreground">Tất cả {posts.length} bài viết hiện có đều bị bộ lọc ẩn đi</h3>
-                  <p className="text-[11px] text-muted-foreground max-w-[280px]">Vui lòng tắt bớt hoặc nới lỏng các điều kiện lọc (Khoảng thời gian, Từ khóa) ở thanh công cụ phía trên.</p>
-                </div>
               ) : (
-                <div className="min-w-[700px] flex flex-col gap-1.5">
-                  {/* Table Header */}
-                  <div className="grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center px-1.5 pb-1.5 border-b border-border text-[9px] font-bold uppercase tracking-wider text-muted-foreground select-none">
-                    <div className="text-center">Chọn</div>
-                    <div className="text-center">Ảnh</div>
-                    <div>Nội dung bài viết</div>
-                    <div className="text-center">Thời gian đăng</div>
-                    <div className="text-center">Link</div>
-                  </div>
+                <div className="w-full flex flex-col gap-1.5">
+                  {(() => {
+                    const ROW_HEIGHT = 70; // safe row budget in px
+                    const buffer = 10; // safety viewport buffer
+                    const headerOffset = 36; // Table Header height + padding offset
 
-                  {/* Table Rows */}
-                  <div className="space-y-1.5 pt-1">
-                    <AnimatePresence mode="popLayout">
-                      {displayedPosts.map((post) => {
-                        const isChecked = selectedPostIds.includes(post.id);
-                        const formattedDate = new Date(post.created_time).toLocaleString("vi-VN", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        });
+                    const adjustedScrollTop = Math.max(0, postListScrollTop - headerOffset);
+                    const startIndex = Math.max(0, Math.floor(adjustedScrollTop / ROW_HEIGHT) - buffer);
+                    const endIndex = Math.min(displayedPosts.length, Math.ceil((adjustedScrollTop + postListContainerHeight) / ROW_HEIGHT) + buffer);
 
-                        // Calculate how old in days
-                        const diffTime = Math.abs(new Date().getTime() - new Date(post.created_time).getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const visiblePosts = displayedPosts.slice(startIndex, endIndex);
+                    const totalHeight = displayedPosts.length * ROW_HEIGHT;
+                    const offsetY = startIndex * ROW_HEIGHT;
 
-                        return (
-                          <motion.div 
-                            id={`post-row-${post.id}`}
-                            key={post.id}
-                            onClick={() => togglePostSelection(post.id)}
-                            layout
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.96 }}
-                            transition={{ duration: 0.22, ease: "easeOut" }}
-                            className={`group grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center p-2 rounded-[16px] transition-colors duration-300 cursor-pointer border ${
-                              isChecked 
-                                ? "bg-accent/15 border-accent/40 translate-x-1 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md" 
-                                : "bg-background/20 backdrop-blur-md border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 hover:border-white/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-0.5"
-                            }`}
-                          >
-                            {/* Checkbox */}
-                            <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                    return (
+                      <div 
+                        className="relative w-full overflow-hidden" 
+                        style={{ height: `${totalHeight}px` }}
+                      >
+                        <div 
+                          className="absolute top-0 left-0 right-0"
+                          style={{ 
+                            transform: `translateY(${offsetY}px)`,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px" // replaces space-y-1.5
+                          }}
+                        >
+                          {visiblePosts.map((post) => {
+                            const isChecked = selectedPostIds.includes(post.id);
+                            const formattedDate = new Date(post.created_time).toLocaleString("vi-VN", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            });
+
+                            // Calculate how old in days
+                            const diffTime = Math.abs(new Date().getTime() - new Date(post.created_time).getTime());
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                            return (
                               <div 
-                                onClick={() => togglePostSelection(post.id)}
-                                className={`w-4 h-4 rounded flex items-center justify-center transition-all cursor-pointer ${
-                                  isChecked 
-                                    ? "bg-accent text-white shadow-sm scale-105" 
-                                    : "border-2 border-border group-hover:border-accent/40"
+                                id={`post-row-${post.id}`}
+                                key={post.id}
+                                onClick={() => currentlyDeletingId !== post.id && togglePostSelection(post.id)}
+                                style={{ height: `${ROW_HEIGHT - 6}px` }}
+                                className={`group grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center px-2 py-1.5 rounded-[16px] transition-all duration-200 border ${
+                                  currentlyDeletingId === post.id
+                                    ? "bg-rose-500/10 border-rose-500/40 shadow-[0_4px_12px_rgba(239,68,68,0.15)] animate-pulse cursor-wait"
+                                    : isChecked 
+                                      ? "bg-accent/15 border-accent/40 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md cursor-pointer" 
+                                      : "bg-background/20 backdrop-blur-md border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 hover:border-white/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer"
                                 }`}
                               >
-                                {isChecked && <Check className="w-3 h-3 stroke-[3px]" />}
-                              </div>
-                            </div>
-
-                            {/* Thumbnail Column */}
-                            <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                              {post.full_picture ? (
-                                <div className="relative rounded overflow-hidden border border-border w-[38px] h-[38px] bg-muted shadow-sm">
-                                  <img 
-                                    src={post.full_picture} 
-                                    alt="Preview" 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform duration-300"
-                                  />
-                                  {/* Video Play icon attachment overlay */}
-                                  {post.status_type === "added_video" && (
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                      <Play className="w-3.5 h-3.5 fill-current text-white drop-shadow-sm animate-pulse" />
+                                {/* Checkbox / Loading Spinner */}
+                                <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                                  {currentlyDeletingId === post.id ? (
+                                    <Loader2 className="w-4 h-4 text-rose-500 animate-spin stroke-[2.5]" />
+                                  ) : (
+                                    <div 
+                                      onClick={() => togglePostSelection(post.id)}
+                                      className={`w-4 h-4 rounded flex items-center justify-center transition-all cursor-pointer ${
+                                        isChecked 
+                                          ? "bg-accent text-white shadow-sm" 
+                                          : "border-2 border-border group-hover:border-accent/40"
+                                      }`}
+                                    >
+                                      {isChecked && <Check className="w-3 h-3 stroke-[3px]" />}
                                     </div>
                                   )}
                                 </div>
-                              ) : (
-                                <div className="rounded border border-border bg-muted w-[38px] h-[38px] flex items-center justify-center text-muted-foreground/30 shadow-sm">
-                                  <Facebook className="w-4 h-4" />
+
+                                {/* Thumbnail Column */}
+                                <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                                  {post.full_picture ? (
+                                    <div className="relative rounded overflow-hidden border border-border w-[38px] h-[38px] bg-muted shadow-sm">
+                                      <img 
+                                        src={post.full_picture} 
+                                        alt="Preview" 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover rounded group-hover:brightness-110 transition-all duration-300"
+                                      />
+                                      {/* Video Play icon attachment overlay */}
+                                      {post.status_type === "added_video" && (
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                          <Play className="w-3.5 h-3.5 fill-current text-white drop-shadow-sm animate-pulse" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="rounded border border-border bg-muted w-[38px] h-[38px] flex items-center justify-center text-muted-foreground/30 shadow-sm">
+                                      <Facebook className="w-4 h-4" />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
 
-                            {/* Content Column */}
-                            <div className="flex flex-col gap-1 min-w-0 pr-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="bg-accent/10 text-accent text-[8px] px-1.5 py-0.5 rounded leading-none font-bold border border-accent/20 truncate max-w-[120px] shadow-sm" title={post.pageName}>
-                                  {post.pageName}
-                                </span>
-                                <span className="text-[9px] text-muted-foreground/60 font-mono select-all">
-                                  ID: {post.id}
-                                </span>
+                                {/* Content Column */}
+                                <div className="flex flex-col gap-1 min-w-0 pr-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="bg-accent/10 text-accent text-[8px] px-1.5 py-0.5 rounded leading-none font-bold border border-accent/20 truncate max-w-[120px] shadow-sm" title={post.pageName}>
+                                      {post.pageName}
+                                    </span>
+                                    <span className="text-[9px] text-muted-foreground/60 font-mono select-all">
+                                      ID: {post.id}
+                                    </span>
+                                    {currentlyDeletingId === post.id && (
+                                      <span className="bg-rose-500/15 text-rose-500 text-[8px] px-2 py-0.5 rounded flex items-center gap-1.5 font-extrabold uppercase tracking-widest border border-rose-500/25 shadow-sm shadow-rose-500/5 select-none">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                                        ĐANG XÓA...
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <p className={`text-[11px] font-medium leading-tight line-clamp-2 break-all ${currentlyDeletingId === post.id ? "text-rose-200/95" : "text-foreground"}`} title={post.message || ""}>
+                                    {post.message ? (
+                                      post.message
+                                    ) : (
+                                      <span className="italic text-muted-foreground/60 font-normal">[Đa phương tiện - Không có văn bản]</span>
+                                    )}
+                                  </p>
+                                </div>
+
+                                {/* Time */}
+                                <div className={`text-center flex flex-col gap-0.5 shrink-0 select-none ${currentlyDeletingId === post.id ? "opacity-60" : ""}`}>
+                                  <span className="text-[10px] font-mono font-medium text-foreground/80">{formattedDate}</span>
+                                  <span className="text-[9px] text-muted-foreground/70 font-mono">({diffDays} ngày trước)</span>
+                                </div>
+
+                                {/* Action Button Link to Facebook */}
+                                <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                                  {currentlyDeletingId === post.id ? (
+                                    <span className="text-rose-500 text-[10px] uppercase font-mono animate-pulse">Wait</span>
+                                  ) : post.permalink_url ? (
+                                    <a 
+                                      href={post.permalink_url} 
+                                      target="_blank" 
+                                      rel="noreferrer" 
+                                      className="text-[10px] text-blue-500 font-bold hover:text-blue-600 hover:underline flex items-center justify-center p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  ) : (
+                                    <span className="text-muted-foreground/40 text-[10px] italic">-</span>
+                                  )}
+                                </div>
                               </div>
-                              
-                              <p className="text-foreground text-[11px] font-medium leading-tight line-clamp-2 break-all" title={post.message || ""}>
-                                {post.message ? (
-                                  post.message
-                                ) : (
-                                  <span className="italic text-muted-foreground/60 font-normal">[Đa phương tiện - Không có văn bản]</span>
-                                )}
-                              </p>
-                            </div>
-
-                            {/* Time */}
-                            <div className="text-center flex flex-col gap-0.5 shrink-0 select-none">
-                              <span className="text-[10px] font-mono font-medium text-foreground/80">{formattedDate}</span>
-                              <span className="text-[9px] text-muted-foreground/70 font-mono">({diffDays} ngày trước)</span>
-                            </div>
-
-                            {/* Action Button Link to Facebook */}
-                            <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                              {post.permalink_url ? (
-                                <a 
-                                  href={post.permalink_url} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="text-[10px] text-blue-500 font-bold hover:text-blue-600 hover:underline flex items-center justify-center p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                              ) : (
-                                <span className="text-muted-foreground/40 text-[10px] italic">-</span>
-                              )}
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -1782,9 +1952,9 @@ export default function App() {
                   </span>
                 </div>
                 
-                <div className="w-full h-3 bg-muted rounded-full overflow-hidden p-[2px] border border-border shadow-inner">
+                <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
                   <div 
-                    className="bg-gradient-to-r from-accent to-accent-secondary h-full rounded-full transition-all duration-300 shadow-sm"
+                    className="pretty-progress-bar"
                     style={{ width: `${loadingPosts 
                       ? (scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0)
                       : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%` 
@@ -1808,7 +1978,7 @@ export default function App() {
                     type="button"
                     onClick={fetchPostsFromSelectedPages}
                     disabled={selectedPageIds.length === 0 || loadingPosts}
-                    className="flex-1 py-2 btn-primary rounded-xl font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow-md"
+                    className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow-md"
                   >
                     <RotateCw className={`w-3.5 h-3.5 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
                     Tải bài viết
@@ -1819,14 +1989,14 @@ export default function App() {
                     type="button"
                     onClick={() => setShowConfirmModal(true)}
                     disabled={selectedPostIds.length === 0 || isDeleting}
-                    className={`flex-1 py-2 rounded-xl font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:pointer-events-none cursor-pointer select-none active:scale-95 shadow-md border ${
+                    className={`flex-1 py-2.5 rounded-full font-black text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 select-none active:scale-95 border ${
                       selectedPostIds.length > 0 
-                        ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-200 shadow-sm' 
-                        : 'bg-muted text-muted-foreground border-transparent opacity-60'
+                        ? 'bg-rose-500 hover:bg-rose-600 text-white border-transparent shadow-[0_4px_16px_rgba(244,63,94,0.45)] hover:shadow-[0_6px_22px_rgba(244,63,94,0.65)] hover:scale-[1.04] ring-2 ring-rose-500/30 cursor-pointer' 
+                        : 'bg-muted/40 text-muted-foreground/50 border-transparent opacity-40 cursor-not-allowed'
                     }`}
                   >
-                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                    Xóa bài viết
+                    <Trash2 className={`w-3.5 h-3.5 shrink-0 ${selectedPostIds.length > 0 ? "animate-bounce" : ""}`} />
+                    {selectedPostIds.length > 0 ? `Xóa bài viết (${selectedPostIds.length})` : "Xóa bài viết"}
                   </button>
                 </div>
 
@@ -1840,7 +2010,7 @@ export default function App() {
                           deleteCancelledRef.current = true;
                           addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
                         }}
-                        className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white border-transparent text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-rose-500/20"
+                        className="w-full py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white border-transparent text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-rose-500/20"
                       >
                         Dừng xóa
                       </button>
@@ -1872,17 +2042,63 @@ export default function App() {
 
             {/* LIVE LOG CONSOLE TERMINAL */}
             <div className="flex-1 flex flex-col bg-muted/30 rounded-xl p-3 shadow-inner min-h-[150px] overflow-hidden border border-border">
-              <div className="flex items-center justify-between border-b border-border pb-2.5 mb-2 shrink-0">
+              <div className="flex items-center justify-between border-b border-border pb-2 mb-2 shrink-0">
                 <span className="text-[10px] uppercase tracking-widest text-accent font-extrabold font-mono flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping" />
-                  Logs
+                  Terminal Logs
                 </span>
                 <button 
                   type="button"
                   onClick={() => setLogs([])}
                   className="text-[10px] hover:underline text-muted-foreground hover:text-foreground font-bold"
                 >
-                  Xóa
+                  Xóa tất cả
+                </button>
+              </div>
+
+              {/* Log Tabs */}
+              <div className="flex gap-1 border-b border-border/40 pb-2 mb-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveLogTab("all")}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+                    activeLogTab === "all"
+                      ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-300 dark:border-slate-750"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent"
+                  }`}
+                >
+                  Tất cả
+                  <span className="bg-slate-300/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+                    {logs.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLogTab("success")}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+                    activeLogTab === "success"
+                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-500/30"
+                      : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 border border-transparent"
+                  }`}
+                >
+                  Thành công
+                  <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+                    {logs.filter(log => log.status === "success").length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLogTab("error")}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+                    activeLogTab === "error"
+                      ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-500/30"
+                      : "text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 border border-transparent"
+                  }`}
+                >
+                  Lỗi
+                  <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+                    {logs.filter(log => log.status === "failed").length}
+                  </span>
                 </button>
               </div>
 
@@ -1890,10 +2106,26 @@ export default function App() {
                 ref={logContainerRef}
                 className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] text-accent p-1 custom-scrollbar pr-1.5"
               >
-                {logs.length === 0 ? (
-                  <p className="text-muted-foreground/50 italic">Chưa có nhật ký...</p>
-                ) : (
-                  logs.map((log) => {
+                {(() => {
+                  const filtered = logs.filter((log) => {
+                    if (activeLogTab === "error") return log.status === "failed";
+                    if (activeLogTab === "success") return log.status === "success";
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-muted-foreground/50 italic py-1">
+                        {activeLogTab === "error" 
+                          ? "Không có nhật ký lỗi..." 
+                          : activeLogTab === "success" 
+                          ? "Không có nhật ký thành công..." 
+                          : "Chưa có nhật ký..."}
+                      </p>
+                    );
+                  }
+
+                  return filtered.map((log) => {
                     let colorClass = "text-muted-foreground";
                     let prefix = "•";
 
@@ -1918,8 +2150,8 @@ export default function App() {
                         <span>{log.postMessageSnippet}</span>
                       </div>
                     );
-                  })
-                )}
+                  });
+                })()}
               </div>
             </div>
           </aside>
@@ -2072,7 +2304,7 @@ export default function App() {
                   onClick={() => setDoubleConfirm(!doubleConfirm)}
                   className={`mt-0.5 w-5 h-5 rounded-[6px] flex items-center justify-center border-2 transition-all cursor-pointer shrink-0 ${
                     doubleConfirm 
-                      ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20 scale-105" 
+                      ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20" 
                       : "border-border hover:border-rose-300 bg-background"
                   }`}
                 >
@@ -2098,7 +2330,7 @@ export default function App() {
                   setShowConfirmModal(false);
                   setDoubleConfirm(false);
                 }}
-                className="flex-1 py-3.5 bg-muted hover:bg-muted/80 text-foreground rounded-2xl font-bold text-[13px] transition-all border border-border shadow-sm"
+                className="flex-1 py-3.5 bg-muted hover:bg-muted/80 text-foreground rounded-full font-bold text-[13px] transition-all border border-border shadow-sm"
               >
                 Hủy bỏ
               </button>
@@ -2107,7 +2339,7 @@ export default function App() {
                 id="btn-confirm-delete"
                 onClick={executeBatchDeletion}
                 disabled={!doubleConfirm}
-                className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold text-[13px] shadow-md shadow-rose-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                className="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full font-bold text-[13px] shadow-md shadow-[0_4px_16px_rgba(244,63,94,0.35)] hover:shadow-[0_6px_22px_rgba(244,63,94,0.55)] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 Xác nhận xóa
               </button>
