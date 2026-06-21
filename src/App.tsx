@@ -522,7 +522,7 @@ export default function App() {
     if (tabParam === "status" || tabParam === "admins" || tabParam === "posts" || tabParam === "theme") {
       return tabParam as any;
     }
-    return "theme";
+    return "posts";
   });
 
   // API Management & Admin Scan States (Preserved across Tab unmounts)
