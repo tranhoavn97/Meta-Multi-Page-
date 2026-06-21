@@ -28,16 +28,28 @@ checkedAt: string;
 }
 
 interface PageStatusTabProps {
-pages: any[];
-userToken: string;
+  pages: any[];
+  userToken: string;
+  pageStatuses: PageStatusRecord[];
+  scanning: boolean;
+  progress: { current: number; total: number };
+  logs: any[];
+  setLogs: React.Dispatch<React.SetStateAction<any[]>>;
+  runPageStatusScan: () => void;
+  stopScan: () => void;
 }
 
-export default function PageStatusTab({ pages, userToken }: PageStatusTabProps) {
-const [pageStatuses, setPageStatuses] = useState<PageStatusRecord[]>([]);
-const [scanning, setScanning] = useState(false);
-const [logs, setLogs] = useState<{ id: string; time: string; pageName: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
-const [progress, setProgress] = useState({ current: 0, total: 0 });
-const cancelScanRef = useRef<boolean>(false);
+export default function PageStatusTab({
+  pages,
+  userToken,
+  pageStatuses,
+  scanning,
+  progress,
+  logs,
+  setLogs,
+  runPageStatusScan,
+  stopScan
+}: PageStatusTabProps) {
 
 const addLog = (pageName: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
   const time = new Date().toLocaleTimeString("vi-VN");
@@ -45,97 +57,6 @@ const addLog = (pageName: string, message: string, status: "success" | "failed" 
     { id: Date.now().toString() + Math.random(), time, pageName, message, status },
     ...prev
   ]);
-};
-
-const runPageStatusScan = async () => {
-  if (!userToken) {
-    addLog("Hệ thống", "Không tìm thấy token Facebook của người dùng. Vui lòng kết nối trước.", "failed");
-    return;
-  }
-  if (pages.length === 0) {
-    addLog("Hệ thống", "Không có Fanpage nào để quét. Hãy chắc chắn bạn đã tải danh sách Fanpage thành công.", "skipped");
-    return;
-  }
-
-  setScanning(true);
-  cancelScanRef.current = false;
-  setPageStatuses([]);
-  setLogs([]);
-  setProgress({ current: 0, total: pages.length });
-
-  addLog("Hàng đợi", `Bắt đầu quét kiểm tra trạng thái toàn bộ ${pages.length} Fanpage...`, "processing");
-
-  const checkStatusConcurrently = async (page: any) => {
-    if (cancelScanRef.current) return;
-    addLog(page.name, `Đang quét kiểm tra quyền và kết nối...`, "processing");
-
-    try {
-      const res = await fetch("/api/page-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userToken,
-          pageId: page.id,
-          pageAccessToken: page.access_token
-        })
-      });
-
-      if (cancelScanRef.current) return;
-
-      const text = await res.text();
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        throw new Error("Phản hồi từ server không phải định dạng JSON hợp lệ.");
-      }
-
-      if (data.success && data.data) {
-        const record: PageStatusRecord = data.data;
-        setPageStatuses(prev => {
-          const filtered = prev.filter(p => p.pageId !== record.pageId);
-          return [...filtered, record];
-        });
-        
-        let logStatus: "success" | "failed" = "success";
-        if (record.status.includes("lỗi") || record.status.includes("Thiếu quyền")) {
-          logStatus = "failed";
-        }
-        addLog(page.name, `Trạng thái: [${record.status}]. Chi tiết: ${record.detail || "Hoạt động bình thường"}`, logStatus);
-      } else {
-        throw new Error(data.error || "Không thể kiểm tra phản hồi khả dụng.");
-      }
-    } catch (err: any) {
-      if (cancelScanRef.current) return;
-      const fallbackRecord: PageStatusRecord = {
-        pageId: page.id,
-        name: page.name,
-        category: page.category || "Không xác định",
-        tasks: page.tasks || [],
-        status: "Token lỗi / hết hạn",
-        detail: err.message || "Không thể gửi yêu cầu máy chủ.",
-        hasPageAccessToken: !!page.access_token,
-        postsSuccess: false,
-        postsCountFetched: 0,
-        postSample: null,
-        checkedAt: new Date().toISOString()
-      };
-      setPageStatuses(prev => {
-        const filtered = prev.filter(p => p.pageId !== fallbackRecord.pageId);
-        return [...filtered, fallbackRecord];
-      });
-      addLog(page.name, `Quét thất bại: ${err.message || "Lỗi mạng hoặc server"}`, "failed");
-    } finally {
-      setProgress(p => ({ ...p, current: p.current + 1 }));
-    }
-  };
-
-  const checkPromises = pages.map(page => checkStatusConcurrently(page));
-  await Promise.all(checkPromises);
-
-  setProgress({ current: pages.length, total: pages.length });
-  setScanning(false);
-  addLog("Hàng đợi", `Đã hoàn tất kiểm tra trạng thái ${pages.length} Fanpage kết nối!`, "success");
 };
 
 const handleExportCSV = () => {
@@ -403,10 +324,7 @@ return (
               <div className="flex gap-2 w-full mt-1.5">
                 <button
                   type="button"
-                  onClick={() => {
-                    cancelScanRef.current = true;
-                    addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
-                  }}
+                  onClick={stopScan}
                   className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 border border-transparent text-white text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
                 >
                   Dừng

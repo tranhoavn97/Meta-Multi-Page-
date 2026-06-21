@@ -334,8 +334,12 @@ interface PageAvatarProps {
 function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [currentPicUrl, setCurrentPicUrl] = useState<string | undefined>(picUrl);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setCurrentPicUrl(picUrl);
+    setRetryCount(0);
     if (!picUrl) {
       setHasError(true);
       setIsLoading(false);
@@ -344,6 +348,26 @@ function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
       setIsLoading(true);
     }
   }, [picUrl]);
+
+  const handleImageError = async () => {
+    // If we haven't retried yet, try to refresh the avatar URL from backend
+    if (retryCount === 0 && pageId) {
+      setRetryCount(1);
+      setIsLoading(true);
+      try {
+        const res = await safeFetchJson(`/api/pages/avatar?pageId=${pageId}`);
+        if (res.success && res.url) {
+          setCurrentPicUrl(res.url);
+          return; // Let the image reload from the refreshed URL
+        }
+      } catch (err) {
+        console.error("Failed to refresh page avatar:", err);
+      }
+    }
+    // If it's a second failure, or backend failed to return a URL, fallback to letter
+    setHasError(true);
+    setIsLoading(false);
+  };
 
   const firstLetter = pageName.trim().charAt(0).toUpperCase() || "P";
 
@@ -354,15 +378,12 @@ function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
           <span className="text-[10px] text-muted-foreground">...</span>
         </div>
       )}
-      {!hasError && picUrl ? (
+      {!hasError && currentPicUrl ? (
         <img
-          src={picUrl}
+          src={currentPicUrl}
           alt={pageName}
           onLoad={() => setIsLoading(false)}
-          onError={() => {
-            setHasError(true);
-            setIsLoading(false);
-          }}
+          onError={handleImageError}
           className={`w-full h-full object-cover rounded-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         />
       ) : (
@@ -400,6 +421,9 @@ export default function App() {
   const toast = useToast();
   const [isDark, setIsDark] = useState<boolean>(true);
   const { config, setConfig } = useThemeConfig(true);
+
+  const [activeJobs, setActiveJobs] = useState<any[]>([]);
+  const channel = useMemo(() => new BroadcastChannel("meta-multi-page"), []);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -492,7 +516,30 @@ export default function App() {
   const [doubleConfirm, setDoubleConfirm] = useState<boolean>(false);
 
   // Active Tab state for Page Status and Admin/Business views integration
-  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">("theme");
+  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">(() => {
+    const urlParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    const tabParam = urlParams.get("tab");
+    if (tabParam === "status" || tabParam === "admins" || tabParam === "posts" || tabParam === "theme") {
+      return tabParam as any;
+    }
+    return "theme";
+  });
+
+  // API Management & Admin Scan States (Preserved across Tab unmounts)
+  const [apiJobId, setApiJobId] = useState<string | null>(null);
+  const [pageStatuses, setPageStatuses] = useState<any[]>([]);
+  const [apiProgress, setApiProgress] = useState({ current: 0, total: 0 });
+  const [apiScanning, setApiScanning] = useState(false);
+  const [apiLogs, setApiLogs] = useState<any[]>([]);
+
+  const [adminJobId, setAdminJobId] = useState<string | null>(null);
+  const [pageAdmins, setPageAdmins] = useState<any[]>([]);
+  const [adminProgress, setAdminProgress] = useState({ current: 0, total: 0 });
+  const [adminScanning, setAdminScanning] = useState(false);
+  const [adminLogs, setAdminLogs] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [hasBmPermission, setHasBmPermission] = useState<boolean | null>(null);
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // References for logging & scroll
@@ -640,6 +687,359 @@ export default function App() {
     }
   }, [logs]);
 
+  const fetchBusinesses = async () => {
+    if (!userToken) return;
+    try {
+      const res = await safeFetchJson(`/api/businesses?user_token=${encodeURIComponent(userToken)}`);
+      if (res.success) {
+        setBusinesses(res.data || []);
+        setHasBmPermission(res.hasPermission);
+      }
+    } catch (e) {
+      console.error("Error loading businesses:", e);
+    }
+  };
+
+  // Load latest completed results and check active jobs on mount
+  useEffect(() => {
+    const loadCachedResultsAndRestore = async () => {
+      // 1. Fetch latest completed results
+      try {
+        const apiRes = await safeFetchJson("/api/api-manager/latest-results");
+        if (apiRes.success && apiRes.data && apiRes.data.length > 0) {
+          setPageStatuses(apiRes.data.map((r: any) => r.result_json));
+        }
+      } catch (e) {
+        console.error("Failed to load cached API check results:", e);
+      }
+
+      try {
+        const adminRes = await safeFetchJson("/api/admin-manager/latest-results");
+        if (adminRes.success && adminRes.data && adminRes.data.length > 0) {
+          setPageAdmins(adminRes.data.map((r: any) => r.result_json));
+        }
+      } catch (e) {
+        console.error("Failed to load cached Page Admins results:", e);
+      }
+
+      // 2. Load active jobs to restore
+      try {
+        const activeRes = await safeFetchJson("/api/jobs/active");
+        if (activeRes.success && activeRes.jobs) {
+          const activeApiJob = activeRes.jobs.find((j: any) => 
+            j.type === "check_api_access" && 
+            (j.status === "running" || j.status === "pending" || j.status === "queued")
+          );
+          if (activeApiJob) {
+            setApiJobId(activeApiJob.id);
+            setApiScanning(true);
+            setApiProgress({ current: activeApiJob.processed_items, total: activeApiJob.total_items });
+          }
+
+          const activeAdminJob = activeRes.jobs.find((j: any) => 
+            j.type === "scan_page_admins" && 
+            (j.status === "running" || j.status === "pending" || j.status === "queued")
+          );
+          if (activeAdminJob) {
+            setAdminJobId(activeAdminJob.id);
+            setAdminScanning(true);
+            setAdminProgress({ current: activeAdminJob.processed_items, total: activeAdminJob.total_items });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to restore active background jobs:", e);
+      }
+    };
+
+    loadCachedResultsAndRestore();
+  }, [userToken]);
+
+  // Load active tab and job from URL query parameter on init
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get("tab");
+    const jobParam = urlParams.get("job");
+
+    if (tabParam === "status" && jobParam) {
+      setApiJobId(jobParam);
+    } else if (tabParam === "admins" && jobParam) {
+      setAdminJobId(jobParam);
+    }
+  }, []);
+
+  // Sync activeTab, apiJobId, adminJobId to URL query params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set("tab", activeTab);
+    
+    if (activeTab === "status" && apiJobId) {
+      urlParams.set("job", apiJobId);
+    } else if (activeTab === "admins" && adminJobId) {
+      urlParams.set("job", adminJobId);
+    } else {
+      urlParams.delete("job");
+    }
+    
+    const token = urlParams.get("token");
+    if (token) {
+      urlParams.set("token", token);
+    }
+
+    const newQuery = urlParams.toString();
+    window.history.replaceState(null, "", "?" + newQuery);
+  }, [activeTab, apiJobId, adminJobId]);
+
+  // Track check_api_access job results
+  useEffect(() => {
+    if (!apiJobId) return;
+
+    let timer: any;
+    let isMounted = true;
+
+    const poll = async () => {
+      try {
+        const statusRes = await safeFetchJson(`/api/jobs/status?id=${apiJobId}`);
+        if (!isMounted) return;
+
+        if (statusRes.success && statusRes.job) {
+          const job = statusRes.job;
+          setApiProgress({ current: job.processed_items, total: job.total_items });
+          setApiScanning(job.status === "running" || job.status === "pending" || job.status === "queued");
+
+          const resultsRes = await safeFetchJson(`/api/jobs/results?id=${apiJobId}`);
+          if (resultsRes.success && resultsRes.results) {
+            const records = resultsRes.results.map((r: any) => r.result_json);
+            setPageStatuses(records);
+            
+            const newLogs = resultsRes.results.map((r: any) => {
+              const resJson = r.result_json;
+              const time = new Date(r.updated_at).toLocaleTimeString("vi-VN");
+              return {
+                id: r.id,
+                time,
+                pageName: resJson.name,
+                message: `Trạng thái: [${resJson.status}]. Chi tiết: ${resJson.detail || "Hoạt động bình thường"}`,
+                status: (resJson.status.includes("lỗi") || resJson.status.includes("Thiếu quyền")) ? "failed" : "success"
+              };
+            });
+            setApiLogs(newLogs);
+          }
+
+          if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
+            setApiScanning(false);
+            setApiJobId(null);
+            fetchPages();
+          }
+        }
+      } catch (e) {
+        console.error("Error polling api check job:", e);
+      }
+
+      if (isMounted && apiJobId) {
+        timer = setTimeout(poll, document.visibilityState === "visible" ? 2000 : 20000);
+      }
+    };
+
+    poll();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [apiJobId]);
+
+  // Track scan_page_admins job results
+  useEffect(() => {
+    if (!adminJobId) return;
+
+    let timer: any;
+    let isMounted = true;
+
+    const poll = async () => {
+      try {
+        const statusRes = await safeFetchJson(`/api/jobs/status?id=${adminJobId}`);
+        if (!isMounted) return;
+
+        if (statusRes.success && statusRes.job) {
+          const job = statusRes.job;
+          setAdminProgress({ current: job.processed_items, total: job.total_items });
+          setAdminScanning(job.status === "running" || job.status === "pending" || job.status === "queued");
+
+          const resultsRes = await safeFetchJson(`/api/jobs/results?id=${adminJobId}`);
+          if (resultsRes.success && resultsRes.results) {
+            const records = resultsRes.results.map((r: any) => r.result_json);
+            setPageAdmins(records);
+
+            const hasBmPerm = records.some((r: any) => r.hasBmPermission);
+            if (hasBmPerm && businesses.length === 0) {
+              fetchBusinesses();
+            }
+
+            const newLogs = resultsRes.results.map((r: any) => {
+              const resJson = r.result_json;
+              const time = new Date(r.updated_at).toLocaleTimeString("vi-VN");
+              return {
+                id: r.id,
+                time,
+                context: resJson.name,
+                message: `Trạng thái: [${resJson.status}]. BM: ${resJson.businessName || "N/A"} (${resJson.businessType})`,
+                status: (resJson.status.includes("lỗi") || resJson.status.includes("Thiếu quyền")) ? "failed" : "success"
+              };
+            });
+            setAdminLogs(newLogs);
+          }
+
+          if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
+            setAdminScanning(false);
+            setAdminJobId(null);
+            fetchPages();
+          }
+        }
+      } catch (e) {
+        console.error("Error polling admin scan job:", e);
+      }
+
+      if (isMounted && adminJobId) {
+        timer = setTimeout(poll, document.visibilityState === "visible" ? 2000 : 20000);
+      }
+    };
+
+    poll();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [adminJobId]);
+
+  const runPageStatusScan = async () => {
+    if (!userToken) {
+      toast.warning("Vui lòng kết nối tài khoản Facebook trước.", "Chưa kết nối");
+      return;
+    }
+    if (pages.length === 0) {
+      toast.info("Không có Fanpage nào để quét.", "Không có dữ liệu");
+      return;
+    }
+
+    setApiScanning(true);
+    setApiProgress({ current: 0, total: pages.length });
+    setApiLogs([]);
+
+    try {
+      const res = await safeFetchJson("/api/jobs/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "check_api_access",
+          pageIds: pages.map(p => p.id),
+          options: {
+            checkToken: true,
+            checkPermissions: true,
+            checkPostsAccess: true
+          },
+          userToken
+        })
+      });
+
+      if (res.success && res.jobId) {
+        setApiJobId(res.jobId);
+        toast.info("Đã bắt đầu tác vụ kiểm tra API nền...", "Kiểm tra API");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
+      }
+    } catch (e: any) {
+      setApiScanning(false);
+      toast.error(e.message || "Lỗi khởi tạo tác vụ kiểm tra");
+    }
+  };
+
+  const stopPageStatusScan = async () => {
+    if (!apiJobId) return;
+    try {
+      const res = await safeFetchJson("/api/jobs/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: apiJobId })
+      });
+      if (res.success) {
+        toast.warning("Đã yêu cầu huỷ tác vụ kiểm tra API.", "Huỷ tác vụ");
+        setApiScanning(false);
+        setApiJobId(null);
+        channel.postMessage({ type: 'JOB_UPDATE', jobId: apiJobId });
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi khi huỷ tác vụ");
+    }
+  };
+
+  const runAdminsBMScan = async () => {
+    if (!userToken) {
+      toast.warning("Vui lòng kết nối tài khoản Facebook trước.", "Chưa kết nối");
+      return;
+    }
+    if (pages.length === 0) {
+      toast.info("Không có Fanpage nào để quét.", "Không có dữ liệu");
+      return;
+    }
+
+    setAdminScanning(true);
+    setAdminProgress({ current: 0, total: pages.length });
+    setAdminLogs([]);
+
+    try {
+      const res = await safeFetchJson("/api/jobs/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "scan_page_admins",
+          pageIds: pages.map(p => p.id),
+          userToken
+        })
+      });
+
+      if (res.success && res.jobId) {
+        setAdminJobId(res.jobId);
+        toast.info("Đã bắt đầu tác vụ quét quản trị viên nền...", "Quét quản trị viên");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
+      }
+    } catch (e: any) {
+      setAdminScanning(false);
+      toast.error(e.message || "Lỗi khởi tạo tác vụ quét");
+    }
+  };
+
+  const stopAdminsBMScan = async () => {
+    if (!adminJobId) return;
+    try {
+      const res = await safeFetchJson("/api/jobs/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: adminJobId })
+      });
+      if (res.success) {
+        toast.warning("Đã yêu cầu huỷ tác vụ quét quản trị viên.", "Huỷ tác vụ");
+        setAdminScanning(false);
+        setAdminJobId(null);
+        channel.postMessage({ type: 'JOB_UPDATE', jobId: adminJobId });
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi khi huỷ tác vụ");
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "admins" && userToken) {
+      fetchBusinesses();
+    }
+  }, [activeTab, userToken]);
+
+  // Scroll to bottom of logs on change
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
   // Initiate OAuth window action
   const handleOAuthLogin = async () => {
     setApiError(null);
@@ -681,18 +1081,144 @@ export default function App() {
     }
   };
 
+  const fetchActiveJobs = async () => {
+    try {
+      const res = await safeFetchJson("/api/jobs/active");
+      if (res.success && res.jobs) {
+        // Optimistic refresh on job state change: if running jobs finished
+        const hadRunning = activeJobs.some(j => j.status === "running");
+        const hasRunningNow = res.jobs.some((j: any) => j.status === "running");
+        
+        setActiveJobs(res.jobs);
+        
+        if (hadRunning && !hasRunningNow) {
+          fetchPages();
+          if (selectedPageIds.length > 0) {
+            fetchPostsFromSelectedPages();
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error polling active jobs:", e);
+    }
+  };
+
+  const handlePauseJob = async (jobId: string) => {
+    try {
+      const res = await safeFetchJson("/api/jobs/pause", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId })
+      });
+      if (res.success) {
+        toast.info("Đã tạm dừng tác vụ.", "Tác vụ");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId });
+        fetchActiveJobs();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Không thể tạm dừng");
+    }
+  };
+
+  const handleResumeJob = async (jobId: string) => {
+    try {
+      const res = await safeFetchJson("/api/jobs/resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId })
+      });
+      if (res.success) {
+        toast.info("Đang tiếp tục tác vụ...", "Tác vụ");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId });
+        fetchActiveJobs();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Không thể tiếp tục");
+    }
+  };
+
+  const handleCancelJob = async (jobId: string) => {
+    try {
+      const res = await safeFetchJson("/api/jobs/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId })
+      });
+      if (res.success) {
+        toast.warning("Đã huỷ bỏ tác vụ.", "Tác vụ");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId });
+        fetchActiveJobs();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Không thể huỷ");
+    }
+  };
+
+  const handleRetryJob = async (jobId: string) => {
+    try {
+      const res = await safeFetchJson("/api/jobs/retry-failed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId })
+      });
+      if (res.success) {
+        toast.success("Đang chạy lại tác vụ lỗi...", "Tác vụ");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId });
+        fetchActiveJobs();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Không thể chạy lại");
+    }
+  };
+
+  const triggerPagesSync = async () => {
+    if (!userToken) return;
+    try {
+      addLog("system", "Yêu cầu đồng bộ danh sách Fanpage từ Meta...", "pending");
+      const res = await safeFetchJson("/api/pages/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userToken })
+      });
+      if (res.success && res.jobId) {
+        toast.info("Đã bắt đầu tác vụ đồng bộ danh sách Fanpage...", "Đồng bộ Page");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
+        fetchActiveJobs();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi đồng bộ Fanpage");
+    }
+  };
+
+  const triggerPagePostsScan = async (pageId: string) => {
+    try {
+      addLog("system", `Yêu cầu đồng bộ bài viết cho Fanpage ID ${pageId}...`, "pending");
+      const res = await safeFetchJson(`/api/pages/${pageId}/scan`, {
+        method: "POST"
+      });
+      if (res.success && res.jobId) {
+        toast.info("Đã gửi yêu cầu đồng bộ bài viết nền...", "Quét bài viết");
+        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
+        fetchActiveJobs();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi đồng bộ bài viết");
+    }
+  };
+
   // Fetch listed Pages
   const fetchPages = async (tokenToUse?: string) => {
     const activeToken = tokenToUse || userToken;
     setLoadingPages(true);
     setApiError(null);
-    addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /api/pages...", "pending");
+    addLog("system", "Đang tải danh sách các Facebook Fanpages từ cache...", "pending");
     
     try {
       const urlParams = new URLSearchParams();
       if (activeToken) {
         urlParams.append("user_token", activeToken);
       }
+      urlParams.append("summary", "true");
       const data = await safeFetchJson(`/api/pages?${urlParams.toString()}`);
 
       if (data.error) {
@@ -706,12 +1232,10 @@ export default function App() {
 
       if (data.data) {
         setPages(data.data);
-        addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý.`, "success");
-        toast.success(`Đã tải thành công ${data.data.length} Fanpages quản lý.`, "Tải Fanpage");
+        addLog("system", `Đã tải thành công ${data.data.length} Fanpages từ database cache.`, "success");
       } else {
         setPages([]);
         addLog("system", "Không tìm thấy Fanpage nào liên kết.", "skipped");
-        toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
       setApiError(err.message);
@@ -730,6 +1254,48 @@ export default function App() {
       fetchPages();
     }
   }, [userToken]);
+
+  // Poll active jobs periodically with visibilityState changes
+  useEffect(() => {
+    fetchActiveJobs();
+
+    let intervalId: any;
+
+    const startPolling = (ms: number) => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        fetchActiveJobs();
+      }, ms);
+    };
+
+    // Active polling (2 seconds)
+    startPolling(2000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchActiveJobs();
+        startPolling(2000);
+      } else {
+        startPolling(20000); // 20 seconds when tab is hidden
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Set up BroadcastChannel messages listener
+    const handleBroadcastMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'JOB_UPDATE') {
+        fetchActiveJobs();
+      }
+    };
+    channel.addEventListener("message", handleBroadcastMessage);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      channel.removeEventListener("message", handleBroadcastMessage);
+    };
+  }, [selectedPageIds]);
 
   // Fetch posts from SELECTED pages
   const fetchPostsFromSelectedPages = async () => {
@@ -951,7 +1517,7 @@ export default function App() {
     addLog("system", `Đã bật bộ lọc hiển thị bài viết đăng trước đó trên ${days} ngày.`, "success");
   };
 
-  // Batch deletion process (with individual custom delay between requests)
+  // Batch deletion process (creates server jobs per page)
   const executeBatchDeletion = async () => {
     if (!doubleConfirm) {
       alert("Bạn phải tự tay tick xác nhận 'Hành động không thể hoàn tác' trước khi xóa!");
@@ -961,94 +1527,55 @@ export default function App() {
 
     setShowConfirmModal(false);
     setIsDeleting(true);
-    deleteCancelledRef.current = false;
-    setProgress({ current: 0, total: selectedPostIds.length });
-    
-    addLog("queue", `--- PHIÊN KHỞI CHẠY TIẾN TRÌNH XÓA<sup>*</sup> HÀNG LOẠT ---`, "processing");
-    addLog("queue", `Tổng số lượng bài viết đang đợi xóa: ${selectedPostIds.length}`, "pending");
-    toast.info(`Bắt đầu tiến trình xóa hàng loạt ${selectedPostIds.length} bài viết...`, "Xóa bài viết");
+    setDoubleConfirm(false);
 
-    let countSuccess = 0;
-    let countFail = 0;
-    let wasCancelled = false;
-
-    for (let i = 0; i < selectedPostIds.length; i++) {
-      if (deleteCancelledRef.current) {
-        wasCancelled = true;
-        addLog("queue", `Tiến trình xóa bị dừng theo yêu cầu của người dùng tại bài viết thứ ${i + 1}/${selectedPostIds.length}`, "skipped");
-        break;
-      }
-
-      const postId = selectedPostIds[i];
+    // Group selected posts by pageId to spawn separate page-locked jobs
+    const postsByPage: Record<string, string[]> = {};
+    for (const postId of selectedPostIds) {
       const post = posts.find(p => p.id === postId);
-
-      if (!post) {
-        setProgress(p => ({ ...p, current: i + 1 }));
-        continue;
+      if (post) {
+        if (!postsByPage[post.pageId]) {
+          postsByPage[post.pageId] = [];
+        }
+        postsByPage[post.pageId].push(postId);
       }
+    }
 
-      const snippet = post.message 
-          ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
-          : "[Bài viết hình ảnh/video không có tiêu đề]";
+    const createdJobIds: string[] = [];
 
-      addLog(postId, `[${i+1}/${selectedPostIds.length}] Đang xóa bài trên Page "${post.pageName}"...`, "processing");
-
-      try {
-        const data = await safeFetchJson("/api/delete-post", {
+    try {
+      for (const [pageId, postIds] of Object.entries(postsByPage)) {
+        addLog("system", `Đang khởi tạo tiến trình xóa ${postIds.length} bài viết cho Fanpage ID ${pageId}...`, "pending");
+        
+        const res = await safeFetchJson("/api/jobs/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            postId: postId,
-            confirm: true,
-            userToken: post.pageAccessToken
+            type: "delete_posts",
+            pageId,
+            payload: { postIds, dryRun: false }
           })
         });
 
-        if (data.success) {
-          countSuccess++;
-          addLog(postId, `Đã xóa thành công bài viết [ID: ${postId}]: "${snippet}"`, "success");
+        if (res.success && res.jobId) {
+          createdJobIds.push(res.jobId);
+          // Broadcast creation event to other tabs
+          channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
         } else {
-          countFail++;
-          addLog(postId, `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error || "Lỗi Meta API"}`, "failed");
-          if (handleAuthError(data.error || "")) break;
+          toast.error(res.error || `Lỗi khi tạo tiến trình xóa cho Page ${pageId}`, "Lỗi");
         }
-      } catch (err: any) {
-        countFail++;
-        addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
-        if (handleAuthError(err.message)) break;
       }
 
-      setProgress(p => ({ ...p, current: i + 1 }));
-
-      // Artificial Delay with 300ms - 500ms
-      if (i < selectedPostIds.length - 1) {
-        const delay = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
-        await new Promise((resolve) => setTimeout(resolve, delay));
+      if (createdJobIds.length > 0) {
+        toast.success(`Đã khởi tạo ${createdJobIds.length} tiến trình xóa nền trên server.`, "Khởi tạo tác vụ");
+        setSelectedPostIds([]);
+        fetchActiveJobs();
       }
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi kết nối khi gửi yêu cầu xóa bài viết", "Lỗi");
+    } finally {
+      setIsDeleting(false);
     }
-
-    setIsDeleting(false);
-    setDeletedCountSession(prev => prev + countSuccess);
-    
-    if (wasCancelled) {
-      addLog("queue", `Đã dừng tác vụ xoá hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "failed");
-      toast.warning(`Tiến trình xoá đã bị dừng lại. Đã xoá thành công ${countSuccess} bài.`, "Đã dừng xoá");
-    } else {
-      addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "success");
-      
-      if (countSuccess > 0 && countFail === 0) {
-        toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
-      } else if (countSuccess > 0 && countFail > 0) {
-        toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại.`, "Xóa hoàn tất");
-      } else {
-        toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
-      }
-    }
-    
-    // Refresh posts of pages to clear deleted items
-    fetchPostsFromSelectedPages();
-    setSelectedPostIds([]);
-    setDoubleConfirm(false);
   };
 
   return (
@@ -1258,7 +1785,7 @@ export default function App() {
               {userToken && (
                 <button 
                   id="btn-refresh-pages"
-                  onClick={() => fetchPages()} 
+                  onClick={triggerPagesSync} 
                   title="Tải lại danh sách Fanpage" 
                   className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
@@ -1375,6 +1902,9 @@ export default function App() {
 
                 return filteredList.map((page) => {
                   const isSelected = selectedPageIds.includes(page.id);
+                  const isScanningThisPage = activeJobs.some(
+                    j => j.page_id === page.id && j.type === 'scan_posts' && (j.status === 'running' || j.status === 'queued' || j.status === 'pending')
+                  );
                   return (
                     <div 
                       id={`page-card-${page.id}`}
@@ -1391,7 +1921,7 @@ export default function App() {
                         <PageAvatar 
                           pageId={page.id} 
                           pageName={page.name} 
-                          picUrl={page.picture?.data?.url} 
+                          picUrl={page.avatar_url || page.picture?.data?.url} 
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-foreground leading-tight group-hover/card:text-accent transition-colors line-clamp-2" title={page.name}>
@@ -1425,27 +1955,57 @@ export default function App() {
                         ))}
 
                         {/* Monetization Badge with Tooltip */}
-                        <div className="relative group/tooltip inline-block">
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-slate-500/10 text-slate-400 border-slate-500/20 cursor-help flex items-center gap-1">
-                            Kiếm tiền: Chưa xác định
-                            <span className="text-[8px] font-normal opacity-60">ⓘ</span>
-                          </span>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-slate-950/95 backdrop-blur-md text-slate-200 text-[10px] p-2 rounded-lg shadow-xl border border-white/10 w-48 text-center leading-normal z-[100] pointer-events-none transition-all animate-in fade-in slide-in-from-bottom-1 duration-150">
-                            Meta Graph API công khai không cung cấp trạng thái bật/tắt kiếm tiền chung cho mọi Fanpage.
-                          </div>
-                        </div>
+                        {(() => {
+                          const mStatus = page.monetization_status || "Chưa xác định";
+                          let badgeClasses = "bg-slate-500/10 text-slate-400 border-slate-500/20";
+                          let badgeLabel = "Chưa xác định";
+                          
+                          if (mStatus === "Không đủ quyền kiểm tra") {
+                            badgeClasses = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                            badgeLabel = "Không đủ quyền kiểm tra";
+                          } else if (mStatus === "Cần kiểm tra trên Meta") {
+                            badgeClasses = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                            badgeLabel = "Cần kiểm tra trên Meta";
+                          } else if (mStatus.startsWith("Đặc biệt:") || (mStatus !== "Chưa xác định" && mStatus !== "Không đủ quyền kiểm tra" && mStatus !== "Cần kiểm tra trên Meta")) {
+                            badgeClasses = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                            badgeLabel = mStatus;
+                          }
+
+                          return (
+                            <div className="relative group/tooltip inline-block">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border cursor-help flex items-center gap-1 ${badgeClasses}`}>
+                                Kiếm tiền: {badgeLabel}
+                                <span className="text-[8px] font-normal opacity-60">ⓘ</span>
+                              </span>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-slate-950/95 backdrop-blur-md text-slate-200 text-[10px] p-2 rounded-lg shadow-xl border border-white/10 w-48 text-center leading-normal z-[100] pointer-events-none transition-all animate-in fade-in slide-in-from-bottom-1 duration-150">
+                                Meta Graph API công khai không cung cấp trạng thái bật/tắt kiếm tiền chung cho mọi Fanpage.
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
 
-                      {/* Bottom row: Check on Meta Button */}
-                      <div className="flex items-center justify-between border-t border-border/50 pt-2 mt-1">
+                      {/* Bottom row: Sync and Meta BM buttons */}
+                      <div className="flex items-center gap-2 border-t border-border/50 pt-2 mt-1 w-full">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            triggerPagePostsScan(page.id);
+                          }}
+                          disabled={isScanningThisPage}
+                          className="flex-1 text-center py-1.5 px-2 bg-muted hover:bg-border border border-border/30 hover:border-accent/30 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <RotateCw className={`w-3 h-3 shrink-0 ${isScanningThisPage ? "animate-spin text-accent" : ""}`} />
+                          <span>{isScanningThisPage ? "Đang quét..." : "Đồng bộ bài"}</span>
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             window.open(`https://business.facebook.com/latest/monetization/overview?asset_id=${page.id}`, '_blank');
                           }}
-                          className="w-full text-center py-1.5 px-3 bg-muted hover:bg-border border border-border/30 hover:border-accent/30 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1"
+                          className="flex-1 text-center py-1.5 px-2 bg-muted hover:bg-border border border-border/30 hover:border-accent/30 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1"
                         >
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3 h-3 shrink-0" />
                           <span>Kiểm tra trên Meta</span>
                         </button>
                       </div>
@@ -1462,6 +2022,46 @@ export default function App() {
 
         {/* MAIN POST AREA & FILTERS */}
         <main className="flex-1 w-full flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
+          
+          {/* Global Running Tasks Banner */}
+          {activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").length > 0 && (
+            <div className="glass-card border border-accent/20 bg-accent/5 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2.5">
+                <div className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent"></span>
+                </div>
+                <span className="text-xs font-bold text-foreground">
+                  Hệ thống đang xử lý {activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").length} tác vụ ngầm:
+                </span>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-muted-foreground ml-2">
+                  {activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").map(job => {
+                    const label = job.type === "delete_posts" ? "Xoá bài"
+                      : job.type === "check_api_access" ? "Kiểm tra API"
+                      : job.type === "scan_page_admins" ? "Quét quản trị viên"
+                      : job.type === "scan_posts" ? "Quét bài viết"
+                      : "Đồng bộ Page";
+                    
+                    const progressVal = job.progress || 0;
+                    return (
+                      <span key={job.id} className="bg-white/5 border border-white/5 px-2 py-0.5 rounded-lg flex items-center gap-1.5 font-mono text-[10px] text-foreground">
+                        {label}: <b className="text-accent">{progressVal}%</b>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  const btn = document.querySelector('button[title*="Tác vụ nền"]') as HTMLButtonElement;
+                  if (btn) btn.click();
+                }}
+                className="text-[10px] font-bold text-accent hover:underline cursor-pointer flex items-center gap-1 border-none bg-transparent outline-none focus:outline-none"
+              >
+                Chi tiết <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           
           {activeTab === "posts" && (
             <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
@@ -2032,13 +2632,35 @@ export default function App() {
 
           {activeTab === "status" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <PageStatusTab pages={pages} userToken={userToken} />
+              <PageStatusTab 
+                pages={pages} 
+                userToken={userToken} 
+                pageStatuses={pageStatuses}
+                scanning={apiScanning}
+                progress={apiProgress}
+                logs={apiLogs}
+                setLogs={setApiLogs}
+                runPageStatusScan={runPageStatusScan}
+                stopScan={stopPageStatusScan}
+              />
             </div>
           )}
 
           {activeTab === "admins" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <PageAdminsTab pages={pages} userToken={userToken} />
+              <PageAdminsTab 
+                pages={pages} 
+                userToken={userToken} 
+                pageAdmins={pageAdmins}
+                scanning={adminScanning}
+                progress={adminProgress}
+                logs={adminLogs}
+                setLogs={setAdminLogs}
+                runAdminsBMScan={runAdminsBMScan}
+                stopScan={stopAdminsBMScan}
+                hasBmPermission={hasBmPermission}
+                businesses={businesses}
+              />
             </div>
           )}
 
@@ -2220,7 +2842,312 @@ export default function App() {
         </div>
       )}
 
+      {/* Background Jobs Bar */}
+      <BackgroundJobsBar 
+        activeJobs={activeJobs}
+        pages={pages}
+        onPause={handlePauseJob}
+        onResume={handleResumeJob}
+        onCancel={handleCancelJob}
+        onRetry={handleRetryJob}
+      />
+
       </div>
+    </div>
+  );
+}
+
+// ==========================================
+// BACKGROUND JOBS BAR COMPONENT
+// ==========================================
+
+interface BackgroundJobsBarProps {
+  activeJobs: any[];
+  pages: FacebookPage[];
+  onPause: (id: string) => void;
+  onResume: (id: string) => void;
+  onCancel: (id: string) => void;
+  onRetry: (id: string) => void;
+}
+
+function BackgroundJobsBar({ activeJobs, pages, onPause, onResume, onCancel, onRetry }: BackgroundJobsBarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [expandedJobLogs, setExpandedJobLogs] = useState<Record<string, boolean>>({});
+
+  const runningCount = activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").length;
+  const totalCount = activeJobs.length;
+
+  if (totalCount === 0) return null;
+
+  const getPageName = (pageId: string) => {
+    if (!pageId) return "Hệ thống";
+    const page = pages.find(p => p.id === pageId);
+    return page ? page.name : `Page ID: ${pageId}`;
+  };
+
+  const getJobTypeLabel = (type: string) => {
+    const jobTypeLabels: Record<string, string> = {
+      sync_pages: "Đồng bộ Fanpage",
+      scan_posts: "Quét bài viết",
+      delete_posts: "Xoá bài viết",
+      check_page_access: "Kiểm tra quyền truy cập",
+      refresh_avatar: "Tải lại avatar",
+      refresh_page_stats: "Cập nhật tương tác",
+      check_api_access: "Kiểm tra API",
+      scan_page_admins: "Quét quản trị viên"
+    };
+    return jobTypeLabels[type] || type;
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "running":
+        return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+      case "pending":
+      case "queued":
+        return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+      case "paused":
+        return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+      case "completed":
+        return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+      case "failed":
+        return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+      case "cancelled":
+        return "bg-neutral-500/10 text-neutral-400 border border-neutral-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-400";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "running": return "Đang chạy";
+      case "pending": return "Chờ xử lý";
+      case "queued": return "Đang xếp hàng";
+      case "paused": return "Đã tạm dừng";
+      case "completed": return "Đã hoàn thành";
+      case "failed": return "Lỗi";
+      case "cancelled": return "Đã huỷ";
+      default: return status;
+    }
+  };
+
+  const calculateSpeed = (job: any) => {
+    if (job.status !== "running" || !job.started_at) return null;
+    const elapsed = (Date.now() - new Date(job.started_at).getTime()) / 1000;
+    if (elapsed <= 0.5) return null;
+    const items = job.processed_items || 0;
+    const speed = items / elapsed;
+    return speed > 0 ? `${speed.toFixed(1)} bài/s` : null;
+  };
+
+  const toggleLog = (jobId: string) => {
+    setExpandedJobLogs(prev => ({
+      ...prev,
+      [jobId]: !prev[jobId]
+    }));
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[999] flex flex-col items-end">
+      {isCollapsed ? (
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="flex items-center gap-2.5 px-4 py-3 bg-[#0B0F19]/90 border border-white/10 hover:border-accent/40 rounded-full shadow-2xl text-foreground cursor-pointer transition-all hover:scale-105"
+        >
+          <div className="relative flex h-3 w-3">
+            {runningCount > 0 && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            )}
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${runningCount > 0 ? "bg-accent" : "bg-muted-foreground"}`}></span>
+          </div>
+          <span className="text-xs font-bold font-sans">
+            Tác vụ nền ({runningCount}/{totalCount})
+          </span>
+        </button>
+      ) : (
+        <div className="w-[380px] max-w-[calc(100vw-32px)] bg-[#0F172A]/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-5 duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-[#0B0F19]/90 border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-accent animate-pulse" />
+              <span className="text-xs font-bold tracking-wide uppercase text-foreground">
+                Tác vụ đang chạy ({runningCount}/{totalCount})
+              </span>
+            </div>
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="p-1 text-muted-foreground hover:text-foreground bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Job List */}
+          <div className="p-3.5 space-y-3.5 max-h-[360px] overflow-y-auto custom-scrollbar">
+            {activeJobs.map((job) => {
+              const speed = calculateSpeed(job);
+              const isExpandedLog = !!expandedJobLogs[job.id];
+              const progressPercentage = Math.min(100, Math.max(0, job.progress || 0));
+
+              return (
+                <div key={job.id} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-2 transition-all hover:bg-white/[0.04]">
+                  {/* Title & Status Row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-foreground truncate">
+                        {getJobTypeLabel(job.type)}
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground truncate font-semibold mt-0.5">
+                        Page: {getPageName(job.page_id)}
+                      </p>
+                    </div>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${getStatusBadgeClass(job.status)}`}>
+                      {getStatusText(job.status)}
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  {(job.status === "running" || job.status === "paused" || job.status === "completed" || job.status === "failed") && (
+                    <div className="space-y-1">
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-accent h-full transition-all duration-300 rounded-full"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[9px] text-muted-foreground font-semibold">
+                        <span>{progressPercentage}%</span>
+                        {job.type === "delete_posts" ? (
+                          <span>
+                            Đã xoá: {job.processed_items}/{job.total_items} (Thành công: {job.success_items}, Lỗi: {job.failed_items})
+                          </span>
+                        ) : (
+                          <span>
+                            Đã xử lý: {job.processed_items}/{job.total_items}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats and metadata row */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-1.5 text-[9px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      <span>{job.started_at ? new Date(job.started_at).toLocaleTimeString("vi-VN") : "Chưa chạy"}</span>
+                      {speed && (
+                        <span className="text-accent font-bold pl-1.5 border-l border-white/10 flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3" />
+                          {speed}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Log Toggle button */}
+                    {(job.last_error || job.payload) && (
+                      <button 
+                        onClick={() => toggleLog(job.id)}
+                        className="text-accent hover:underline font-bold transition-all cursor-pointer"
+                      >
+                        {isExpandedLog ? "Ẩn nhật ký" : "Xem nhật ký"}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Expandable error/log panel */}
+                  {isExpandedLog && (
+                    <div className="p-2 bg-black/40 border border-white/5 rounded-lg font-mono text-[9px] text-slate-300 leading-normal max-h-[120px] overflow-y-auto break-all custom-scrollbar">
+                      {job.last_error && (
+                        <div className="text-rose-400 font-bold mb-1">
+                          Lỗi: {job.last_error}
+                        </div>
+                      )}
+                      <div>
+                        Payload: {JSON.stringify(job.payload, null, 2)}
+                      </div>
+                      {job.cursor && (
+                        <div className="mt-1 text-slate-400">
+                          Cursor: {JSON.stringify(job.cursor, null, 2)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions Row */}
+                  <div className="flex items-center justify-end gap-1.5 mt-1 border-t border-white/5 pt-2">
+                    {(job.status === "running" || job.status === "queued" || job.status === "pending") && (
+                      <>
+                        <button
+                          onClick={() => onPause(job.id)}
+                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-amber-400 rounded-lg text-muted-foreground transition-all cursor-pointer"
+                          title="Tạm dừng"
+                        >
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => onCancel(job.id)}
+                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-rose-500 rounded-lg text-muted-foreground transition-all cursor-pointer"
+                          title="Huỷ tác vụ"
+                        >
+                          <XOctagon className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                    {job.status === "paused" && (
+                      <>
+                        <button
+                          onClick={() => onResume(job.id)}
+                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-[#3B82F6]/20 hover:text-[#60A5FA] rounded-lg text-muted-foreground transition-all cursor-pointer"
+                          title="Tiếp tục"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </button>
+                        <button
+                          onClick={() => onCancel(job.id)}
+                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-rose-500 rounded-lg text-muted-foreground transition-all cursor-pointer"
+                          title="Huỷ tác vụ"
+                        >
+                          <XOctagon className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                    {job.status === "failed" && (
+                      <>
+                        <button
+                          onClick={() => onRetry(job.id)}
+                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-emerald-400 rounded-lg text-muted-foreground transition-all cursor-pointer"
+                          title="Chạy lại"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onCancel(job.id)}
+                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-rose-500 rounded-lg text-muted-foreground transition-all cursor-pointer"
+                          title="Huỷ tác vụ"
+                        >
+                          <XOctagon className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                    {(job.status === "completed" || job.status === "cancelled") && (
+                      <button
+                        onClick={() => onCancel(job.id)}
+                        className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                        title="Xoá lịch sử"
+                      >
+                        Xoá
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

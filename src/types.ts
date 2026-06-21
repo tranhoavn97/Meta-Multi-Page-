@@ -8,6 +8,7 @@ export interface FacebookPage {
       url: string;
     };
   } | any;
+  monetization_status?: string;
 }
 
 export interface FacebookPost {

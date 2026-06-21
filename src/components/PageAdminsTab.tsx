@@ -28,19 +28,33 @@ interface PageAdminRecord {
 interface PageAdminsTabProps {
   pages: any[];
   userToken: string;
+  pageAdmins: PageAdminRecord[];
+  scanning: boolean;
+  progress: { current: number; total: number };
+  logs: any[];
+  setLogs: React.Dispatch<React.SetStateAction<any[]>>;
+  runAdminsBMScan: () => void;
+  stopScan: () => void;
+  hasBmPermission: boolean | null;
+  businesses: any[];
 }
 
 import DropdownSelect from "./DropdownSelect";
 
-export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) {
-  const [pageAdmins, setPageAdmins] = useState<PageAdminRecord[]>([]);
-  const [scanning, setScanning] = useState(false);
-  const [logs, setLogs] = useState<{ id: string; time: string; context: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [hasBmPermission, setHasBmPermission] = useState<boolean | null>(null);
+export default function PageAdminsTab({
+  pages,
+  userToken,
+  pageAdmins,
+  scanning,
+  progress,
+  logs,
+  setLogs,
+  runAdminsBMScan,
+  stopScan,
+  hasBmPermission,
+  businesses
+}: PageAdminsTabProps) {
   const [filterType, setFilterType] = useState<string>("all");
-  const cancelScanRef = useRef<boolean>(false);
 
   const addLog = (context: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
     const time = new Date().toLocaleTimeString("vi-VN");
@@ -68,160 +82,6 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
       labels.push("Xem thống kê");
     }
     return labels.length > 0 ? labels.join(", ") : "Xem thông tin cơ bản";
-  };
-
-  const runAdminsBMScan = async () => {
-    if (!userToken) {
-      addLog("Hệ thống", "Không tìm thấy token Facebook người dùng. Vui lòng kết nối trước.", "failed");
-      return;
-    }
-    if (pages.length === 0) {
-      addLog("Hệ thống", "Không tìm thấy Fanpages nào đã tải sẵn.", "skipped");
-      return;
-    }
-
-    setScanning(true);
-    cancelScanRef.current = false;
-    setPageAdmins([]);
-    setLogs([]);
-    setBusinesses([]);
-    setProgress({ current: 0, total: 1 });
-
-    addLog("Hàng đợi", "Bắt đầu tải thông tin tài khoản & danh sách Business Manager...", "processing");
-
-    // 1. Fetch BM lists
-    let bmList: any[] = [];
-    let bmPerm = false;
-    try {
-      await new Promise(resolve => setTimeout(resolve, 350));
-      const res = await fetch(`/api/businesses?userToken=${encodeURIComponent(userToken)}`);
-      const data = await res.json();
-      
-      bmPerm = data.hasPermission;
-      setHasBmPermission(bmPerm);
-
-      if (data.success && data.data && data.data.length > 0) {
-        bmList = data.data;
-        setBusinesses(bmList);
-        addLog("Doanh nghiệp", `Đã tìm thấy ${bmList.length} Business Managers kết nối với tài khoản này.`, "success");
-      } else {
-        addLog("Doanh nghiệp", data.error || "Không tìm thấy Business Manager nào, hoặc thiếu quyền business_management", "skipped");
-      }
-    } catch (e: any) {
-      addLog("Doanh nghiệp", `Không lấy được Business Managers: ${e.message}`, "failed");
-    }
-
-    // 2. Scan each business and mapping connected pages
-    const totalSteps = pages.length + (bmList.length > 0 ? bmList.length : 0);
-    setProgress({ current: 0, total: totalSteps });
-    
-    let currentStepNum = 0;
-    const pageToBmMap: Record<string, { businessName: string; businessId: string; type: "Owned Page" | "Client Page" }> = {};
-
-    if (bmList.length > 0) {
-      const scanBusinessConcurrently = async (bm: any) => {
-        if (cancelScanRef.current) return;
-        addLog(bm.name, `Đang phân tích các Page trực thuộc Business Manager...`, "processing");
-
-        try {
-          const res = await fetch("/api/page-business-map", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userToken,
-              businessId: bm.id
-            })
-          });
-
-          if (cancelScanRef.current) return;
-
-          const result = await res.json();
-          if (result.success && result.data) {
-            const { ownedPages, clientPages } = result.data;
-            let counter = 0;
-            
-            (ownedPages || []).forEach((p: any) => {
-              pageToBmMap[p.id] = { businessName: bm.name, businessId: bm.id, type: "Owned Page" };
-              counter++;
-            });
-            (clientPages || []).forEach((p: any) => {
-              pageToBmMap[p.id] = { businessName: bm.name, businessId: bm.id, type: "Client Page" };
-              counter++;
-            });
-
-            addLog(bm.name, `Phân tích xong! Map thành công ${counter} Pages vào Business Manager.`, "success");
-          } else {
-            addLog(bm.name, `Lỗi đọc dữ liệu: ${result.error || "Lỗi máy chủ"}`, "failed");
-          }
-        } catch (err: any) {
-          if (cancelScanRef.current) return;
-          addLog(bm.name, `Quét lỗi map: ${err.message}`, "failed");
-        } finally {
-          setProgress(p => ({ ...p, current: p.current + 1 }));
-        }
-      };
-
-      const bmPromises = bmList.map(bm => scanBusinessConcurrently(bm));
-      await Promise.all(bmPromises);
-
-      if (cancelScanRef.current) {
-        addLog("Hàng đợi", "Đã dừng tiến trình quét phân tích Business Manager.", "skipped");
-        setScanning(false);
-        return;
-      }
-    }
-
-    // 3. Build detailed admins display for each page
-    addLog("Hàng đợi", "Đang hợp nhất phân lớp tổ chức của các trang...", "processing");
-    const records: PageAdminRecord[] = [];
-
-    for (const page of pages) {
-      if (cancelScanRef.current) {
-        addLog("Hàng đợi", "Đã dừng tiến trình hợp nhất quyền tác vụ các trang hoặc BM.", "skipped");
-        setScanning(false);
-        return;
-      }
-      currentStepNum++;
-      setProgress({ current: currentStepNum, total: totalSteps });
-      
-      const mapInfo = pageToBmMap[page.id];
-      const tasks = page.tasks || [];
-      const hasPageToken = !!page.access_token;
-      
-      const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
-      const hasCreateContent = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");
-      
-      let status: "Bình thường" | "Thiếu quyền" | "Token lỗi" = "Bình thường";
-      let detail = "Đầy đủ quyền tác vụ cơ bản";
-
-      if (!hasPageToken) {
-        status = "Token lỗi";
-        detail = "Thiếu Page Access Token hoặc đã bị hỏng";
-      } else if (!hasManage) {
-        status = "Thiếu quyền";
-        detail = "Thiếu quyền quản lý (MANAGE)";
-      } else if (!hasCreateContent) {
-        status = "Thiếu quyền";
-        detail = "Thiếu quyền đăng/xóa bài (CREATE_CONTENT)";
-      }
-
-      records.push({
-        pageId: page.id,
-        name: page.name,
-        category: page.category || "Không xác định",
-        tasks,
-        businessName: mapInfo ? mapInfo.businessName : "N/A",
-        businessId: mapInfo ? mapInfo.businessId : "N/A",
-        businessType: mapInfo ? mapInfo.type : "Không xác định",
-        status,
-        detail
-      });
-    }
-
-    setPageAdmins(records);
-    setScanning(false);
-    setProgress({ current: totalSteps, total: totalSteps });
-    addLog("Hệ thống", "Đã hoàn thành phân tích quản trị và tổ chức Business Manager!", "success");
   };
 
   const handleExportCSV = () => {
@@ -526,10 +386,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
               <div className="flex gap-2 w-full mt-1.5">
                 <button
                   type="button"
-                  onClick={() => {
-                    cancelScanRef.current = true;
-                    addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
-                  }}
+                  onClick={stopScan}
                   className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 border border-transparent text-white text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
                 >
                   Dừng
