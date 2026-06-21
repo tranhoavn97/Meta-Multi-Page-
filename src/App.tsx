@@ -1047,12 +1047,12 @@ export default function App() {
                title={isSidebarCollapsed ? "Bài viết" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "posts"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold shadow-md"
+                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <FileText className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "posts" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Bài viết</span>}
+              <FileText className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "posts" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Bài viết</span>}
             </button>
 
             <button
@@ -1065,12 +1065,12 @@ export default function App() {
                title={isSidebarCollapsed ? "Trạng thái API" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "status"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold shadow-md"
+                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <Activity className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "status" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Trạng thái API</span>}
+              <Activity className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "status" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Trạng thái API</span>}
             </button>
 
             <button
@@ -1083,12 +1083,12 @@ export default function App() {
                title={isSidebarCollapsed ? "Quản trị viên" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "admins"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold shadow-md"
+                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <Users className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Quản trị viên</span>}
+              <Users className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "admins" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Quản trị viên</span>}
             </button>
 
             <button
@@ -1101,12 +1101,12 @@ export default function App() {
                title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "theme"
-                   ? "neu-button-primary text-white font-bold"
-                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold shadow-md"
+                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <Settings className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Tuỳ biến</span>}
+              <Settings className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "theme" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Tuỳ biến</span>}
             </button>
           </nav>
 
