@@ -1911,14 +1911,14 @@ export default function App() {
                       id={`page-card-${page.id}`}
                       key={page.id}
                       onClick={() => togglePageSelection(page.id)}
-                      className={`flex flex-col gap-2.5 p-3 rounded-[16px] border transition-all cursor-pointer select-none group/card ${
+                      className={`flex items-center p-3 rounded-[16px] border transition-all cursor-pointer select-none group/card ${
                         isSelected 
                           ? "bg-muted border-accent/40 shadow-sm" 
                           : "bg-transparent border-transparent hover:bg-muted"
                       }`}
                     >
-                      {/* Top row: Avatar, Name & ID, and selection checkbox */}
-                      <div className="flex items-start gap-2.5 w-full">
+                      {/* Avatar, Name & ID, and selection checkbox */}
+                      <div className="flex items-center gap-2.5 w-full min-w-0">
                         <PageAvatar 
                           pageId={page.id} 
                           pageName={page.name} 
@@ -1932,7 +1932,7 @@ export default function App() {
                             ID: {page.id}
                           </p>
                         </div>
-                        <div className="shrink-0 pt-0.5">
+                        <div className="shrink-0 ml-2">
                           {isSelected ? (
                             <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
                               <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
@@ -1941,44 +1941,6 @@ export default function App() {
                             <div className="w-5 h-5 rounded-lg border-2 border-border group-hover/card:border-accent/50 transition-colors"></div>
                           )}
                         </div>
-                      </div>
-
-                      {/* Middle row: Badges (Permissions) */}
-                      <div className="flex flex-wrap gap-1 items-center">
-                        {/* Permission Badges */}
-                        {getPermissionBadges(page.tasks).map((badge, idx) => (
-                          <span 
-                            key={idx} 
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border ${badge.color}`}
-                          >
-                            {badge.label}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Bottom row: Sync and Meta BM buttons */}
-                      <div className="flex items-center gap-2 border-t border-border/50 pt-2 mt-1 w-full">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            triggerPagePostsScan(page.id);
-                          }}
-                          disabled={isScanningThisPage}
-                          className="flex-1 text-center py-1.5 px-2 bg-muted hover:bg-border border border-border/30 hover:border-accent/30 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <RotateCw className={`w-3 h-3 shrink-0 ${isScanningThisPage ? "animate-spin text-accent" : ""}`} />
-                          <span>{isScanningThisPage ? "Đang quét..." : "Đồng bộ bài"}</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`https://business.facebook.com/latest/monetization/overview?asset_id=${page.id}`, '_blank');
-                          }}
-                          className="flex-1 text-center py-1.5 px-2 bg-muted hover:bg-border border border-border/30 hover:border-accent/30 rounded-xl text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1"
-                        >
-                          <ExternalLink className="w-3 h-3 shrink-0" />
-                          <span>Kiểm tra trên Meta</span>
-                        </button>
                       </div>
                     </div>
                   );
