@@ -1320,8 +1320,32 @@ export default function App() {
                               <p className="text-xs font-bold truncate text-[var(--text-primary)] leading-tight">{page.name}</p>
                               <p className="text-[9px] text-[var(--text-secondary)] truncate font-mono mt-0.5">ID: {page.id}</p>
                             </div>
-                            <div cla              {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 glass-card rounded-2xl p-3 shadow-md shrink-0">
+                            <div className="shrink-0">
+                              {isSelected ? (
+                                <div className="w-4.5 h-4.5 bg-[var(--accent-blue)] rounded-lg flex items-center justify-center border border-[var(--border-focus)] shadow-md scale-105 transition-all">
+                                  <Check className="w-3 h-3 text-white stroke-[3px]" />
+                                </div>
+                              ) : (
+                                <div className="w-4.5 h-4.5 rounded-lg border border-[var(--border-primary)] hover:border-[var(--text-secondary)] transition-colors"></div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
+              </aside>
+            )}
+
+            {/* MAIN POST AREA & FILTERS */}
+            <main className="flex-1 w-full flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
+              
+              {activeTab === "posts" && (
+                <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
+                  <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
+                    {/* TOP BAR: FILTERS CARD */}
+                    <section className="relative z-30 glass-card rounded-2xl p-3 shadow-md shrink-0">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-40">
                   {/* Left: Filter Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
