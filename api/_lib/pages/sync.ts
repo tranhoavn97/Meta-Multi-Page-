@@ -57,7 +57,7 @@ export default async function handler(req: any, res: any) {
     db.background_jobs.push(newJob);
     writeDb(db);
 
-    processJobs().catch(e => console.error("Worker trigger error:", e));
+    await processJobs().catch(e => console.error("Worker trigger error:", e));
 
     return res.status(200).json({
       success: true,

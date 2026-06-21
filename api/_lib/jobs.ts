@@ -62,7 +62,7 @@ export async function processJobs(): Promise<{ processedCount: number; activeJob
         dbJob.attempt_count += 1;
         writeDb(db);
         
-        executeJobAsync(job.id);
+        await executeJobAsync(job.id);
         processedCount++;
       }
     }

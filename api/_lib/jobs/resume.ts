@@ -27,7 +27,7 @@ export default async function handler(req: any, res: any) {
       writeDb(db);
       
       // Trigger worker to start processing again
-      processJobs().catch(e => console.error("Worker trigger error:", e));
+      await processJobs().catch(e => console.error("Worker trigger error:", e));
 
       return res.status(200).json({ success: true, message: "Job resumed successfully" });
     }

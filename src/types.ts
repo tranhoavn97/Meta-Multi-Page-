@@ -2,6 +2,8 @@ export interface FacebookPage {
   id: string;
   name: string;
   access_token: string;
+  access_token_encrypted?: string;
+  access_status?: string;
   category?: string;
   picture?: {
     data?: {
@@ -9,6 +11,7 @@ export interface FacebookPage {
     };
   } | any;
   monetization_status?: string;
+  avatar_url?: string;
 }
 
 export interface FacebookPost {
@@ -47,6 +50,8 @@ export interface FacebookPost {
   shares?: {
     count?: number;
   };
+  itemType?: "post" | "video";
+  thumbnail?: string;
 }
 
 export interface FilterCriteria {

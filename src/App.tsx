@@ -330,9 +330,10 @@ interface PageAvatarProps {
   pageId: string;
   pageName: string;
   picUrl?: string;
+  pageAccessToken?: string;
 }
 
-function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
+function PageAvatar({ pageId, pageName, picUrl, pageAccessToken }: PageAvatarProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [currentPicUrl, setCurrentPicUrl] = useState<string | undefined>(picUrl);
@@ -356,7 +357,12 @@ function PageAvatar({ pageId, pageName, picUrl }: PageAvatarProps) {
       setRetryCount(1);
       setIsLoading(true);
       try {
-        const res = await safeFetchJson(`/api/pages/avatar?pageId=${pageId}`);
+        const urlParams = new URLSearchParams();
+        urlParams.append("pageId", pageId);
+        if (pageAccessToken) {
+          urlParams.append("pageAccessToken", pageAccessToken);
+        }
+        const res = await safeFetchJson(`/api/pages/avatar?${urlParams.toString()}`);
         if (res.success && res.url) {
           setCurrentPicUrl(res.url);
           return; // Let the image reload from the refreshed URL
@@ -441,14 +447,14 @@ export default function App() {
   const [userToken, setUserToken] = useState<string>(() => {
     return localStorage.getItem("meta_user_token") || "";
   });
-
   // Pages & Posts state
   const [pages, setPages] = useState<FacebookPage[]>([]);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [pageSearchQuery, setPageSearchQuery] = useState<string>("");
   const [posts, setPosts] = useState<FacebookPost[]>([]);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
-  
+  const [pageLoadingStates, setPageLoadingStates] = useState<Record<string, "idle" | "loading" | "success" | "error">>({});
+  const [pageErrors, setPageErrors] = useState<Record<string, string>>({});
   // Statuses
   const [loadingPages, setLoadingPages] = useState<boolean>(false);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
@@ -1232,9 +1238,15 @@ export default function App() {
         return;
       }
 
+      setPageLoadingStates({});
+      setPageErrors({});
+
       if (data.data) {
         setPages(data.data);
-        addLog("system", `Đã tải thành công ${data.data.length} Fanpages từ database cache.`, "success");
+        addLog("system", `Đã tải thành công ${data.data.length} Fanpages.`, "success");
+        if (data.data.length > 0 && selectedPageIds.length === 0) {
+          setSelectedPageIds([data.data[0].id]);
+        }
       } else {
         setPages([]);
         addLog("system", "Không tìm thấy Fanpage nào liên kết.", "skipped");
@@ -1327,21 +1339,32 @@ export default function App() {
       setScanProgress(p => ({ ...p, currentPageName: pageInfo.name }));
       addLog("system", `Đang đọc bài viết từ Page: "${pageInfo.name}"...`, "processing");
 
+      // Update loading status for this page
+      setPageLoadingStates(prev => ({ ...prev, [pageId]: "loading" }));
+      setPageErrors(prev => {
+        const next = { ...prev };
+        delete next[pageId];
+        return next;
+      });
+
       try {
         const urlParams = new URLSearchParams();
-        urlParams.append("pageId", pageId);
-        urlParams.append("limit", filters.maxPostsToFetch.toString());
-        if (pageInfo.access_token) {
-          urlParams.append("user_token", pageInfo.access_token);
+        const encryptedToken = pageInfo.access_token_encrypted || pageInfo.access_token;
+        if (encryptedToken) {
+          urlParams.append("pageAccessToken", encryptedToken);
         }
+        urlParams.append("limit", Math.min(filters.maxPostsToFetch || 100, 100).toString());
+        urlParams.append("type", "all");
         
-        const data = await safeFetchJson(`/api/posts?${urlParams.toString()}`);
+        const data = await safeFetchJson(`/api/pages/${pageId}/media?${urlParams.toString()}`);
 
         if (scanCancelledRef.current) return [];
 
         if (data.error) {
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
           setScanProgress(p => ({ ...p, current: p.current + 1 }));
+          setPageLoadingStates(prev => ({ ...prev, [pageId]: "error" }));
+          setPageErrors(prev => ({ ...prev, [pageId]: data.error }));
           return [];
         }
 
@@ -1351,28 +1374,42 @@ export default function App() {
             message: item.message,
             created_time: item.created_time,
             permalink_url: item.permalink_url,
-            full_picture: item.full_picture,
+            full_picture: item.thumbnail || item.full_picture,
+            thumbnail: item.thumbnail,
             status_type: item.status_type,
-            attachments: item.attachments,
+            itemType: item.itemType,
             pageId: pageInfo.id,
             pageName: pageInfo.name,
-            pageAccessToken: pageInfo.access_token,
+            pageAccessToken: pageInfo.access_token_encrypted || pageInfo.access_token,
             likes: item.likes,
             comments: item.comments,
             shares: item.shares
           }));
 
+          setPageLoadingStates(prev => ({ ...prev, [pageId]: "success" }));
           addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}".`, "success");
           setScanProgress(p => ({ ...p, current: p.current + 1, currentPageName: `Đã xong: ${pageInfo.name}` }));
           return mapped;
         } else {
+          setPageLoadingStates(prev => ({ ...prev, [pageId]: "success" }));
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
           setScanProgress(p => ({ ...p, current: p.current + 1, currentPageName: `Đã xong: ${pageInfo.name}` }));
           return [];
         }
       } catch (err: any) {
         setScanProgress(p => ({ ...p, current: p.current + 1 }));
+        setPageLoadingStates(prev => ({ ...prev, [pageId]: "error" }));
+
+        let errorMsg = err.message || "Lỗi không xác định";
+        if (err.responseJson && err.responseJson.isDetailedError) {
+          errorMsg = err.responseJson.error || errorMsg;
+        } else if (err.responseJson && err.responseJson.error) {
+          errorMsg = err.responseJson.error || errorMsg;
+        }
+        setPageErrors(prev => ({ ...prev, [pageId]: errorMsg }));
+
         if (scanCancelledRef.current) return [];
+
         if (err.responseJson && err.responseJson.isDetailedError) {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
@@ -1381,9 +1418,10 @@ export default function App() {
              toast.error(msg, "Lỗi API Facebook");
           }
         } else {
-          addLog("system", `Lỗi kết nối Page [${pageInfo.name}]: ${err.message}`, "failed");
-          if (!handleAuthError(err.message)) {
-             toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${err.message}`, "Lỗi");
+          const msg = `Lỗi kết nối Page [${pageInfo.name}]: ${errorMsg}`;
+          addLog("system", msg, "failed");
+          if (!handleAuthError(errorMsg)) {
+             toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${errorMsg}`, "Lỗi");
           }
         }
         return [];
@@ -1473,15 +1511,11 @@ export default function App() {
         if (fromTime !== null && postTime < fromTime) return false;
         if (toTime !== null && postTime > toTime) return false;
       }
-
       // 4. Media type: Chỉ video
       if (postType === "video") {
-        const isVideo = (post.status_type || "").toLowerCase().includes("video") || 
-                        (post.message || "").toLowerCase().includes("video") || 
-                        (post.permalink_url || "").toLowerCase().includes("video");
+        const isVideo = post.itemType === "video";
         if (!isVideo) return false;
       }
-
       return true;
     });
   }, [posts, filters]);
@@ -1933,44 +1967,57 @@ export default function App() {
                   const isScanningThisPage = activeJobs.some(
                     j => j.page_id === page.id && j.type === 'scan_posts' && (j.status === 'running' || j.status === 'queued' || j.status === 'pending')
                   );
-                  return (
-                    <div 
-                      id={`page-card-${page.id}`}
-                      key={page.id}
-                      onClick={() => togglePageSelection(page.id)}
-                      className={`flex items-center p-3 rounded-[16px] border transition-all cursor-pointer select-none group/card ${
-                        isSelected 
-                          ? "bg-muted border-accent/40 shadow-sm" 
-                          : "bg-transparent border-transparent hover:bg-muted"
-                      }`}
-                    >
-                      {/* Avatar, Name & ID, and selection checkbox */}
-                      <div className="flex items-center gap-2.5 w-full min-w-0">
-                        <PageAvatar 
-                          pageId={page.id} 
-                          pageName={page.name} 
-                          picUrl={page.avatar_url || page.picture?.data?.url} 
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground leading-tight group-hover/card:text-accent transition-colors line-clamp-2" title={page.name}>
-                            {page.name}
-                          </p>
-                          <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">
-                            ID: {page.id}
-                          </p>
-                        </div>
-                        <div className="shrink-0 ml-2">
-                          {isSelected ? (
-                            <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
-                              <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 rounded-lg border-2 border-border group-hover/card:border-accent/50 transition-colors"></div>
-                          )}
+                    const state = pageLoadingStates[page.id] || "idle";
+                    const err = pageErrors[page.id];
+                    return (
+                      <div 
+                        id={`page-card-${page.id}`}
+                        key={page.id}
+                        onClick={() => togglePageSelection(page.id)}
+                        className={`flex items-center p-3 rounded-[16px] border transition-all cursor-pointer select-none group/card ${
+                          isSelected 
+                            ? "bg-muted border-accent/40 shadow-sm" 
+                            : "bg-transparent border-transparent hover:bg-muted"
+                        }`}
+                      >
+                        {/* Avatar, Name & ID, and selection checkbox */}
+                        <div className="flex items-center gap-2.5 w-full min-w-0">
+                          <PageAvatar 
+                            pageId={page.id} 
+                            pageName={page.name} 
+                            picUrl={page.avatar_url || page.picture?.data?.url} 
+                            pageAccessToken={page.access_token_encrypted}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground leading-tight group-hover/card:text-accent transition-colors line-clamp-2" title={page.name}>
+                              {page.name}
+                            </p>
+                            <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">
+                              ID: {page.id}
+                            </p>
+                            {state === "loading" && (
+                              <p className="text-[9px] text-accent animate-pulse mt-0.5">
+                                ⏳ Đang tải bài viết...
+                              </p>
+                            )}
+                            {err && (
+                              <p className="text-[9px] text-rose-500 line-clamp-1 mt-0.5 font-sans" title={err}>
+                                ⚠️ Lỗi: {err}
+                              </p>
+                            )}
+                          </div>
+                          <div className="shrink-0 ml-2">
+                            {isSelected ? (
+                              <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
+                                <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-lg border-2 border-border group-hover/card:border-accent/50 transition-colors"></div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
+                    );
                 });
               })()}
             </div>
@@ -2416,16 +2463,16 @@ export default function App() {
 
                           {/* Thumbnail Column */}
                           <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                            {post.full_picture ? (
+                            {(post.thumbnail || post.full_picture) ? (
                               <div className="relative rounded overflow-hidden border border-border w-[38px] h-[38px] bg-muted shadow-sm">
                                 <img 
-                                  src={post.full_picture} 
+                                  src={post.thumbnail || post.full_picture} 
                                   alt="Preview" 
                                   referrerPolicy="no-referrer"
                                   className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform duration-300"
                                 />
                                 {/* Video Play icon attachment overlay */}
-                                {post.status_type === "added_video" && (
+                                {(post.itemType === "video" || post.status_type === "added_video") && (
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                     <Play className="w-3.5 h-3.5 fill-current text-white drop-shadow-sm animate-pulse" />
                                   </div>

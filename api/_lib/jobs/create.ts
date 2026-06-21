@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
 
     if (existingJob) {
       // Trigger worker asynchronously to ensure it is running
-      processJobs().catch(e => console.error("Worker trigger error:", e));
+      await processJobs().catch(e => console.error("Worker trigger error:", e));
       return res.status(200).json({
         success: true,
         jobId: existingJob.id
@@ -96,7 +96,7 @@ export default async function handler(req: any, res: any) {
     writeDb(db);
 
     // Trigger worker asynchronously to run the job
-    processJobs().catch(e => console.error("Worker trigger error:", e));
+    await processJobs().catch(e => console.error("Worker trigger error:", e));
 
     return res.status(200).json({
       success: true,

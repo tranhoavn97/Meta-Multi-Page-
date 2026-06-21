@@ -25,6 +25,7 @@ import pagesSyncHandler from "./_lib/pages/sync.js";
 import pagesPostsHandler from "./_lib/pages/posts.js";
 import pagesScanHandler from "./_lib/pages/scan.js";
 import pagesAvatarHandler from "./_lib/pages/avatar.js";
+import pagesMediaHandler from "./_lib/pages/media.js";
 import cronProcessJobsHandler from "./_lib/cron/process-jobs.js";
 import cronRecoverStalledJobsHandler from "./_lib/cron/recover-stalled-jobs.js";
 import apiManagerLatestResultsHandler from "./_lib/api-manager/latest-results.js";
@@ -46,6 +47,11 @@ app.get("/api/pages/:pageId/posts", (req: any, res: any, next: any) => {
   req.query.pageId = req.params.pageId;
   next();
 }, safeHandler("pagesPosts", ["META_APP_SECRET"], pagesPostsHandler));
+
+app.get("/api/pages/:pageId/media", (req: any, res: any, next: any) => {
+  req.query.pageId = req.params.pageId;
+  next();
+}, safeHandler("pagesMedia", ["META_APP_SECRET"], pagesMediaHandler));
 
 app.post("/api/pages/:pageId/scan", (req: any, res: any, next: any) => {
   req.query.pageId = req.params.pageId;

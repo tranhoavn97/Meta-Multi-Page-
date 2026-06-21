@@ -1,87 +1,64 @@
-import { readDb, writeDb, BackgroundJob } from "./db.js";
-import { processJobs } from "./worker.js";
+import { encrypt } from "./db.js";
+import { fetchWithTimeout } from "./utils/wrapper.js";
+
+async function fetchAllPages(userToken: string): Promise<any[]> {
+  let allPages: any[] = [];
+  let url: string | null = `https://graph.facebook.com/v23.0/me/accounts?fields=id,name,access_token,tasks,category,picture&access_token=${userToken}&limit=100`;
+  
+  while (url) {
+    const res = await fetchWithTimeout(url);
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || "Lỗi API Meta khi lấy trang");
+    }
+    if (data.data) {
+      allPages = allPages.concat(data.data);
+    }
+    url = data.paging?.next || null;
+  }
+  return allPages;
+}
 
 export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
+  const userToken = (req.query.user_token || req.query.userToken || req.body?.userToken || req.body?.user_token) as string;
+  if (!userToken) {
+    return res.status(400).json({ error: "Thiếu user_token để lấy danh sách Fanpage" });
+  }
+
   try {
-    const db = readDb();
-    const summary = req.query.summary === "true";
-    const userToken = (req.query.user_token || req.query.userToken || req.body?.userToken) as string;
-
-    const cachedPages = db.cached_pages || [];
-
-    // Check if cache is stale (older than 5 minutes or empty)
-    const STALE_TIME_MS = 5 * 60 * 1000;
-    const isCacheStale = cachedPages.length === 0 || 
-      cachedPages.some(p => !p.last_synced_at || (Date.now() - new Date(p.last_synced_at).getTime() > STALE_TIME_MS));
-
-    // If cache is stale and token is provided, trigger sync job in the background (Stale-While-Revalidate)
-    if (isCacheStale && userToken) {
-      console.log("Pages cache is stale or empty. Triggering background sync_pages job...");
+    const pages = await fetchAllPages(userToken);
+    
+    const mappedPages = pages.map((page: any) => {
+      const tasks = page.tasks || [];
+      const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
+      const hasCreate = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");
       
-      // Check if there is already a pending/running sync job to avoid duplicates
-      const hasActiveSync = db.background_jobs.some(j => 
-        j.type === "sync_pages" && ["pending", "queued", "running"].includes(j.status)
-      );
-
-      if (!hasActiveSync) {
-        const jobId = Math.random().toString(36).substring(2, 11);
-        const newJob: BackgroundJob = {
-          id: jobId,
-          type: "sync_pages",
-          page_id: "system",
-          status: "pending",
-          priority: 5,
-          payload: { userToken },
-          cursor: null,
-          progress: 0,
-          total_items: 1,
-          processed_items: 0,
-          success_items: 0,
-          failed_items: 0,
-          attempt_count: 0,
-          max_attempts: 3,
-          next_run_at: new Date().toISOString(),
-          started_at: null,
-          completed_at: null,
-          last_error: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        db.background_jobs.push(newJob);
-        writeDb(db);
-        
-        // Trigger worker asynchronously
-        processJobs().catch(e => console.error("Worker trigger error:", e));
-      }
-    }
-
-    // Map output fields
-    const outputPages = cachedPages.map(page => {
-      if (summary) {
-        return {
-          id: page.id,
-          name: page.name,
-          avatar_url: page.avatar_url,
-          access_status: page.access_status,
-          tasks: page.tasks,
-          last_synced_at: page.last_synced_at,
-          monetization_status: page.monetization_status || "Chưa xác định"
-        };
+      let accessStatus = "Bình thường";
+      if (!page.access_token) {
+        accessStatus = "Token lỗi";
+      } else if (!hasManage || !hasCreate) {
+        accessStatus = "Thiếu quyền";
       }
       
-      // Never return the access token to the frontend
-      const cleanPage = { ...page };
-      if (cleanPage.access_token_encrypted) delete cleanPage.access_token_encrypted;
-      cleanPage.monetization_status = page.monetization_status || "Chưa xác định";
-      return cleanPage;
+      const avatarUrl = page.picture?.data?.url || "";
+      
+      return {
+        id: page.id,
+        name: page.name,
+        avatar_url: avatarUrl,
+        access_status: accessStatus,
+        tasks: tasks,
+        category: page.category || "",
+        access_token_encrypted: page.access_token ? encrypt(page.access_token) : ""
+      };
     });
 
-    return res.status(200).json({ data: outputPages });
+    return res.status(200).json({ data: mappedPages });
   } catch (error: any) {
-    console.error("Lỗi khi tải danh sách Fanpages:", error);
-    return res.status(500).json({ error: error.message || "Lỗi máy chủ khi lấy trang" });
+    console.error("Lỗi khi đồng bộ danh sách Fanpage:", error);
+    return res.status(500).json({ error: error.message || "Lỗi máy chủ khi lấy danh sách Fanpage" });
   }
 }

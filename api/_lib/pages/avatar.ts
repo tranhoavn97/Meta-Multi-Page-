@@ -10,19 +10,29 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Missing pageId parameter" });
   }
 
+  const pageAccessToken = (req.query.pageAccessToken || req.query.page_access_token || req.body?.pageAccessToken) as string;
+
   try {
-    const db = readDb();
-    const page = db.cached_pages.find(p => p.id === pageId);
-    if (!page) {
-      return res.status(404).json({ error: "Page not found in database cache" });
+    let pageToken = pageAccessToken || "";
+    if (pageToken && pageToken.includes(":")) {
+      pageToken = decrypt(pageToken);
     }
 
-    const pageToken = page.access_token_encrypted 
-      ? decrypt(page.access_token_encrypted) 
-      : "";
+    let db: any = null;
+    let page: any = null;
 
     if (!pageToken) {
-      return res.status(400).json({ error: "No page access token available to refresh avatar" });
+      db = readDb();
+      page = db.cached_pages.find((p: any) => p.id === pageId);
+      if (page) {
+        pageToken = page.access_token_encrypted 
+          ? decrypt(page.access_token_encrypted) 
+          : "";
+      }
+    }
+
+    if (!pageToken) {
+      return res.status(400).json({ error: "Không có page access token để tải avatar mới" });
     }
 
     const fbUrl = `https://graph.facebook.com/v23.0/${pageId}/picture?type=large&redirect=false&access_token=${pageToken}`;
@@ -31,9 +41,11 @@ export default async function handler(req: any, res: any) {
 
     if (fbData?.data?.url) {
       // Update cache
-      page.avatar_url = fbData.data.url;
-      page.last_synced_at = new Date().toISOString();
-      writeDb(db);
+      if (page && db) {
+        page.avatar_url = fbData.data.url;
+        page.last_synced_at = new Date().toISOString();
+        writeDb(db);
+      }
 
       return res.status(200).json({
         success: true,
