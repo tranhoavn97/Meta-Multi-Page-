@@ -2,31 +2,34 @@ import React from "react";
 import { 
   Sun, Moon, LayoutTemplate, Type, Settings2, Palette, Box, Check, Image as ImageIcon
 } from "lucide-react";
-import { APP_THEMES, COLOR_OPTIONS, FONT_OPTIONS, type ThemeConfig } from "../hooks/useThemeConfig";
+import { useThemeConfig, APP_THEMES, COLOR_OPTIONS, FONT_OPTIONS } from "../hooks/useThemeConfig";
 
 interface ThemeSettingsTabProps {
-  isDark: boolean;
-  setIsDark: (dark: boolean) => void;
-  config: ThemeConfig;
-  setConfig: (config: ThemeConfig) => void;
+  // Permanently True, props kept optional for backwards compatibility
+  isDark?: boolean;
+  setIsDark?: (dark: boolean) => void;
 }
 
-export default function ThemeSettingsTab({
-  isDark, setIsDark, config, setConfig
-}: ThemeSettingsTabProps) {
+export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
 
-  const handleUpdate = (updates: Partial<ThemeConfig>) => {
+  const { config, setConfig } = useThemeConfig();
+
+  const handleUpdate = (updates: Partial<typeof config>) => {
     setConfig({ ...config, ...updates });
   };
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-5 overflow-hidden min-h-0 h-full text-foreground pb-6">
       
-
+      {/* HEADER SECTION */}
+      <div className="flex-shrink-0 px-4 pt-4 lg:px-6 lg:pt-6">
+        <h2 className="text-2xl font-black tracking-tight mb-1 text-foreground">TUỲ BIẾN GIAO DIỆN</h2>
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Đặt cấu hình màu sắc, phông nền mờ, bo góc và họa tiết nghệ thuật
+        </p>
+      </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4 lg:px-6 pb-20 flex flex-col gap-8">
-
-
 
         {/* ẢNH NỀN ỨNG DỤNG */}
         <div className="glass-panel p-5 xl:p-6 flex flex-col gap-5 transition-all">

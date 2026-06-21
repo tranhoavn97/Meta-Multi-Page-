@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
-import { fetchWithTimeout } from "./utils/wrapper.js";
 
 async function backendFetchJson(url: string, options: any = {}): Promise<any> {
-  const response = await fetchWithTimeout(url, options);
+  const response = await fetch(url, options);
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
@@ -49,7 +48,7 @@ export default async function handler(req: any, res: any) {
 
   try {
     // 1. Check Page Info and Basic Access
-    const infoUrl = `https://graph.facebook.com/v23.0/${pageId}?fields=id,name,category,tasks&access_token=${activeToken}`;
+    const infoUrl = `https://graph.facebook.com/v19.0/${pageId}?fields=id,name,category,tasks&access_token=${activeToken}`;
     let pageInfo: any = null;
     let infoError: string | null = null;
     let isOAuthError = false;
@@ -82,7 +81,7 @@ export default async function handler(req: any, res: any) {
     let postSample: any = null;
 
     if (!infoError || infoError.indexOf("OAuth") === -1) {
-      const postsUrl = `https://graph.facebook.com/v23.0/${pageId}/posts?fields=id,message,created_time,permalink_url&limit=1&access_token=${activeToken}`;
+      const postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,created_time,permalink_url&limit=1&access_token=${activeToken}`;
       try {
         const postsData = await backendFetchJson(postsUrl);
         if (postsData.error) {

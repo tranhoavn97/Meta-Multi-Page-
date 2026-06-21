@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
-import { fetchWithTimeout } from "./utils/wrapper.js";
 
 async function backendFetchJson(url: string, options: any = {}): Promise<any> {
-  const response = await fetchWithTimeout(url, options);
+  const response = await fetch(url, options);
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
@@ -46,8 +45,8 @@ export default async function handler(req: any, res: any) {
 
   try {
     // Limit Graph API to 100 as per instructions
-    const ownedUrl = `https://graph.facebook.com/v23.0/${businessId}/owned_pages?fields=id,name&access_token=${userToken}&limit=100`;
-    const clientUrl = `https://graph.facebook.com/v23.0/${businessId}/client_pages?fields=id,name&access_token=${userToken}&limit=100`;
+    const ownedUrl = `https://graph.facebook.com/v19.0/${businessId}/owned_pages?fields=id,name&access_token=${userToken}&limit=100`;
+    const clientUrl = `https://graph.facebook.com/v19.0/${businessId}/client_pages?fields=id,name&access_token=${userToken}&limit=100`;
 
     let ownedPages: any[] = [];
     let clientPages: any[] = [];

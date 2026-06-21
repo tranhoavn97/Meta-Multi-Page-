@@ -2,16 +2,12 @@ export interface FacebookPage {
   id: string;
   name: string;
   access_token: string;
-  access_token_encrypted?: string;
-  access_status?: string;
   category?: string;
   picture?: {
     data?: {
       url: string;
     };
   } | any;
-  monetization_status?: string;
-  avatar_url?: string;
 }
 
 export interface FacebookPost {
@@ -50,8 +46,6 @@ export interface FacebookPost {
   shares?: {
     count?: number;
   };
-  itemType?: "post" | "video";
-  thumbnail?: string;
 }
 
 export interface FilterCriteria {
@@ -65,7 +59,6 @@ export interface FilterCriteria {
   maxPostsToFetch: number; // For API query limit
   maxPostsToShow: number; // For UI list restriction
   timeRangePreset?: "today" | "week" | "month" | "year" | "all" | "custom";
-  postType?: "all" | "video";
 }
 
 export interface DeletionLog {

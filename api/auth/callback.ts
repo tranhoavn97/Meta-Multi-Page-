@@ -1,7 +1,5 @@
-import { fetchWithTimeout } from "../utils/wrapper.js";
-
 async function backendFetchJson(url: string, options: any = {}): Promise<any> {
-  const response = await fetchWithTimeout(url, options);
+  const response = await fetch(url, options);
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
@@ -62,7 +60,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Exchange auth code for user access token
-    const tokenUrl = `https://graph.facebook.com/v23.0/oauth/access_token` +
+    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token` +
       `?client_id=${appId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&client_secret=${appSecret}` +

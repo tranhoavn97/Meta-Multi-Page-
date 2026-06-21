@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { 
   ShieldAlert, 
   CheckCircle, 
@@ -28,28 +28,16 @@ checkedAt: string;
 }
 
 interface PageStatusTabProps {
-  pages: any[];
-  userToken: string;
-  pageStatuses: PageStatusRecord[];
-  scanning: boolean;
-  progress: { current: number; total: number };
-  logs: any[];
-  setLogs: React.Dispatch<React.SetStateAction<any[]>>;
-  runPageStatusScan: () => void;
-  stopScan: () => void;
+pages: any[];
+userToken: string;
 }
 
-export default function PageStatusTab({
-  pages,
-  userToken,
-  pageStatuses,
-  scanning,
-  progress,
-  logs,
-  setLogs,
-  runPageStatusScan,
-  stopScan
-}: PageStatusTabProps) {
+export default function PageStatusTab({ pages, userToken }: PageStatusTabProps) {
+const [pageStatuses, setPageStatuses] = useState<PageStatusRecord[]>([]);
+const [scanning, setScanning] = useState(false);
+const [logs, setLogs] = useState<{ id: string; time: string; pageName: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
+const [progress, setProgress] = useState({ current: 0, total: 0 });
+const cancelScanRef = useRef<boolean>(false);
 
 const addLog = (pageName: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
   const time = new Date().toLocaleTimeString("vi-VN");
@@ -57,6 +45,99 @@ const addLog = (pageName: string, message: string, status: "success" | "failed" 
     { id: Date.now().toString() + Math.random(), time, pageName, message, status },
     ...prev
   ]);
+};
+
+const runPageStatusScan = async () => {
+  if (!userToken) {
+    addLog("Hệ thống", "Không tìm thấy token Facebook của người dùng. Vui lòng kết nối trước.", "failed");
+    return;
+  }
+  if (pages.length === 0) {
+    addLog("Hệ thống", "Không có Fanpage nào để quét. Hãy chắc chắn bạn đã tải danh sách Fanpage thành công.", "skipped");
+    return;
+  }
+
+  setScanning(true);
+  cancelScanRef.current = false;
+  setPageStatuses([]);
+  setLogs([]);
+  setProgress({ current: 0, total: pages.length });
+
+  addLog("Hàng đợi", `Bắt đầu quét kiểm tra trạng thái toàn bộ ${pages.length} Fanpage...`, "processing");
+
+  let itemsProcessed = 0;
+  
+  for (const page of pages) {
+    if (cancelScanRef.current) {
+      addLog("Hàng đợi", "Đã dừng chương trình kiểm tra bởi yêu cầu người dùng.", "skipped");
+      break;
+    }
+    setProgress({ current: itemsProcessed, total: pages.length });
+    addLog(page.name, `Đang quét kiểm tra quyền và kết nối...`, "processing");
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      const res = await fetch("/api/page-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userToken,
+          pageId: page.id,
+          pageAccessToken: page.access_token
+        })
+      });
+
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Phản hồi từ server không phải định dạng JSON hợp lệ.");
+      }
+
+      if (data.success && data.data) {
+        const record: PageStatusRecord = data.data;
+        setPageStatuses(prev => {
+          const filtered = prev.filter(p => p.pageId !== record.pageId);
+          return [...filtered, record];
+        });
+        
+        let logStatus: "success" | "failed" = "success";
+        if (record.status.includes("lỗi") || record.status.includes("Thiếu quyền")) {
+          logStatus = "failed";
+        }
+        addLog(page.name, `Trạng thái: [${record.status}]. Chi tiết: ${record.detail || "Hoạt động bình thường"}`, logStatus);
+      } else {
+        throw new Error(data.error || "Không thể kiểm tra phản hồi khả dụng.");
+      }
+    } catch (err: any) {
+      const fallbackRecord: PageStatusRecord = {
+        pageId: page.id,
+        name: page.name,
+        category: page.category || "Không xác định",
+        tasks: page.tasks || [],
+        status: "Token lỗi / hết hạn",
+        detail: err.message || "Không thể gửi yêu cầu máy chủ.",
+        hasPageAccessToken: !!page.access_token,
+        postsSuccess: false,
+        postsCountFetched: 0,
+        postSample: null,
+        checkedAt: new Date().toISOString()
+      };
+      setPageStatuses(prev => {
+        const filtered = prev.filter(p => p.pageId !== fallbackRecord.pageId);
+        return [...filtered, fallbackRecord];
+      });
+      addLog(page.name, `Quét thất bại: ${err.message || "Lỗi mạng hoặc server"}`, "failed");
+    }
+
+    itemsProcessed++;
+  }
+
+  setProgress({ current: pages.length, total: pages.length });
+  setScanning(false);
+  addLog("Hàng đợi", `Đã hoàn tất kiểm tra trạng thái ${pages.length} Fanpage kết nối!`, "success");
 };
 
 const handleExportCSV = () => {
@@ -102,68 +183,34 @@ return (
         <div className="glass-card border border-border rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-sm">
           
           {/* Metrics Row */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
-            {/* TỔNG PAGE */}
-            <div className="bg-background/40 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 group">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-accent/20">
-                <Activity className="w-5 h-5 text-accent" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[9px] uppercase font-extrabold tracking-widest text-muted-foreground leading-none">TỔNG PAGE</p>
-                <p className="text-xl font-black text-foreground mt-1 select-none font-mono leading-none">{pages.length}</p>
-              </div>
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="bg-background/40 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
+              <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
             </div>
-
-            {/* BÌNH THƯỜNG */}
-            <div className="bg-emerald-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-500/30 group">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-emerald-500/20">
-                <CheckCircle className="w-5 h-5 text-emerald-500" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[9px] uppercase font-extrabold tracking-widest text-emerald-500 leading-none">BÌNH THƯỜNG</p>
-                <p className="text-xl font-black text-emerald-500 mt-1 select-none font-mono leading-none">
-                  {totalChecked > 0 ? normalCount : "-"}
-                </p>
-              </div>
+            <div className="bg-emerald-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">BÌNH THƯỜNG</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
+                {totalChecked > 0 ? normalCount : "-"}
+              </p>
             </div>
-
-            {/* THIẾU QUYỀN */}
-            <div className="bg-amber-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-amber-500/30 group">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-amber-500/20">
-                <ShieldAlert className="w-5 h-5 text-amber-500" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[9px] uppercase font-extrabold tracking-widest text-amber-500 leading-none">THIẾU QUYỀN</p>
-                <p className="text-xl font-black text-amber-500 mt-1 select-none font-mono leading-none">
-                  {totalChecked > 0 ? missingPermsCount : "-"}
-                </p>
-              </div>
+            <div className="bg-amber-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(245,158,11,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">THIẾU QUYỀN</p>
+              <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 select-none font-mono">
+                {totalChecked > 0 ? missingPermsCount : "-"}
+              </p>
             </div>
-
-            {/* TOKEN LỖI */}
-            <div className="bg-rose-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-rose-500/30 group">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-rose-500/20">
-                <XOctagon className="w-5 h-5 text-rose-500" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[9px] uppercase font-extrabold tracking-widest text-rose-500 leading-none">TOKEN LỖI</p>
-                <p className="text-xl font-black text-rose-500 mt-1 select-none font-mono leading-none">
-                  {totalChecked > 0 ? tokenErrorCount : "-"}
-                </p>
-              </div>
+            <div className="bg-rose-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">TOKEN LỖI</p>
+              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
+                {totalChecked > 0 ? tokenErrorCount : "-"}
+              </p>
             </div>
-
-            {/* NGHI HẠN CHẾ */}
-            <div className="bg-purple-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-purple-500/30 group col-span-2 md:col-span-1">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-purple-500/20">
-                <Info className="w-5 h-5 text-purple-500" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[9px] uppercase font-extrabold tracking-widest text-purple-500 leading-none">NGHI HẠN CHẾ</p>
-                <p className="text-xl font-black text-purple-500 mt-1 select-none font-mono leading-none">
-                  {totalChecked > 0 ? restrictedCount : "-"}
-                </p>
-              </div>
+            <div className="bg-purple-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center col-span-2 md:col-span-1 transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NGHI HẠN CHẾ</p>
+              <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
+                {totalChecked > 0 ? restrictedCount : "-"}
+              </p>
             </div>
           </div>
         </div>
@@ -358,7 +405,10 @@ return (
               <div className="flex gap-2 w-full mt-1.5">
                 <button
                   type="button"
-                  onClick={stopScan}
+                  onClick={() => {
+                    cancelScanRef.current = true;
+                    addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
+                  }}
                   className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 border border-transparent text-white text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
                 >
                   Dừng

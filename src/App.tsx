@@ -10,7 +10,6 @@ import {
   CheckSquare, 
   Square, 
   RotateCw, 
-  Download,
   ShieldAlert, 
   CheckCircle, 
   XOctagon, 
@@ -261,14 +260,14 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
   );
 }
 
-function CustomSelect<T extends number | string>({ 
+function CustomSelect({ 
   value, 
   onChange, 
   options 
 }: { 
-  value: T; 
-  onChange: (val: T) => void; 
-  options: { value: T; label: string }[];
+  value: number; 
+  onChange: (val: number) => void; 
+  options: { value: number; label: string }[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -326,111 +325,12 @@ function CustomSelect<T extends number | string>({
   );
 }
 
-interface PageAvatarProps {
-  pageId: string;
-  pageName: string;
-  picUrl?: string;
-  pageAccessToken?: string;
-}
-
-function PageAvatar({ pageId, pageName, picUrl, pageAccessToken }: PageAvatarProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [currentPicUrl, setCurrentPicUrl] = useState<string | undefined>(picUrl);
-  const [retryCount, setRetryCount] = useState(0);
-
-  useEffect(() => {
-    setCurrentPicUrl(picUrl);
-    setRetryCount(0);
-    if (!picUrl) {
-      setHasError(true);
-      setIsLoading(false);
-    } else {
-      setHasError(false);
-      setIsLoading(true);
-    }
-  }, [picUrl]);
-
-  const handleImageError = async () => {
-    // If we haven't retried yet, try to refresh the avatar URL from backend
-    if (retryCount === 0 && pageId) {
-      setRetryCount(1);
-      setIsLoading(true);
-      try {
-        const urlParams = new URLSearchParams();
-        urlParams.append("pageId", pageId);
-        if (pageAccessToken) {
-          urlParams.append("pageAccessToken", pageAccessToken);
-        }
-        const res = await safeFetchJson(`/api/pages/avatar?${urlParams.toString()}`);
-        if (res.success && res.url) {
-          setCurrentPicUrl(res.url);
-          return; // Let the image reload from the refreshed URL
-        }
-      } catch (err) {
-        console.error("Failed to refresh page avatar:", err);
-      }
-    }
-    // If it's a second failure, or backend failed to return a URL, fallback to letter
-    setHasError(true);
-    setIsLoading(false);
-  };
-
-  const firstLetter = (pageName || "").trim().charAt(0).toUpperCase() || "P";
-
-  return (
-    <div className="relative w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-accent/20 text-accent font-bold text-sm border border-border select-none">
-      {isLoading && !hasError && (
-        <div className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center">
-          <span className="text-[10px] text-muted-foreground">...</span>
-        </div>
-      )}
-      {!hasError && currentPicUrl ? (
-        <img
-          src={currentPicUrl}
-          alt={pageName}
-          onLoad={() => setIsLoading(false)}
-          onError={handleImageError}
-          className={`w-full h-full object-cover rounded-full transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-        />
-      ) : (
-        <span>{firstLetter}</span>
-      )}
-    </div>
-  );
-}
-
-const getPermissionBadges = (tasks: string[] = []) => {
-  const badges: { label: string; color: string }[] = [];
-  
-  const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
-  const hasCreate = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");
-  const hasAnalyze = tasks.includes("ANALYZE");
-
-  if (hasManage) {
-    badges.push({ label: "Quản lý", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" });
-  }
-  if (hasCreate) {
-    badges.push({ label: "Tạo nội dung", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" });
-  }
-  if (hasAnalyze) {
-    badges.push({ label: "Phân tích", color: "bg-purple-500/10 text-purple-400 border-purple-200" });
-  }
-
-  if (badges.length === 0) {
-    badges.push({ label: "Thiếu quyền", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" });
-  }
-
-  return badges;
-};
-
 export default function App() {
   const toast = useToast();
-  const [isDark, setIsDark] = useState<boolean>(true);
-  const { config, setConfig } = useThemeConfig(true);
+  useThemeConfig(); // Instantiate global theme styles
 
-  const [activeJobs, setActiveJobs] = useState<any[]>([]);
-  const channel = useMemo(() => new BroadcastChannel("meta-multi-page"), []);
+  const isDark = true;
+  const setIsDark = () => {};
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -447,14 +347,14 @@ export default function App() {
   const [userToken, setUserToken] = useState<string>(() => {
     return localStorage.getItem("meta_user_token") || "";
   });
+
   // Pages & Posts state
   const [pages, setPages] = useState<FacebookPage[]>([]);
   const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [pageSearchQuery, setPageSearchQuery] = useState<string>("");
   const [posts, setPosts] = useState<FacebookPost[]>([]);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
-  const [pageLoadingStates, setPageLoadingStates] = useState<Record<string, "idle" | "loading" | "success" | "error">>({});
-  const [pageErrors, setPageErrors] = useState<Record<string, string>>({});
+  
   // Statuses
   const [loadingPages, setLoadingPages] = useState<boolean>(false);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
@@ -474,7 +374,6 @@ export default function App() {
     maxPostsToFetch: 1000,
     maxPostsToShow: 1000,
     timeRangePreset: "all",
-    postType: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState<boolean>(false);
@@ -524,30 +423,7 @@ export default function App() {
   const [doubleConfirm, setDoubleConfirm] = useState<boolean>(false);
 
   // Active Tab state for Page Status and Admin/Business views integration
-  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">(() => {
-    const urlParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    const tabParam = urlParams.get("tab");
-    if (tabParam === "status" || tabParam === "admins" || tabParam === "posts" || tabParam === "theme") {
-      return tabParam as any;
-    }
-    return "posts";
-  });
-
-  // API Management & Admin Scan States (Preserved across Tab unmounts)
-  const [apiJobId, setApiJobId] = useState<string | null>(null);
-  const [pageStatuses, setPageStatuses] = useState<any[]>([]);
-  const [apiProgress, setApiProgress] = useState({ current: 0, total: 0 });
-  const [apiScanning, setApiScanning] = useState(false);
-  const [apiLogs, setApiLogs] = useState<any[]>([]);
-
-  const [adminJobId, setAdminJobId] = useState<string | null>(null);
-  const [pageAdmins, setPageAdmins] = useState<any[]>([]);
-  const [adminProgress, setAdminProgress] = useState({ current: 0, total: 0 });
-  const [adminScanning, setAdminScanning] = useState(false);
-  const [adminLogs, setAdminLogs] = useState<any[]>([]);
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [hasBmPermission, setHasBmPermission] = useState<boolean | null>(null);
-
+  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">("theme");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // References for logging & scroll
@@ -695,359 +571,6 @@ export default function App() {
     }
   }, [logs]);
 
-  const fetchBusinesses = async () => {
-    if (!userToken) return;
-    try {
-      const res = await safeFetchJson(`/api/businesses?user_token=${encodeURIComponent(userToken)}`);
-      if (res.success) {
-        setBusinesses(res.data || []);
-        setHasBmPermission(res.hasPermission);
-      }
-    } catch (e) {
-      console.error("Error loading businesses:", e);
-    }
-  };
-
-  // Load latest completed results and check active jobs on mount
-  useEffect(() => {
-    const loadCachedResultsAndRestore = async () => {
-      // 1. Fetch latest completed results
-      try {
-        const apiRes = await safeFetchJson("/api/api-manager/latest-results");
-        if (apiRes.success && apiRes.data && apiRes.data.length > 0) {
-          setPageStatuses(apiRes.data.map((r: any) => r.result_json));
-        }
-      } catch (e) {
-        console.error("Failed to load cached API check results:", e);
-      }
-
-      try {
-        const adminRes = await safeFetchJson("/api/admin-manager/latest-results");
-        if (adminRes.success && adminRes.data && adminRes.data.length > 0) {
-          setPageAdmins(adminRes.data.map((r: any) => r.result_json));
-        }
-      } catch (e) {
-        console.error("Failed to load cached Page Admins results:", e);
-      }
-
-      // 2. Load active jobs to restore
-      try {
-        const activeRes = await safeFetchJson("/api/jobs/active");
-        if (activeRes.success && activeRes.jobs) {
-          const activeApiJob = activeRes.jobs.find((j: any) => 
-            j.type === "check_api_access" && 
-            (j.status === "running" || j.status === "pending" || j.status === "queued")
-          );
-          if (activeApiJob) {
-            setApiJobId(activeApiJob.id);
-            setApiScanning(true);
-            setApiProgress({ current: activeApiJob.processed_items, total: activeApiJob.total_items });
-          }
-
-          const activeAdminJob = activeRes.jobs.find((j: any) => 
-            j.type === "scan_page_admins" && 
-            (j.status === "running" || j.status === "pending" || j.status === "queued")
-          );
-          if (activeAdminJob) {
-            setAdminJobId(activeAdminJob.id);
-            setAdminScanning(true);
-            setAdminProgress({ current: activeAdminJob.processed_items, total: activeAdminJob.total_items });
-          }
-        }
-      } catch (e) {
-        console.error("Failed to restore active background jobs:", e);
-      }
-    };
-
-    loadCachedResultsAndRestore();
-  }, [userToken]);
-
-  // Load active tab and job from URL query parameter on init
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get("tab");
-    const jobParam = urlParams.get("job");
-
-    if (tabParam === "status" && jobParam) {
-      setApiJobId(jobParam);
-    } else if (tabParam === "admins" && jobParam) {
-      setAdminJobId(jobParam);
-    }
-  }, []);
-
-  // Sync activeTab, apiJobId, adminJobId to URL query params
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set("tab", activeTab);
-    
-    if (activeTab === "status" && apiJobId) {
-      urlParams.set("job", apiJobId);
-    } else if (activeTab === "admins" && adminJobId) {
-      urlParams.set("job", adminJobId);
-    } else {
-      urlParams.delete("job");
-    }
-    
-    const token = urlParams.get("token");
-    if (token) {
-      urlParams.set("token", token);
-    }
-
-    const newQuery = urlParams.toString();
-    window.history.replaceState(null, "", "?" + newQuery);
-  }, [activeTab, apiJobId, adminJobId]);
-
-  // Track check_api_access job results
-  useEffect(() => {
-    if (!apiJobId) return;
-
-    let timer: any;
-    let isMounted = true;
-
-    const poll = async () => {
-      try {
-        const statusRes = await safeFetchJson(`/api/jobs/status?id=${apiJobId}`);
-        if (!isMounted) return;
-
-        if (statusRes.success && statusRes.job) {
-          const job = statusRes.job;
-          setApiProgress({ current: job.processed_items, total: job.total_items });
-          setApiScanning(job.status === "running" || job.status === "pending" || job.status === "queued");
-
-          const resultsRes = await safeFetchJson(`/api/jobs/results?id=${apiJobId}`);
-          if (resultsRes.success && resultsRes.results) {
-            const records = resultsRes.results.map((r: any) => r.result_json);
-            setPageStatuses(records);
-            
-            const newLogs = resultsRes.results.map((r: any) => {
-              const resJson = r.result_json;
-              const time = new Date(r.updated_at).toLocaleTimeString("vi-VN");
-              return {
-                id: r.id,
-                time,
-                pageName: resJson.name,
-                message: `Trạng thái: [${resJson.status}]. Chi tiết: ${resJson.detail || "Hoạt động bình thường"}`,
-                status: (resJson.status.includes("lỗi") || resJson.status.includes("Thiếu quyền")) ? "failed" : "success"
-              };
-            });
-            setApiLogs(newLogs);
-          }
-
-          if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
-            setApiScanning(false);
-            setApiJobId(null);
-            fetchPages();
-          }
-        }
-      } catch (e) {
-        console.error("Error polling api check job:", e);
-      }
-
-      if (isMounted && apiJobId) {
-        timer = setTimeout(poll, document.visibilityState === "visible" ? 2000 : 20000);
-      }
-    };
-
-    poll();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [apiJobId]);
-
-  // Track scan_page_admins job results
-  useEffect(() => {
-    if (!adminJobId) return;
-
-    let timer: any;
-    let isMounted = true;
-
-    const poll = async () => {
-      try {
-        const statusRes = await safeFetchJson(`/api/jobs/status?id=${adminJobId}`);
-        if (!isMounted) return;
-
-        if (statusRes.success && statusRes.job) {
-          const job = statusRes.job;
-          setAdminProgress({ current: job.processed_items, total: job.total_items });
-          setAdminScanning(job.status === "running" || job.status === "pending" || job.status === "queued");
-
-          const resultsRes = await safeFetchJson(`/api/jobs/results?id=${adminJobId}`);
-          if (resultsRes.success && resultsRes.results) {
-            const records = resultsRes.results.map((r: any) => r.result_json);
-            setPageAdmins(records);
-
-            const hasBmPerm = records.some((r: any) => r.hasBmPermission);
-            if (hasBmPerm && businesses.length === 0) {
-              fetchBusinesses();
-            }
-
-            const newLogs = resultsRes.results.map((r: any) => {
-              const resJson = r.result_json;
-              const time = new Date(r.updated_at).toLocaleTimeString("vi-VN");
-              return {
-                id: r.id,
-                time,
-                context: resJson.name,
-                message: `Trạng thái: [${resJson.status}]. BM: ${resJson.businessName || "N/A"} (${resJson.businessType})`,
-                status: (resJson.status.includes("lỗi") || resJson.status.includes("Thiếu quyền")) ? "failed" : "success"
-              };
-            });
-            setAdminLogs(newLogs);
-          }
-
-          if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
-            setAdminScanning(false);
-            setAdminJobId(null);
-            fetchPages();
-          }
-        }
-      } catch (e) {
-        console.error("Error polling admin scan job:", e);
-      }
-
-      if (isMounted && adminJobId) {
-        timer = setTimeout(poll, document.visibilityState === "visible" ? 2000 : 20000);
-      }
-    };
-
-    poll();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [adminJobId]);
-
-  const runPageStatusScan = async () => {
-    if (!userToken) {
-      toast.warning("Vui lòng kết nối tài khoản Facebook trước.", "Chưa kết nối");
-      return;
-    }
-    if (pages.length === 0) {
-      toast.info("Không có Fanpage nào để quét.", "Không có dữ liệu");
-      return;
-    }
-
-    setApiScanning(true);
-    setApiProgress({ current: 0, total: pages.length });
-    setApiLogs([]);
-
-    try {
-      const res = await safeFetchJson("/api/jobs/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "check_api_access",
-          pageIds: pages.map(p => p.id),
-          options: {
-            checkToken: true,
-            checkPermissions: true,
-            checkPostsAccess: true
-          },
-          userToken
-        })
-      });
-
-      if (res.success && res.jobId) {
-        setApiJobId(res.jobId);
-        toast.info("Đã bắt đầu tác vụ kiểm tra API nền...", "Kiểm tra API");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
-      }
-    } catch (e: any) {
-      setApiScanning(false);
-      toast.error(e.message || "Lỗi khởi tạo tác vụ kiểm tra");
-    }
-  };
-
-  const stopPageStatusScan = async () => {
-    if (!apiJobId) return;
-    try {
-      const res = await safeFetchJson("/api/jobs/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: apiJobId })
-      });
-      if (res.success) {
-        toast.warning("Đã yêu cầu huỷ tác vụ kiểm tra API.", "Huỷ tác vụ");
-        setApiScanning(false);
-        setApiJobId(null);
-        channel.postMessage({ type: 'JOB_UPDATE', jobId: apiJobId });
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi khi huỷ tác vụ");
-    }
-  };
-
-  const runAdminsBMScan = async () => {
-    if (!userToken) {
-      toast.warning("Vui lòng kết nối tài khoản Facebook trước.", "Chưa kết nối");
-      return;
-    }
-    if (pages.length === 0) {
-      toast.info("Không có Fanpage nào để quét.", "Không có dữ liệu");
-      return;
-    }
-
-    setAdminScanning(true);
-    setAdminProgress({ current: 0, total: pages.length });
-    setAdminLogs([]);
-
-    try {
-      const res = await safeFetchJson("/api/jobs/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "scan_page_admins",
-          pageIds: pages.map(p => p.id),
-          userToken
-        })
-      });
-
-      if (res.success && res.jobId) {
-        setAdminJobId(res.jobId);
-        toast.info("Đã bắt đầu tác vụ quét quản trị viên nền...", "Quét quản trị viên");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
-      }
-    } catch (e: any) {
-      setAdminScanning(false);
-      toast.error(e.message || "Lỗi khởi tạo tác vụ quét");
-    }
-  };
-
-  const stopAdminsBMScan = async () => {
-    if (!adminJobId) return;
-    try {
-      const res = await safeFetchJson("/api/jobs/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: adminJobId })
-      });
-      if (res.success) {
-        toast.warning("Đã yêu cầu huỷ tác vụ quét quản trị viên.", "Huỷ tác vụ");
-        setAdminScanning(false);
-        setAdminJobId(null);
-        channel.postMessage({ type: 'JOB_UPDATE', jobId: adminJobId });
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi khi huỷ tác vụ");
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "admins" && userToken) {
-      fetchBusinesses();
-    }
-  }, [activeTab, userToken]);
-
-  // Scroll to bottom of logs on change
-  useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
-  }, [logs]);
-
   // Initiate OAuth window action
   const handleOAuthLogin = async () => {
     setApiError(null);
@@ -1089,144 +612,18 @@ export default function App() {
     }
   };
 
-  const fetchActiveJobs = async () => {
-    try {
-      const res = await safeFetchJson("/api/jobs/active");
-      if (res.success && res.jobs) {
-        // Optimistic refresh on job state change: if running jobs finished
-        const hadRunning = activeJobs.some(j => j.status === "running");
-        const hasRunningNow = res.jobs.some((j: any) => j.status === "running");
-        
-        setActiveJobs(res.jobs);
-        
-        if (hadRunning && !hasRunningNow) {
-          fetchPages();
-          if (selectedPageIds.length > 0) {
-            fetchPostsFromSelectedPages();
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Error polling active jobs:", e);
-    }
-  };
-
-  const handlePauseJob = async (jobId: string) => {
-    try {
-      const res = await safeFetchJson("/api/jobs/pause", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId })
-      });
-      if (res.success) {
-        toast.info("Đã tạm dừng tác vụ.", "Tác vụ");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId });
-        fetchActiveJobs();
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Không thể tạm dừng");
-    }
-  };
-
-  const handleResumeJob = async (jobId: string) => {
-    try {
-      const res = await safeFetchJson("/api/jobs/resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId })
-      });
-      if (res.success) {
-        toast.info("Đang tiếp tục tác vụ...", "Tác vụ");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId });
-        fetchActiveJobs();
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Không thể tiếp tục");
-    }
-  };
-
-  const handleCancelJob = async (jobId: string) => {
-    try {
-      const res = await safeFetchJson("/api/jobs/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId })
-      });
-      if (res.success) {
-        toast.warning("Đã huỷ bỏ tác vụ.", "Tác vụ");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId });
-        fetchActiveJobs();
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Không thể huỷ");
-    }
-  };
-
-  const handleRetryJob = async (jobId: string) => {
-    try {
-      const res = await safeFetchJson("/api/jobs/retry-failed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId })
-      });
-      if (res.success) {
-        toast.success("Đang chạy lại tác vụ lỗi...", "Tác vụ");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId });
-        fetchActiveJobs();
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Không thể chạy lại");
-    }
-  };
-
-  const triggerPagesSync = async () => {
-    if (!userToken) return;
-    try {
-      addLog("system", "Yêu cầu đồng bộ danh sách Fanpage từ Meta...", "pending");
-      const res = await safeFetchJson("/api/pages/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userToken })
-      });
-      if (res.success && res.jobId) {
-        toast.info("Đã bắt đầu tác vụ đồng bộ danh sách Fanpage...", "Đồng bộ Page");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
-        fetchActiveJobs();
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi đồng bộ Fanpage");
-    }
-  };
-
-  const triggerPagePostsScan = async (pageId: string) => {
-    try {
-      addLog("system", `Yêu cầu đồng bộ bài viết cho Fanpage ID ${pageId}...`, "pending");
-      const res = await safeFetchJson(`/api/pages/${pageId}/scan`, {
-        method: "POST"
-      });
-      if (res.success && res.jobId) {
-        toast.info("Đã gửi yêu cầu đồng bộ bài viết nền...", "Quét bài viết");
-        channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
-        fetchActiveJobs();
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi đồng bộ bài viết");
-    }
-  };
-
   // Fetch listed Pages
   const fetchPages = async (tokenToUse?: string) => {
     const activeToken = tokenToUse || userToken;
     setLoadingPages(true);
     setApiError(null);
-    addLog("system", "Đang tải danh sách các Facebook Fanpages từ cache...", "pending");
+    addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /api/pages...", "pending");
     
     try {
       const urlParams = new URLSearchParams();
       if (activeToken) {
         urlParams.append("user_token", activeToken);
       }
-      urlParams.append("summary", "true");
       const data = await safeFetchJson(`/api/pages?${urlParams.toString()}`);
 
       if (data.error) {
@@ -1238,18 +635,14 @@ export default function App() {
         return;
       }
 
-      setPageLoadingStates({});
-      setPageErrors({});
-
       if (data.data) {
         setPages(data.data);
-        addLog("system", `Đã tải thành công ${data.data.length} Fanpages.`, "success");
-        if (data.data.length > 0 && selectedPageIds.length === 0) {
-          setSelectedPageIds([data.data[0].id]);
-        }
+        addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý.`, "success");
+        toast.success(`Đã tải thành công ${data.data.length} Fanpages quản lý.`, "Tải Fanpage");
       } else {
         setPages([]);
         addLog("system", "Không tìm thấy Fanpage nào liên kết.", "skipped");
+        toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
       setApiError(err.message);
@@ -1268,48 +661,6 @@ export default function App() {
       fetchPages();
     }
   }, [userToken]);
-
-  // Poll active jobs periodically with visibilityState changes
-  useEffect(() => {
-    fetchActiveJobs();
-
-    let intervalId: any;
-
-    const startPolling = (ms: number) => {
-      if (intervalId) clearInterval(intervalId);
-      intervalId = setInterval(() => {
-        fetchActiveJobs();
-      }, ms);
-    };
-
-    // Active polling (2 seconds)
-    startPolling(2000);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        fetchActiveJobs();
-        startPolling(2000);
-      } else {
-        startPolling(20000); // 20 seconds when tab is hidden
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Set up BroadcastChannel messages listener
-    const handleBroadcastMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'JOB_UPDATE') {
-        fetchActiveJobs();
-      }
-    };
-    channel.addEventListener("message", handleBroadcastMessage);
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      channel.removeEventListener("message", handleBroadcastMessage);
-    };
-  }, [selectedPageIds]);
 
   // Fetch posts from SELECTED pages
   const fetchPostsFromSelectedPages = async () => {
@@ -1330,42 +681,35 @@ export default function App() {
     let allFetchedPosts: FacebookPost[] = [];
     setScanProgress({ current: 0, total: selectedPageIds.length, currentPageName: "Đang khởi tạo..." });
 
-    const fetchPagePostsConcurrently = async (pageId: string) => {
-      if (scanCancelledRef.current) return [];
+    let index = 0;
+    for (const pageId of selectedPageIds) {
+      if (scanCancelledRef.current) {
+        addLog("system", `Đã dừng quét theo yêu cầu của người dùng tại bước ${index}/${selectedPageIds.length}.`, "skipped");
+        toast.warning("Đã dừng quá trình quét bài viết theo yêu cầu.", "Hủy quét");
+        break;
+      }
 
       const pageInfo = pages.find(p => p.id === pageId);
-      if (!pageInfo) return [];
+      if (!pageInfo) continue;
 
-      setScanProgress(p => ({ ...p, currentPageName: pageInfo.name }));
+      setScanProgress({ current: index, total: selectedPageIds.length, currentPageName: pageInfo.name });
       addLog("system", `Đang đọc bài viết từ Page: "${pageInfo.name}"...`, "processing");
-
-      // Update loading status for this page
-      setPageLoadingStates(prev => ({ ...prev, [pageId]: "loading" }));
-      setPageErrors(prev => {
-        const next = { ...prev };
-        delete next[pageId];
-        return next;
-      });
 
       try {
         const urlParams = new URLSearchParams();
-        const encryptedToken = pageInfo.access_token_encrypted || pageInfo.access_token;
-        if (encryptedToken) {
-          urlParams.append("pageAccessToken", encryptedToken);
+        urlParams.append("pageId", pageId);
+        urlParams.append("limit", filters.maxPostsToFetch.toString());
+        if (pageInfo.access_token) {
+          urlParams.append("user_token", pageInfo.access_token);
         }
-        urlParams.append("limit", Math.min(filters.maxPostsToFetch || 100, 100).toString());
-        urlParams.append("type", "all");
         
-        const data = await safeFetchJson(`/api/pages/${pageId}/media?${urlParams.toString()}`);
-
-        if (scanCancelledRef.current) return [];
+        const data = await safeFetchJson(`/api/posts?${urlParams.toString()}`);
 
         if (data.error) {
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
-          setScanProgress(p => ({ ...p, current: p.current + 1 }));
-          setPageLoadingStates(prev => ({ ...prev, [pageId]: "error" }));
-          setPageErrors(prev => ({ ...prev, [pageId]: data.error }));
-          return [];
+          index++;
+          setScanProgress(p => ({ ...p, current: index }));
+          continue;
         }
 
         if (data.data && data.data.length > 0) {
@@ -1374,42 +718,23 @@ export default function App() {
             message: item.message,
             created_time: item.created_time,
             permalink_url: item.permalink_url,
-            full_picture: item.thumbnail || item.full_picture,
-            thumbnail: item.thumbnail,
+            full_picture: item.full_picture,
             status_type: item.status_type,
-            itemType: item.itemType,
+            attachments: item.attachments,
             pageId: pageInfo.id,
             pageName: pageInfo.name,
-            pageAccessToken: pageInfo.access_token_encrypted || pageInfo.access_token,
+            pageAccessToken: pageInfo.access_token,
             likes: item.likes,
             comments: item.comments,
             shares: item.shares
           }));
 
-          setPageLoadingStates(prev => ({ ...prev, [pageId]: "success" }));
+          allFetchedPosts = [...allFetchedPosts, ...mapped];
           addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}".`, "success");
-          setScanProgress(p => ({ ...p, current: p.current + 1, currentPageName: `Đã xong: ${pageInfo.name}` }));
-          return mapped;
         } else {
-          setPageLoadingStates(prev => ({ ...prev, [pageId]: "success" }));
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
-          setScanProgress(p => ({ ...p, current: p.current + 1, currentPageName: `Đã xong: ${pageInfo.name}` }));
-          return [];
         }
       } catch (err: any) {
-        setScanProgress(p => ({ ...p, current: p.current + 1 }));
-        setPageLoadingStates(prev => ({ ...prev, [pageId]: "error" }));
-
-        let errorMsg = err.message || "Lỗi không xác định";
-        if (err.responseJson && err.responseJson.isDetailedError) {
-          errorMsg = err.responseJson.error || errorMsg;
-        } else if (err.responseJson && err.responseJson.error) {
-          errorMsg = err.responseJson.error || errorMsg;
-        }
-        setPageErrors(prev => ({ ...prev, [pageId]: errorMsg }));
-
-        if (scanCancelledRef.current) return [];
-
         if (err.responseJson && err.responseJson.isDetailedError) {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
@@ -1418,19 +743,16 @@ export default function App() {
              toast.error(msg, "Lỗi API Facebook");
           }
         } else {
-          const msg = `Lỗi kết nối Page [${pageInfo.name}]: ${errorMsg}`;
-          addLog("system", msg, "failed");
-          if (!handleAuthError(errorMsg)) {
-             toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${errorMsg}`, "Lỗi");
+          addLog("system", `Lỗi kết nối Page [${pageInfo.name}]: ${err.message}`, "failed");
+          if (!handleAuthError(err.message)) {
+             toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${err.message}`, "Lỗi");
           }
         }
-        return [];
       }
-    };
 
-    const fetchPromises = selectedPageIds.map(pageId => fetchPagePostsConcurrently(pageId));
-    const results = await Promise.all(fetchPromises);
-    allFetchedPosts = results.flat();
+      index++;
+      setScanProgress(p => ({ ...p, current: index, currentPageName: `Đã xong: ${pageInfo.name}` }));
+    }
 
     // Sort all selected posts by created_time desc
     allFetchedPosts.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
@@ -1473,8 +795,9 @@ export default function App() {
 
   // Helper selectors - Memoized and heavily optimized for maximum speed
   const filteredPosts = useMemo((): FacebookPost[] => {
-    const kw = filters.keyword ? filters.keyword.trim().toLowerCase() : "";
-    const enableKeyword = kw.length > 0;
+    // 1. Precompute loop invariants to avoid repeated properties access, new Date calls, and toLowerCase() calls inside the array filter loop.
+    const enableKeyword = filters.enableKeyword && filters.keyword.trim().length > 0;
+    const kw = enableKeyword ? filters.keyword.trim().toLowerCase() : "";
 
     const enableOlderThan = filters.enableOlderThan;
     const olderThanDays = filters.olderThanDays;
@@ -1482,9 +805,7 @@ export default function App() {
 
     const enableDateRange = filters.enableDateRange;
     const fromTime = (enableDateRange && filters.dateFrom) ? new Date(filters.dateFrom).getTime() : null;
-    const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null;
-
-    const postType = filters.postType || "all";
+    const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null; // add 1 day minus 1ms
 
     return posts.filter(post => {
       let postTime: number | null = null;
@@ -1511,11 +832,7 @@ export default function App() {
         if (fromTime !== null && postTime < fromTime) return false;
         if (toTime !== null && postTime > toTime) return false;
       }
-      // 4. Media type: Chỉ video
-      if (postType === "video") {
-        const isVideo = post.itemType === "video";
-        if (!isVideo) return false;
-      }
+
       return true;
     });
   }, [posts, filters]);
@@ -1562,7 +879,7 @@ export default function App() {
     addLog("system", `Đã bật bộ lọc hiển thị bài viết đăng trước đó trên ${days} ngày.`, "success");
   };
 
-  // Batch deletion process (creates server jobs per page)
+  // Batch deletion process (with individual custom delay between requests)
   const executeBatchDeletion = async () => {
     if (!doubleConfirm) {
       alert("Bạn phải tự tay tick xác nhận 'Hành động không thể hoàn tác' trước khi xóa!");
@@ -1572,91 +889,113 @@ export default function App() {
 
     setShowConfirmModal(false);
     setIsDeleting(true);
-    setDoubleConfirm(false);
+    deleteCancelledRef.current = false;
+    setProgress({ current: 0, total: selectedPostIds.length });
+    
+    addLog("queue", `--- PHIÊN KHỞI CHẠY TIẾN TRÌNH XÓA<sup>*</sup> HÀNG LOẠT ---`, "processing");
+    addLog("queue", `Tổng số lượng bài viết đang đợi xóa: ${selectedPostIds.length}`, "pending");
+    toast.info(`Bắt đầu tiến trình xóa hàng loạt ${selectedPostIds.length} bài viết...`, "Xóa bài viết");
 
-    // Group selected posts by pageId to spawn separate page-locked jobs
-    const postsByPage: Record<string, string[]> = {};
-    for (const postId of selectedPostIds) {
-      const post = posts.find(p => p.id === postId);
-      if (post) {
-        if (!postsByPage[post.pageId]) {
-          postsByPage[post.pageId] = [];
-        }
-        postsByPage[post.pageId].push(postId);
+    let countSuccess = 0;
+    let countFail = 0;
+    let wasCancelled = false;
+
+    for (let i = 0; i < selectedPostIds.length; i++) {
+      if (deleteCancelledRef.current) {
+        wasCancelled = true;
+        addLog("queue", `Tiến trình xóa bị dừng theo yêu cầu của người dùng tại bài viết thứ ${i + 1}/${selectedPostIds.length}`, "skipped");
+        break;
       }
-    }
 
-    const createdJobIds: string[] = [];
+      const postId = selectedPostIds[i];
+      const post = posts.find(p => p.id === postId);
 
-    try {
-      for (const [pageId, postIds] of Object.entries(postsByPage)) {
-        addLog("system", `Đang khởi tạo tiến trình xóa ${postIds.length} bài viết cho Fanpage ID ${pageId}...`, "pending");
-        
-        const res = await safeFetchJson("/api/jobs/create", {
+      if (!post) {
+        setProgress(p => ({ ...p, current: i + 1 }));
+        continue;
+      }
+
+      const snippet = post.message 
+          ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
+          : "[Bài viết hình ảnh/video không có tiêu đề]";
+
+      addLog(postId, `[${i+1}/${selectedPostIds.length}] Đang xóa bài trên Page "${post.pageName}"...`, "processing");
+
+      try {
+        const data = await safeFetchJson("/api/delete-post", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            type: "delete_posts",
-            pageId,
-            payload: { postIds, dryRun: false, confirm: true }
+            postId: postId,
+            confirm: true,
+            userToken: post.pageAccessToken
           })
         });
 
-        if (res.success && res.jobId) {
-          createdJobIds.push(res.jobId);
-          // Broadcast creation event to other tabs
-          channel.postMessage({ type: 'JOB_UPDATE', jobId: res.jobId });
+        if (data.success) {
+          countSuccess++;
+          addLog(postId, `Đã xóa thành công bài viết [ID: ${postId}]: "${snippet}"`, "success");
         } else {
-          toast.error(res.error || `Lỗi khi tạo tiến trình xóa cho Page ${pageId}`, "Lỗi");
+          countFail++;
+          addLog(postId, `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error || "Lỗi Meta API"}`, "failed");
+          if (handleAuthError(data.error || "")) break;
         }
+      } catch (err: any) {
+        countFail++;
+        addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
+        if (handleAuthError(err.message)) break;
       }
 
-      if (createdJobIds.length > 0) {
-        toast.success(`Đã khởi tạo ${createdJobIds.length} tiến trình xóa nền trên server.`, "Khởi tạo tác vụ");
-        setSelectedPostIds([]);
-        fetchActiveJobs();
+      setProgress(p => ({ ...p, current: i + 1 }));
+
+      // Artificial Delay with 300ms - 500ms
+      if (i < selectedPostIds.length - 1) {
+        const delay = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi kết nối khi gửi yêu cầu xóa bài viết", "Lỗi");
-    } finally {
-      setIsDeleting(false);
     }
+
+    setIsDeleting(false);
+    setDeletedCountSession(prev => prev + countSuccess);
+    
+    if (wasCancelled) {
+      addLog("queue", `Đã dừng tác vụ xoá hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "failed");
+      toast.warning(`Tiến trình xoá đã bị dừng lại. Đã xoá thành công ${countSuccess} bài.`, "Đã dừng xoá");
+    } else {
+      addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "success");
+      
+      if (countSuccess > 0 && countFail === 0) {
+        toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
+      } else if (countSuccess > 0 && countFail > 0) {
+        toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại.`, "Xóa hoàn tất");
+      } else {
+        toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
+      }
+    }
+    
+    // Refresh posts of pages to clear deleted items
+    fetchPostsFromSelectedPages();
+    setSelectedPostIds([]);
+    setDoubleConfirm(false);
   };
 
   return (
     <div className={`relative h-screen min-h-screen lg:min-h-0 bg-transparent text-foreground flex flex-col select-none overflow-hidden font-sans`}>
       {/* BACKGROUND LAYER - Aurora Light Theme */}
-      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden">
+      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full">
         <div
-          className="absolute -top-[10%] left-[20%] w-[50%] h-[50%] rounded-full opacity-[0.25] blur-[120px]"
+          className="absolute inset-0 z-0 opacity-40 blur-3xl"
           style={{
-            background: "radial-gradient(circle, var(--bg-gradient-2) 0%, transparent 70%)",
-            animation: "breathe 18s infinite alternate ease-in-out"
+            background: `
+              radial-gradient(circle at 0% 0%, var(--color-accent) 0%, transparent 40%),
+              radial-gradient(circle at 100% 100%, var(--color-accent-secondary) 0%, transparent 40%)
+            `,
           }}
-        />
-        <div
-          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full opacity-[0.25] blur-[120px]"
-          style={{
-            background: "radial-gradient(circle, var(--bg-gradient-1) 0%, transparent 70%)",
-            animation: "breathe 22s infinite alternate-reverse ease-in-out"
-          }}
-        />
-        <div
-          className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full opacity-[0.18] blur-[120px]"
-          style={{
-            background: "radial-gradient(circle, var(--bg-gradient-3) 0%, transparent 70%)",
-            animation: "breathe 25s infinite alternate ease-in-out"
-          }}
-        />
-        {/* Dynamic Dark Overlay to control background dimming/brightness */}
-        <div 
-          className="absolute inset-0 z-[2]" 
-          style={{ backgroundColor: "var(--bg)" }} 
         />
         {/* Dot pattern */}
         <div 
-          className="absolute inset-0 z-[3] opacity-[0.02]"
-          style={{ backgroundImage: "radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)", backgroundSize: "32px 32px" }}
+          className="absolute inset-0 z-[1] opacity-[0.03]"
+          style={{ backgroundImage: 'radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
         />
       </div>
 
@@ -1700,12 +1039,12 @@ export default function App() {
                title={isSidebarCollapsed ? "Bài viết" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "posts"
-                   ? "active-nav-item text-white font-bold shadow-md"
-                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold"
+                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <FileText className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "posts" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Bài viết</span>}
+              <FileText className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "posts" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Bài viết</span>}
             </button>
 
             <button
@@ -1718,12 +1057,12 @@ export default function App() {
                title={isSidebarCollapsed ? "Trạng thái API" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "status"
-                   ? "active-nav-item text-white font-bold shadow-md"
-                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold"
+                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <Activity className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "status" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Trạng thái API</span>}
+              <Activity className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "status" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Trạng thái API</span>}
             </button>
 
             <button
@@ -1736,14 +1075,21 @@ export default function App() {
                title={isSidebarCollapsed ? "Quản trị viên" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "admins"
-                   ? "active-nav-item text-white font-bold shadow-md"
-                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold"
+                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <Users className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "admins" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Quản trị viên</span>}
+              <Users className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Quản trị viên</span>}
             </button>
+          </nav>
 
+          <div className="hidden sm:block w-full h-px bg-border my-2" />
+
+          {/* System status and user actions */}
+          <div className="flex flex-col gap-3 w-full shrink-0 mt-auto">
+             
+            {/* TUỲ BIẾN BUTTON */}
             <button
                id="tab-theme"
                type="button"
@@ -1752,21 +1098,15 @@ export default function App() {
                  addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
                }}
                title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
-               className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
+               className={`hidden sm:flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "theme"
-                   ? "active-nav-item text-white font-bold shadow-md"
-                   : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+                   ? "neu-button-primary text-white font-bold"
+                   : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
-              <Settings className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "theme" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`} />
-              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-white" : "text-muted-foreground group-hover:text-foreground"}`}>Tuỳ biến</span>}
+              <Settings className={`w-4 h-4 shrink-0 transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"}`} />
+              {!isSidebarCollapsed && <span className={`hidden sm:block text-sm font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-white" : "text-slate-700 dark:text-slate-200 group-hover:text-slate-950 dark:group-hover:text-white"}`}>Tuỳ biến</span>}
             </button>
-          </nav>
-
-          <div className="hidden sm:block w-full h-px bg-border my-2" />
-
-          {/* System status and user actions */}
-          <div className="flex flex-col gap-3 w-full shrink-0 mt-auto">
 
              {userToken ? (
               <div className={`hidden sm:flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] px-3 py-2.5 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
@@ -1781,8 +1121,6 @@ export default function App() {
             )}
 
             <div className="flex flex-col gap-2.5 w-full">
-
-
               <button 
                 id="btn-settings"
                 onClick={() => setShowConfig(!showConfig)}
@@ -1823,10 +1161,10 @@ export default function App() {
           
           {/* ERROR ALERT BOX */}
           {apiError && (
-            <div className="mb-3 backdrop-blur-md bg-rose-500/10 border-l-4 border-rose-500 p-3 rounded-r-xl flex items-start gap-3 text-rose-800 dark:text-rose-100 shadow-md shrink-0 relative z-20">
-              <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div className="mb-3 backdrop-blur-md bg-rose-500/10 border-l-4 border-rose-500 p-3 rounded-r-xl flex items-start gap-3 text-rose-100 shadow-md shrink-0 relative z-20">
+              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
               <div className="text-xs flex-1">
-                <span className="font-semibold block text-[12px] text-rose-900 dark:text-rose-300">Sự cố kết nối hoặc xác thực:</span>
+                <span className="font-semibold block text-[12px] text-rose-300">Sự cố kết nối hoặc xác thực:</span>
                 <p className="mt-1 font-mono text-[10px] sm:text-[11px] opacity-80 truncate max-w-full" title={apiError}>{apiError}</p>
               </div>
             </div>
@@ -1847,7 +1185,7 @@ export default function App() {
               {userToken && (
                 <button 
                   id="btn-refresh-pages"
-                  onClick={triggerPagesSync} 
+                  onClick={() => fetchPages()} 
                   title="Tải lại danh sách Fanpage" 
                   className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
@@ -1951,7 +1289,7 @@ export default function App() {
               {(() => {
                 const query = pageSearchQuery.trim().toLowerCase();
                 const filteredList = pages.filter(
-                  page => (page.name || "").toLowerCase().includes(query) || (page.id || "").includes(query)
+                  page => page.name.toLowerCase().includes(query) || page.id.includes(query)
                 );
 
                 if (filteredList.length === 0) {
@@ -1964,60 +1302,43 @@ export default function App() {
 
                 return filteredList.map((page) => {
                   const isSelected = selectedPageIds.includes(page.id);
-                  const isScanningThisPage = activeJobs.some(
-                    j => j.page_id === page.id && j.type === 'scan_posts' && (j.status === 'running' || j.status === 'queued' || j.status === 'pending')
-                  );
-                    const state = pageLoadingStates[page.id] || "idle";
-                    const err = pageErrors[page.id];
-                    return (
-                      <div 
-                        id={`page-card-${page.id}`}
-                        key={page.id}
-                        onClick={() => togglePageSelection(page.id)}
-                        className={`flex items-center p-3 rounded-[16px] border transition-all cursor-pointer select-none group/card ${
-                          isSelected 
-                            ? "bg-muted border-accent/40 shadow-sm" 
-                            : "bg-transparent border-transparent hover:bg-muted"
-                        }`}
-                      >
-                        {/* Avatar, Name & ID, and selection checkbox */}
-                        <div className="flex items-center gap-2.5 w-full min-w-0">
-                          <PageAvatar 
-                            pageId={page.id} 
-                            pageName={page.name} 
-                            picUrl={page.avatar_url || page.picture?.data?.url} 
-                            pageAccessToken={page.access_token_encrypted}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-foreground leading-tight group-hover/card:text-accent transition-colors line-clamp-2" title={page.name}>
-                              {page.name}
-                            </p>
-                            <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">
-                              ID: {page.id}
-                            </p>
-                            {state === "loading" && (
-                              <p className="text-[9px] text-accent animate-pulse mt-0.5">
-                                ⏳ Đang tải bài viết...
-                              </p>
-                            )}
-                            {err && (
-                              <p className="text-[9px] text-rose-500 line-clamp-1 mt-0.5 font-sans" title={err}>
-                                ⚠️ Lỗi: {err}
-                              </p>
-                            )}
-                          </div>
-                          <div className="shrink-0 ml-2">
-                            {isSelected ? (
-                              <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
-                                <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
-                              </div>
-                            ) : (
-                              <div className="w-5 h-5 rounded-lg border-2 border-border group-hover/card:border-accent/50 transition-colors"></div>
-                            )}
-                          </div>
-                        </div>
+                  // Extract photo URL if possible
+                  const picUrl = page.picture?.data?.url || `https://graph.facebook.com/${page.id}/picture?type=small`;
+                  
+                  return (
+                    <div 
+                      id={`page-card-${page.id}`}
+                      key={page.id}
+                      onClick={() => togglePageSelection(page.id)}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-[14px] border transition-all cursor-pointer select-none group ${
+                        isSelected 
+                          ? "bg-muted border-accent/40 shadow-sm" 
+                          : "bg-transparent border-transparent hover:bg-muted"
+                      }`}
+                    >
+                      <img 
+                        src={picUrl} 
+                        alt="" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${page.id}`;
+                        }}
+                        className="w-9 h-9 rounded-full shadow-sm flex-shrink-0 object-cover bg-white"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate text-foreground leading-tight group-hover:text-accent transition-colors">{page.name}</p>
+                        <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">ID: {page.id}</p>
                       </div>
-                    );
+                      <div className="shrink-0">
+                        {isSelected ? (
+                          <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent scale-105 transition-all">
+                            <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-lg border-2 border-border group-hover:border-accent/50 transition-colors"></div>
+                        )}
+                      </div>
+                    </div>
+                  );
                 });
               })()}
             </div>
@@ -2030,67 +1351,24 @@ export default function App() {
         {/* MAIN POST AREA & FILTERS */}
         <main className="flex-1 w-full flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
           
-          {/* Global Running Tasks Banner */}
-          {activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").length > 0 && (
-            <div className="glass-card border border-accent/20 bg-accent/5 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-2.5">
-                <div className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent"></span>
-                </div>
-                <span className="text-xs font-bold text-foreground">
-                  Hệ thống đang xử lý {activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").length} tác vụ ngầm:
-                </span>
-                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-muted-foreground ml-2">
-                  {activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").map(job => {
-                    const label = job.type === "delete_posts" ? "Xoá bài"
-                      : job.type === "check_api_access" ? "Kiểm tra API"
-                      : job.type === "scan_page_admins" ? "Quét quản trị viên"
-                      : job.type === "scan_posts" ? "Quét bài viết"
-                      : "Đồng bộ Page";
-                    
-                    const progressVal = job.progress || 0;
-                    return (
-                      <span key={job.id} className="bg-white/5 border border-white/5 px-2 py-0.5 rounded-lg flex items-center gap-1.5 font-mono text-[10px] text-foreground">
-                        {label}: <b className="text-accent">{progressVal}%</b>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-              <button 
-                onClick={() => {
-                  const btn = document.querySelector('button[title*="Tác vụ nền"]') as HTMLButtonElement;
-                  if (btn) btn.click();
-                }}
-                className="text-[10px] font-bold text-accent hover:underline cursor-pointer flex items-center gap-1 border-none bg-transparent outline-none focus:outline-none"
-              >
-                Chi tiết <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          
           {activeTab === "posts" && (
             <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
               <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 bg-card/65 backdrop-blur-md rounded-[20px] p-4 text-foreground shadow-lg border border-border/80 shrink-0">
+              <section className="relative z-30 bg-card rounded-[18px] p-4 text-foreground shadow-sm border border-border shrink-0">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 relative z-40">
                   {/* Left: Filter Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
                     <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
-                      <div className="flex items-center justify-between gap-2.5 px-3.5 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 w-full shadow-sm">
-                        <div className="flex items-center gap-1.5 shrink-0 border-r border-border pr-2">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none">
-                            Thời gian
-                          </span>
-                        </div>
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-background hover:bg-muted border border-border rounded-xl transition-all h-10 w-full shadow-sm">
+                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider select-none shrink-0 border-r border-border pr-2">
+                          Thời gian
+                        </span>
                         
                         <div 
-                          className="relative h-7 px-2 flex items-center justify-between gap-2 cursor-pointer min-w-[120px] hover:text-accent transition-colors"
+                          className="relative h-7 px-3 flex items-center justify-between gap-2 cursor-pointer min-w-[120px] hover:text-accent transition-colors"
                           onClick={() => setShowTimeDropdown(!showTimeDropdown)}
                         >
                           <span className="text-xs font-semibold text-foreground truncate">
@@ -2111,7 +1389,7 @@ export default function App() {
                                setTempDateTo(filters.dateTo);
                                setShowCustomDateModal(true);
                              }}
-                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap animate-pulse"
+                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
                              title="Sửa ngày tuỳ chỉnh"
                            >
                              {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
@@ -2122,7 +1400,7 @@ export default function App() {
                       {/* Dropdown Menu */}
                       {showTimeDropdown && (
                         <>
-                          <div className="absolute top-[110%] left-0 right-0 z-[100] bg-card border border-border rounded-xl shadow-xl p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
+                          <div className="absolute top-[110%] left-0 right-0 z-[100] bg-card border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
                             {[
                               { id: "today", label: "Hôm nay" },
                               { id: "week", label: "Tuần này" },
@@ -2188,14 +1466,11 @@ export default function App() {
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3.5 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 shrink-0 shadow-sm text-foreground">
-                      <div className="flex items-center gap-1.5 shrink-0 border-r border-border pr-2">
-                        <Download className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none">
-                          Tải
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 pl-1">
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-background hover:bg-muted border border-border rounded-xl transition-all h-10 shrink-0 shadow-sm text-foreground">
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 select-none shrink-0 border-r border-border pr-2">
+                        Tải
+                      </span>
+                      <div className="flex items-center gap-1">
                         <CustomSelect
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
@@ -2211,91 +1486,39 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Filter: Keyword Search */}
-                    <div className="flex flex-1 sm:flex-none items-center gap-2 px-3 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 w-full sm:w-[160px] shadow-sm text-foreground">
-                      <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <input 
-                        type="text"
-                        placeholder="Lọc từ khoá..."
-                        value={keywordInput}
-                        onChange={(e) => setKeywordInput(e.target.value)}
-                        className="bg-transparent border-none text-xs font-semibold placeholder-muted-foreground outline-none w-full"
-                      />
-                    </div>
-
-                    {/* Filter: Media Type Selector */}
-                    <div className="flex flex-1 sm:flex-none items-center gap-2 px-3.5 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 shadow-sm text-foreground">
-                      <div className="flex items-center gap-1.5 shrink-0 border-r border-border pr-2">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none whitespace-nowrap">
-                          Loại
-                        </span>
-                      </div>
-                      <CustomSelect
-                        value={filters.postType || "all"}
-                        onChange={(val) => setFilters(f => ({ ...f, postType: val }))}
-                        options={[
-                          { value: "all", label: "Tất cả bài" },
-                          { value: "video", label: "Chỉ video" }
-                        ]}
-                      />
-                    </div>
-
-                    {/* Filter: Older Than X Days */}
-                    <div className="flex flex-1 sm:flex-none items-center gap-2 px-3 py-2 bg-background border border-border rounded-xl h-10 shadow-sm text-foreground">
-                      <input 
-                        type="checkbox"
-                        checked={filters.enableOlderThan}
-                        onChange={(e) => setFilters(f => ({ ...f, enableOlderThan: e.target.checked }))}
-                        className="w-3.5 h-3.5 accent-accent cursor-pointer"
-                      />
-                      <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none whitespace-nowrap">
-                        Cũ hơn
-                      </span>
-                      <input 
-                        type="number"
-                        min="1"
-                        value={filters.olderThanDays}
-                        onChange={(e) => setFilters(f => ({ ...f, olderThanDays: parseInt(e.target.value) || 30 }))}
-                        className="w-10 bg-muted border border-border/50 rounded px-1.5 py-0.5 text-center text-xs font-bold font-mono outline-none"
-                        disabled={!filters.enableOlderThan}
-                      />
-                      <span className="text-xs text-muted-foreground font-semibold select-none whitespace-nowrap">
-                        ngày
-                      </span>
-                    </div>
-
                   </div>
 
-                  {/* Right: Stats Badges (Redesigned into elegant cards) */}
-                  <div className="flex items-center gap-2 select-none font-medium text-foreground shrink-0 flex-wrap">
+                  {/* Right: Stats Badges */}
+                  <div className="flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-xl border border-border select-none font-medium text-foreground shadow-sm shrink-0 overflow-x-auto custom-scrollbar h-10">
                     {/* Stat 1: Selection */}
-                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
-                      <CheckSquare className="w-3.5 h-3.5 text-accent" />
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Chọn:</span>
-                      <span className="font-mono text-xs font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
-                      <span className="text-[10px] text-muted-foreground font-mono">/ {displayedPosts.length}</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Chọn:</span>
+                      <span className="font-mono font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
+                      <span className="text-muted-foreground font-mono">/ {displayedPosts.length}</span>
                     </div>
+
+                    <span className="w-px h-3.5 bg-border mx-1" />
 
                     {/* Stat 2: Total dynamic matches */}
-                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Lọc:</span>
-                      <span className="font-mono text-xs font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">{filteredPosts.length}</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Lọc:</span>
+                      <span className="font-mono font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">{filteredPosts.length}</span>
                     </div>
+
+                    <span className="w-px h-3.5 bg-border mx-1" />
 
                     {/* Stat 3: Total cached posts in session */}
-                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
-                      <RotateCw className="w-3.5 h-3.5 text-purple-400" />
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Nạp:</span>
-                      <span className="font-mono text-xs font-black text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">{posts.length}</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Nạp:</span>
+                      <span className="font-mono font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">{posts.length}</span>
                     </div>
 
+                    <span className="w-px h-3.5 bg-border mx-1" />
+
                     {/* Stat 4: Deleted Count */}
-                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
-                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Xóa:</span>
-                      <span className="font-mono text-xs font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Xóa:</span>
+                      <span className="font-mono font-black text-rose-600 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
                     </div>
                   </div>
                 </div>
@@ -2463,16 +1686,16 @@ export default function App() {
 
                           {/* Thumbnail Column */}
                           <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                            {(post.thumbnail || post.full_picture) ? (
+                            {post.full_picture ? (
                               <div className="relative rounded overflow-hidden border border-border w-[38px] h-[38px] bg-muted shadow-sm">
                                 <img 
-                                  src={post.thumbnail || post.full_picture} 
+                                  src={post.full_picture} 
                                   alt="Preview" 
                                   referrerPolicy="no-referrer"
                                   className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform duration-300"
                                 />
                                 {/* Video Play icon attachment overlay */}
-                                {(post.itemType === "video" || post.status_type === "added_video") && (
+                                {post.status_type === "added_video" && (
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                     <Play className="w-3.5 h-3.5 fill-current text-white drop-shadow-sm animate-pulse" />
                                   </div>
@@ -2697,41 +1920,19 @@ export default function App() {
 
           {activeTab === "status" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <PageStatusTab 
-                pages={pages} 
-                userToken={userToken} 
-                pageStatuses={pageStatuses}
-                scanning={apiScanning}
-                progress={apiProgress}
-                logs={apiLogs}
-                setLogs={setApiLogs}
-                runPageStatusScan={runPageStatusScan}
-                stopScan={stopPageStatusScan}
-              />
+              <PageStatusTab pages={pages} userToken={userToken} />
             </div>
           )}
 
           {activeTab === "admins" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <PageAdminsTab 
-                pages={pages} 
-                userToken={userToken} 
-                pageAdmins={pageAdmins}
-                scanning={adminScanning}
-                progress={adminProgress}
-                logs={adminLogs}
-                setLogs={setAdminLogs}
-                runAdminsBMScan={runAdminsBMScan}
-                stopScan={stopAdminsBMScan}
-                hasBmPermission={hasBmPermission}
-                businesses={businesses}
-              />
+              <PageAdminsTab pages={pages} userToken={userToken} />
             </div>
           )}
 
           {activeTab === "theme" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} config={config} setConfig={setConfig} />
+              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} />
             </div>
           )}
 
@@ -2907,312 +2108,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Background Jobs Bar */}
-      <BackgroundJobsBar 
-        activeJobs={activeJobs}
-        pages={pages}
-        onPause={handlePauseJob}
-        onResume={handleResumeJob}
-        onCancel={handleCancelJob}
-        onRetry={handleRetryJob}
-      />
-
       </div>
-    </div>
-  );
-}
-
-// ==========================================
-// BACKGROUND JOBS BAR COMPONENT
-// ==========================================
-
-interface BackgroundJobsBarProps {
-  activeJobs: any[];
-  pages: FacebookPage[];
-  onPause: (id: string) => void;
-  onResume: (id: string) => void;
-  onCancel: (id: string) => void;
-  onRetry: (id: string) => void;
-}
-
-function BackgroundJobsBar({ activeJobs, pages, onPause, onResume, onCancel, onRetry }: BackgroundJobsBarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [expandedJobLogs, setExpandedJobLogs] = useState<Record<string, boolean>>({});
-
-  const runningCount = activeJobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "pending").length;
-  const totalCount = activeJobs.length;
-
-  if (totalCount === 0) return null;
-
-  const getPageName = (pageId: string) => {
-    if (!pageId) return "Hệ thống";
-    const page = pages.find(p => p.id === pageId);
-    return page ? page.name : `Page ID: ${pageId}`;
-  };
-
-  const getJobTypeLabel = (type: string) => {
-    const jobTypeLabels: Record<string, string> = {
-      sync_pages: "Đồng bộ Fanpage",
-      scan_posts: "Quét bài viết",
-      delete_posts: "Xoá bài viết",
-      check_page_access: "Kiểm tra quyền truy cập",
-      refresh_avatar: "Tải lại avatar",
-      refresh_page_stats: "Cập nhật tương tác",
-      check_api_access: "Kiểm tra API",
-      scan_page_admins: "Quét quản trị viên"
-    };
-    return jobTypeLabels[type] || type;
-  };
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case "running":
-        return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-      case "pending":
-      case "queued":
-        return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-      case "paused":
-        return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
-      case "completed":
-        return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-      case "failed":
-        return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
-      case "cancelled":
-        return "bg-neutral-500/10 text-neutral-400 border border-neutral-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-400";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "running": return "Đang chạy";
-      case "pending": return "Chờ xử lý";
-      case "queued": return "Đang xếp hàng";
-      case "paused": return "Đã tạm dừng";
-      case "completed": return "Đã hoàn thành";
-      case "failed": return "Lỗi";
-      case "cancelled": return "Đã huỷ";
-      default: return status;
-    }
-  };
-
-  const calculateSpeed = (job: any) => {
-    if (job.status !== "running" || !job.started_at) return null;
-    const elapsed = (Date.now() - new Date(job.started_at).getTime()) / 1000;
-    if (elapsed <= 0.5) return null;
-    const items = job.processed_items || 0;
-    const speed = items / elapsed;
-    return speed > 0 ? `${speed.toFixed(1)} bài/s` : null;
-  };
-
-  const toggleLog = (jobId: string) => {
-    setExpandedJobLogs(prev => ({
-      ...prev,
-      [jobId]: !prev[jobId]
-    }));
-  };
-
-  return (
-    <div className="fixed bottom-4 right-4 z-[999] flex flex-col items-end">
-      {isCollapsed ? (
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="flex items-center gap-2.5 px-4 py-3 bg-[#0B0F19]/90 border border-white/10 hover:border-accent/40 rounded-full shadow-2xl text-foreground cursor-pointer transition-all hover:scale-105"
-        >
-          <div className="relative flex h-3 w-3">
-            {runningCount > 0 && (
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-            )}
-            <span className={`relative inline-flex rounded-full h-3 w-3 ${runningCount > 0 ? "bg-accent" : "bg-muted-foreground"}`}></span>
-          </div>
-          <span className="text-xs font-bold font-sans">
-            Tác vụ nền ({runningCount}/{totalCount})
-          </span>
-        </button>
-      ) : (
-        <div className="w-[380px] max-w-[calc(100vw-32px)] bg-[#0F172A]/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-5 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0B0F19]/90 border-b border-white/5">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-accent animate-pulse" />
-              <span className="text-xs font-bold tracking-wide uppercase text-foreground">
-                Tác vụ đang chạy ({runningCount}/{totalCount})
-              </span>
-            </div>
-            <button
-              onClick={() => setIsCollapsed(true)}
-              className="p-1 text-muted-foreground hover:text-foreground bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Job List */}
-          <div className="p-3.5 space-y-3.5 max-h-[360px] overflow-y-auto custom-scrollbar">
-            {activeJobs.map((job) => {
-              const speed = calculateSpeed(job);
-              const isExpandedLog = !!expandedJobLogs[job.id];
-              const progressPercentage = Math.min(100, Math.max(0, job.progress || 0));
-
-              return (
-                <div key={job.id} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex flex-col gap-2 transition-all hover:bg-white/[0.04]">
-                  {/* Title & Status Row */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-foreground truncate">
-                        {getJobTypeLabel(job.type)}
-                      </h4>
-                      <p className="text-[10px] text-muted-foreground truncate font-semibold mt-0.5">
-                        Page: {getPageName(job.page_id)}
-                      </p>
-                    </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${getStatusBadgeClass(job.status)}`}>
-                      {getStatusText(job.status)}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  {(job.status === "running" || job.status === "paused" || job.status === "completed" || job.status === "failed") && (
-                    <div className="space-y-1">
-                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-accent h-full transition-all duration-300 rounded-full"
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[9px] text-muted-foreground font-semibold">
-                        <span>{progressPercentage}%</span>
-                        {job.type === "delete_posts" ? (
-                          <span>
-                            Đã xoá: {job.processed_items}/{job.total_items} (Thành công: {job.success_items}, Lỗi: {job.failed_items})
-                          </span>
-                        ) : (
-                          <span>
-                            Đã xử lý: {job.processed_items}/{job.total_items}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Stats and metadata row */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-1.5 text-[9px] text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3 h-3" />
-                      <span>{job.started_at ? new Date(job.started_at).toLocaleTimeString("vi-VN") : "Chưa chạy"}</span>
-                      {speed && (
-                        <span className="text-accent font-bold pl-1.5 border-l border-white/10 flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3" />
-                          {speed}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Log Toggle button */}
-                    {(job.last_error || job.payload) && (
-                      <button 
-                        onClick={() => toggleLog(job.id)}
-                        className="text-accent hover:underline font-bold transition-all cursor-pointer"
-                      >
-                        {isExpandedLog ? "Ẩn nhật ký" : "Xem nhật ký"}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Expandable error/log panel */}
-                  {isExpandedLog && (
-                    <div className="p-2 bg-black/40 border border-white/5 rounded-lg font-mono text-[9px] text-slate-300 leading-normal max-h-[120px] overflow-y-auto break-all custom-scrollbar">
-                      {job.last_error && (
-                        <div className="text-rose-400 font-bold mb-1">
-                          Lỗi: {job.last_error}
-                        </div>
-                      )}
-                      <div>
-                        Payload: {JSON.stringify(job.payload, null, 2)}
-                      </div>
-                      {job.cursor && (
-                        <div className="mt-1 text-slate-400">
-                          Cursor: {JSON.stringify(job.cursor, null, 2)}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Actions Row */}
-                  <div className="flex items-center justify-end gap-1.5 mt-1 border-t border-white/5 pt-2">
-                    {(job.status === "running" || job.status === "queued" || job.status === "pending") && (
-                      <>
-                        <button
-                          onClick={() => onPause(job.id)}
-                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-amber-400 rounded-lg text-muted-foreground transition-all cursor-pointer"
-                          title="Tạm dừng"
-                        >
-                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => onCancel(job.id)}
-                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-rose-500 rounded-lg text-muted-foreground transition-all cursor-pointer"
-                          title="Huỷ tác vụ"
-                        >
-                          <XOctagon className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                    {job.status === "paused" && (
-                      <>
-                        <button
-                          onClick={() => onResume(job.id)}
-                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-[#3B82F6]/20 hover:text-[#60A5FA] rounded-lg text-muted-foreground transition-all cursor-pointer"
-                          title="Tiếp tục"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                        </button>
-                        <button
-                          onClick={() => onCancel(job.id)}
-                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-rose-500 rounded-lg text-muted-foreground transition-all cursor-pointer"
-                          title="Huỷ tác vụ"
-                        >
-                          <XOctagon className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                    {job.status === "failed" && (
-                      <>
-                        <button
-                          onClick={() => onRetry(job.id)}
-                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-emerald-400 rounded-lg text-muted-foreground transition-all cursor-pointer"
-                          title="Chạy lại"
-                        >
-                          <RotateCw className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onCancel(job.id)}
-                          className="flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 hover:text-rose-500 rounded-lg text-muted-foreground transition-all cursor-pointer"
-                          title="Huỷ tác vụ"
-                        >
-                          <XOctagon className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                    {(job.status === "completed" || job.status === "cancelled") && (
-                      <button
-                        onClick={() => onCancel(job.id)}
-                        className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] font-bold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-                        title="Xoá lịch sử"
-                      >
-                        Xoá
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { 
   Users, 
   Briefcase, 
@@ -10,8 +10,7 @@ import {
   ShieldAlert,
   CheckCircle,
   XOctagon,
-  HelpCircle,
-  SlidersHorizontal
+  HelpCircle
 } from "lucide-react";
 
 interface PageAdminRecord {
@@ -29,33 +28,19 @@ interface PageAdminRecord {
 interface PageAdminsTabProps {
   pages: any[];
   userToken: string;
-  pageAdmins: PageAdminRecord[];
-  scanning: boolean;
-  progress: { current: number; total: number };
-  logs: any[];
-  setLogs: React.Dispatch<React.SetStateAction<any[]>>;
-  runAdminsBMScan: () => void;
-  stopScan: () => void;
-  hasBmPermission: boolean | null;
-  businesses: any[];
 }
 
 import DropdownSelect from "./DropdownSelect";
 
-export default function PageAdminsTab({
-  pages,
-  userToken,
-  pageAdmins,
-  scanning,
-  progress,
-  logs,
-  setLogs,
-  runAdminsBMScan,
-  stopScan,
-  hasBmPermission,
-  businesses
-}: PageAdminsTabProps) {
+export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) {
+  const [pageAdmins, setPageAdmins] = useState<PageAdminRecord[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [logs, setLogs] = useState<{ id: string; time: string; context: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [hasBmPermission, setHasBmPermission] = useState<boolean | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const cancelScanRef = useRef<boolean>(false);
 
   const addLog = (context: string, message: string, status: "success" | "failed" | "processing" | "skipped") => {
     const time = new Date().toLocaleTimeString("vi-VN");
@@ -83,6 +68,152 @@ export default function PageAdminsTab({
       labels.push("Xem thống kê");
     }
     return labels.length > 0 ? labels.join(", ") : "Xem thông tin cơ bản";
+  };
+
+  const runAdminsBMScan = async () => {
+    if (!userToken) {
+      addLog("Hệ thống", "Không tìm thấy token Facebook người dùng. Vui lòng kết nối trước.", "failed");
+      return;
+    }
+    if (pages.length === 0) {
+      addLog("Hệ thống", "Không tìm thấy Fanpages nào đã tải sẵn.", "skipped");
+      return;
+    }
+
+    setScanning(true);
+    cancelScanRef.current = false;
+    setPageAdmins([]);
+    setLogs([]);
+    setBusinesses([]);
+    setProgress({ current: 0, total: 1 });
+
+    addLog("Hàng đợi", "Bắt đầu tải thông tin tài khoản & danh sách Business Manager...", "processing");
+
+    // 1. Fetch BM lists
+    let bmList: any[] = [];
+    let bmPerm = false;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 350));
+      const res = await fetch(`/api/businesses?userToken=${encodeURIComponent(userToken)}`);
+      const data = await res.json();
+      
+      bmPerm = data.hasPermission;
+      setHasBmPermission(bmPerm);
+
+      if (data.success && data.data && data.data.length > 0) {
+        bmList = data.data;
+        setBusinesses(bmList);
+        addLog("Doanh nghiệp", `Đã tìm thấy ${bmList.length} Business Managers kết nối với tài khoản này.`, "success");
+      } else {
+        addLog("Doanh nghiệp", data.error || "Không tìm thấy Business Manager nào, hoặc thiếu quyền business_management", "skipped");
+      }
+    } catch (e: any) {
+      addLog("Doanh nghiệp", `Không lấy được Business Managers: ${e.message}`, "failed");
+    }
+
+    // 2. Scan each business and mapping connected pages
+    const totalSteps = pages.length + (bmList.length > 0 ? bmList.length : 0);
+    setProgress({ current: 0, total: totalSteps });
+    
+    let currentStepNum = 0;
+    const pageToBmMap: Record<string, { businessName: string; businessId: string; type: "Owned Page" | "Client Page" }> = {};
+
+    if (bmList.length > 0) {
+      for (const bm of bmList) {
+        if (cancelScanRef.current) {
+          addLog("Hàng đợi", "Đã dừng tiến trình quét phân tích Business Manager.", "skipped");
+          setScanning(false);
+          return;
+        }
+        currentStepNum++;
+        setProgress({ current: currentStepNum, total: totalSteps });
+        addLog(bm.name, `Đang phân tích các Page trực thuộc Business Manager...`, "processing");
+
+        try {
+          await new Promise(resolve => setTimeout(resolve, 350));
+          const res = await fetch("/api/page-business-map", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userToken,
+              businessId: bm.id
+            })
+          });
+          const result = await res.json();
+          if (result.success && result.data) {
+            const { ownedPages, clientPages } = result.data;
+            let counter = 0;
+            
+            (ownedPages || []).forEach((p: any) => {
+              pageToBmMap[p.id] = { businessName: bm.name, businessId: bm.id, type: "Owned Page" };
+              counter++;
+            });
+            (clientPages || []).forEach((p: any) => {
+              pageToBmMap[p.id] = { businessName: bm.name, businessId: bm.id, type: "Client Page" };
+              counter++;
+            });
+
+            addLog(bm.name, `Phân tích xong! Map thành công ${counter} Pages vào Business Manager.`, "success");
+          } else {
+            addLog(bm.name, `Lỗi đọc dữ liệu: ${result.error || "Lỗi máy chủ"}`, "failed");
+          }
+        } catch (err: any) {
+          addLog(bm.name, `Quét lỗi map: ${err.message}`, "failed");
+        }
+      }
+    }
+
+    // 3. Build detailed admins display for each page
+    addLog("Hàng đợi", "Đang hợp nhất phân lớp tổ chức của các trang...", "processing");
+    const records: PageAdminRecord[] = [];
+
+    for (const page of pages) {
+      if (cancelScanRef.current) {
+        addLog("Hàng đợi", "Đã dừng tiến trình hợp nhất quyền tác vụ các trang hoặc BM.", "skipped");
+        setScanning(false);
+        return;
+      }
+      currentStepNum++;
+      setProgress({ current: currentStepNum, total: totalSteps });
+      
+      const mapInfo = pageToBmMap[page.id];
+      const tasks = page.tasks || [];
+      const hasPageToken = !!page.access_token;
+      
+      const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
+      const hasCreateContent = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");
+      
+      let status: "Bình thường" | "Thiếu quyền" | "Token lỗi" = "Bình thường";
+      let detail = "Đầy đủ quyền tác vụ cơ bản";
+
+      if (!hasPageToken) {
+        status = "Token lỗi";
+        detail = "Thiếu Page Access Token hoặc đã bị hỏng";
+      } else if (!hasManage) {
+        status = "Thiếu quyền";
+        detail = "Thiếu quyền quản lý (MANAGE)";
+      } else if (!hasCreateContent) {
+        status = "Thiếu quyền";
+        detail = "Thiếu quyền đăng/xóa bài (CREATE_CONTENT)";
+      }
+
+      records.push({
+        pageId: page.id,
+        name: page.name,
+        category: page.category || "Không xác định",
+        tasks,
+        businessName: mapInfo ? mapInfo.businessName : "N/A",
+        businessId: mapInfo ? mapInfo.businessId : "N/A",
+        businessType: mapInfo ? mapInfo.type : "Không xác định",
+        status,
+        detail
+      });
+    }
+
+    setPageAdmins(records);
+    setScanning(false);
+    setProgress({ current: totalSteps, total: totalSteps });
+    addLog("Hệ thống", "Đã hoàn thành phân tích quản trị và tổ chức Business Manager!", "success");
   };
 
   const handleExportCSV = () => {
@@ -152,108 +283,68 @@ export default function PageAdminsTab({
           </div>
         )}
 
-        {/* 2. TOP CONTROL CENTER: METRICS */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
-          {/* TỔNG PAGE */}
-          <div className="bg-background/40 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 group">
-            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-accent/20">
-              <Users className="w-5 h-5 text-accent" />
+        {/* 2. TOP CONTROL CENTER: METRICS, FILTERS */}
+        <div className="glass-card border border-border resize-none rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-sm">
+          
+          {/* Metrics Row (Left side on large screens) */}
+          <div className="flex-1 grid grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-background/40 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
+              <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
             </div>
-            <div className="text-left min-w-0">
-              <p className="text-[9px] uppercase font-extrabold tracking-widest text-muted-foreground leading-none">TỔNG PAGE</p>
-              <p className="text-xl font-black text-foreground mt-1 select-none font-mono leading-none">{pages.length}</p>
-            </div>
-          </div>
-
-          {/* QUYỀN QUẢN LÝ */}
-          <div className="bg-emerald-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-500/30 group">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-emerald-500/20">
-              <CheckCircle className="w-5 h-5 text-emerald-500" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[9px] uppercase font-extrabold tracking-widest text-emerald-500 leading-none">QUYỀN QUẢN LÝ</p>
-              <p className="text-xl font-black text-emerald-500 mt-1 select-none font-mono leading-none">
+            <div className="bg-emerald-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">QUYỀN QUẢN LÝ</p>
+              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
                 {pageAdmins.length > 0 ? hasManageRights : "-"}
               </p>
             </div>
-          </div>
-
-          {/* QUYỀN ĐĂNG BÀI */}
-          <div className="bg-blue-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-blue-500/30 group">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-blue-500/20">
-              <SlidersHorizontal className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[9px] uppercase font-extrabold tracking-widest text-blue-500 leading-none">QUYỀN ĐĂNG BÀI</p>
-              <p className="text-xl font-black text-blue-500 mt-1 select-none font-mono leading-none">
+            <div className="bg-blue-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">QUYỀN ĐĂNG BÀI</p>
+              <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 select-none font-mono">
                 {pageAdmins.length > 0 ? hasCreateRights : "-"}
               </p>
             </div>
-          </div>
-
-          {/* NẰM TRONG BM */}
-          <div className="bg-purple-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-purple-500/30 group">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-purple-500/20">
-              <Briefcase className="w-5 h-5 text-purple-500" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[9px] uppercase font-extrabold tracking-widest text-purple-500 leading-none">NẰM TRONG BM</p>
-              <p className="text-xl font-black text-purple-500 mt-1 select-none font-mono leading-none">
+            <div className="bg-purple-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NẰM TRONG BM</p>
+              <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
                 {pageAdmins.length > 0 ? inBmCount : "-"}
               </p>
             </div>
-          </div>
-
-          {/* CHƯA KHỞI TẠO */}
-          <div className="bg-teal-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-teal-500/30 group">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-teal-500/20">
-              <HelpCircle className="w-5 h-5 text-teal-500" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[9px] uppercase font-extrabold tracking-widest text-teal-500 leading-none">CHƯA KHỞI TẠO</p>
-              <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-1 select-none font-mono leading-none">
+            <div className="bg-teal-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(20,184,166,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-teal-600 dark:text-teal-400">CHƯA KHỞI TẠO</p>
+              <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-0.5 select-none font-mono">
                 {pageAdmins.length > 0 ? noBmCount : "-"}
               </p>
             </div>
-          </div>
-
-          {/* THIẾU QUYỀN HẠN */}
-          <div className="bg-rose-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-rose-500/30 group">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-rose-500/20">
-              <ShieldAlert className="w-5 h-5 text-rose-500" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-[9px] uppercase font-extrabold tracking-widest text-rose-500 leading-none">THIẾU QUYỀN</p>
-              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1 select-none font-mono leading-none">
+            <div className="bg-rose-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">THIẾU QUYỀN HẠN</p>
+              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
                 {pageAdmins.length > 0 ? missingCount : "-"}
               </p>
             </div>
           </div>
-        </div>
 
-        {/* 3. TOOLBAR: FILTERS */}
-        <div className="bg-card border border-border rounded-[18px] px-4 py-3 flex items-center justify-between gap-4 shrink-0 shadow-sm">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-accent" />
-            <span className="text-xs font-bold text-foreground">Bộ lọc quản trị viên</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <DropdownSelect
-              value={filterType}
-              onChange={(val, label) => {
-                setFilterType(val);
-                addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
-              }}
-              options={[
-                { value: "all", label: "Tất cả" },
-                { value: "manage", label: "Có quyền quản lý" },
-                { value: "create", label: "Có quyền đăng/xoá" },
-                { value: "missing", label: "Thiếu quyền" },
-                { value: "bm", label: "Nằm trong BM" },
-                { value: "no-bm", label: "Chưa xác định BM" },
-                { value: "token-err", label: "Token lỗi" },
-              ]}
-            />
+          {/* Filters */}
+          <div className="flex items-center justify-end gap-2 shrink-0">
+            {/* Dropdown Filter */}
+            <div className="flex items-center gap-2">
+              <DropdownSelect
+                value={filterType}
+                onChange={(val, label) => {
+                  setFilterType(val);
+                  addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
+                }}
+                options={[
+                  { value: "all", label: "Tất cả" },
+                  { value: "manage", label: "Có quyền quản lý" },
+                  { value: "create", label: "Có quyền đăng/xoá" },
+                  { value: "missing", label: "Thiếu quyền" },
+                  { value: "bm", label: "Nằm trong BM" },
+                  { value: "no-bm", label: "Chưa xác định BM" },
+                  { value: "token-err", label: "Token lỗi" },
+                ]}
+              />
+            </div>
           </div>
         </div>
 
@@ -427,7 +518,10 @@ export default function PageAdminsTab({
               <div className="flex gap-2 w-full mt-1.5">
                 <button
                   type="button"
-                  onClick={stopScan}
+                  onClick={() => {
+                    cancelScanRef.current = true;
+                    addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
+                  }}
                   className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 border border-transparent text-white text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
                 >
                   Dừng
