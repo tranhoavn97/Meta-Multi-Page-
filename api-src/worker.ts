@@ -2,13 +2,14 @@ import {
   readDb, writeDb, encrypt, decrypt, acquireLock, releaseLock, releaseAllExpiredLocks, 
   BackgroundJob, CachedPage, CachedPost 
 } from "./db";
+import { fetchWithTimeout } from "./utils/wrapper";
 
 const MAX_CONCURRENT_JOBS = 4;
 const MAX_INVOCATION_TIME_MS = 8000; // Chunk execution to fit in Vercel's execution limits
 
-// Helper function to fetch JSON securely on the backend
+// Helper function to fetch JSON securely on the backend with 8 second timeout
 async function fbFetchJson(url: string, options: any = {}): Promise<any> {
-  const res = await fetch(url, options);
+  const res = await fetchWithTimeout(url, options);
   const text = await res.text();
   let data: any;
   try {

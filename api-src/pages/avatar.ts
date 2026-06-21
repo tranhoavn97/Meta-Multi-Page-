@@ -1,4 +1,5 @@
 import { readDb, writeDb, decrypt } from "../db";
+import { fetchWithTimeout } from "../utils/wrapper";
 
 export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -25,7 +26,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const fbUrl = `https://graph.facebook.com/v19.0/${pageId}/picture?type=large&redirect=false&access_token=${pageToken}`;
-    const fbRes = await fetch(fbUrl);
+    const fbRes = await fetchWithTimeout(fbUrl);
     const fbData = await fbRes.json();
 
     if (fbData?.data?.url) {

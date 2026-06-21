@@ -10,6 +10,7 @@ import {
   CheckSquare, 
   Square, 
   RotateCw, 
+  Download,
   ShieldAlert, 
   CheckCircle, 
   XOctagon, 
@@ -2067,20 +2068,23 @@ export default function App() {
             <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
               <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 bg-card rounded-[18px] p-4 text-foreground shadow-sm border border-border shrink-0">
+              <section className="relative z-30 bg-card/65 backdrop-blur-md rounded-[20px] p-4 text-foreground shadow-lg border border-border/80 shrink-0">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 relative z-40">
                   {/* Left: Filter Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
                     <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
-                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-background hover:bg-muted border border-border rounded-xl transition-all h-10 w-full shadow-sm">
-                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider select-none shrink-0 border-r border-border pr-2">
-                          Thời gian
-                        </span>
+                      <div className="flex items-center justify-between gap-2.5 px-3.5 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 w-full shadow-sm">
+                        <div className="flex items-center gap-1.5 shrink-0 border-r border-border pr-2">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none">
+                            Thời gian
+                          </span>
+                        </div>
                         
                         <div 
-                          className="relative h-7 px-3 flex items-center justify-between gap-2 cursor-pointer min-w-[120px] hover:text-accent transition-colors"
+                          className="relative h-7 px-2 flex items-center justify-between gap-2 cursor-pointer min-w-[120px] hover:text-accent transition-colors"
                           onClick={() => setShowTimeDropdown(!showTimeDropdown)}
                         >
                           <span className="text-xs font-semibold text-foreground truncate">
@@ -2101,7 +2105,7 @@ export default function App() {
                                setTempDateTo(filters.dateTo);
                                setShowCustomDateModal(true);
                              }}
-                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
+                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap animate-pulse"
                              title="Sửa ngày tuỳ chỉnh"
                            >
                              {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
@@ -2112,7 +2116,7 @@ export default function App() {
                       {/* Dropdown Menu */}
                       {showTimeDropdown && (
                         <>
-                          <div className="absolute top-[110%] left-0 right-0 z-[100] bg-card border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
+                          <div className="absolute top-[110%] left-0 right-0 z-[100] bg-card border border-border rounded-xl shadow-xl p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
                             {[
                               { id: "today", label: "Hôm nay" },
                               { id: "week", label: "Tuần này" },
@@ -2178,11 +2182,14 @@ export default function App() {
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-background hover:bg-muted border border-border rounded-xl transition-all h-10 shrink-0 shadow-sm text-foreground">
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 select-none shrink-0 border-r border-border pr-2">
-                        Tải
-                      </span>
-                      <div className="flex items-center gap-1">
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3.5 py-2 bg-background hover:bg-muted/80 border border-border rounded-xl transition-all h-10 shrink-0 shadow-sm text-foreground">
+                      <div className="flex items-center gap-1.5 shrink-0 border-r border-border pr-2">
+                        <Download className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest select-none">
+                          Tải
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 pl-1">
                         <CustomSelect
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
@@ -2200,37 +2207,35 @@ export default function App() {
 
                   </div>
 
-                  {/* Right: Stats Badges */}
-                  <div className="flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-xl border border-border select-none font-medium text-foreground shadow-sm shrink-0 overflow-x-auto custom-scrollbar h-10">
+                  {/* Right: Stats Badges (Redesigned into elegant cards) */}
+                  <div className="flex items-center gap-2 select-none font-medium text-foreground shrink-0 flex-wrap">
                     {/* Stat 1: Selection */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Chọn:</span>
-                      <span className="font-mono font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
-                      <span className="text-muted-foreground font-mono">/ {displayedPosts.length}</span>
+                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
+                      <CheckSquare className="w-3.5 h-3.5 text-accent" />
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Chọn:</span>
+                      <span className="font-mono text-xs font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">/ {displayedPosts.length}</span>
                     </div>
-
-                    <span className="w-px h-3.5 bg-border mx-1" />
 
                     {/* Stat 2: Total dynamic matches */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Lọc:</span>
-                      <span className="font-mono font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">{filteredPosts.length}</span>
+                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Lọc:</span>
+                      <span className="font-mono text-xs font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">{filteredPosts.length}</span>
                     </div>
-
-                    <span className="w-px h-3.5 bg-border mx-1" />
 
                     {/* Stat 3: Total cached posts in session */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Nạp:</span>
-                      <span className="font-mono font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">{posts.length}</span>
+                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
+                      <RotateCw className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Nạp:</span>
+                      <span className="font-mono text-xs font-black text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">{posts.length}</span>
                     </div>
 
-                    <span className="w-px h-3.5 bg-border mx-1" />
-
                     {/* Stat 4: Deleted Count */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Xóa:</span>
-                      <span className="font-mono font-black text-rose-600 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                    <div className="flex items-center gap-2 bg-background/50 hover:bg-background/80 border border-border/80 px-3 py-1.5 rounded-xl shadow-sm transition-all duration-300 hover:scale-[1.02] h-10">
+                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Xóa:</span>
+                      <span className="font-mono text-xs font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
                     </div>
                   </div>
                 </div>

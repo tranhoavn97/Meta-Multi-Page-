@@ -1,4 +1,5 @@
 import express from "express";
+import { safeHandler } from "../api-src/utils/wrapper";
 
 // Handlers
 import pagesHandler from "../api-src/pages";
@@ -32,52 +33,52 @@ import adminManagerLatestResultsHandler from "../api-src/admin-manager/latest-re
 const app = express();
 app.use(express.json());
 
-// Bind API Handlers directly to match Serverless routes
-app.get("/api/auth/url", authUrlHandler);
-app.get(["/auth/callback", "/auth/callback/"], authCallbackHandler);
+// Bind API Handlers directly to match Serverless routes with safe try/catch environment wrappers
+app.get("/api/auth/url", safeHandler("authUrl", ["META_APP_ID", "META_APP_SECRET"], authUrlHandler));
+app.get(["/auth/callback", "/auth/callback/"], safeHandler("authCallback", ["META_APP_ID", "META_APP_SECRET"], authCallbackHandler));
 
-app.get("/api/pages", pagesHandler);
-app.get("/api/facebook/pages", pagesHandler);
-app.post("/api/pages/sync", pagesSyncHandler);
-app.get("/api/pages/avatar", pagesAvatarHandler);
+app.get("/api/pages", safeHandler("pages", ["META_APP_SECRET"], pagesHandler));
+app.get("/api/facebook/pages", safeHandler("pages", ["META_APP_SECRET"], pagesHandler));
+app.post("/api/pages/sync", safeHandler("pagesSync", ["META_APP_SECRET"], pagesSyncHandler));
+app.get("/api/pages/avatar", safeHandler("pagesAvatar", ["META_APP_SECRET"], pagesAvatarHandler));
 
 app.get("/api/pages/:pageId/posts", (req: any, res: any, next: any) => {
   req.query.pageId = req.params.pageId;
   next();
-}, pagesPostsHandler);
+}, safeHandler("pagesPosts", ["META_APP_SECRET"], pagesPostsHandler));
 
 app.post("/api/pages/:pageId/scan", (req: any, res: any, next: any) => {
   req.query.pageId = req.params.pageId;
   next();
-}, pagesScanHandler);
+}, safeHandler("pagesScan", ["META_APP_SECRET"], pagesScanHandler));
 
-app.get("/api/posts", postsHandler);
-app.get("/api/facebook/posts", postsHandler);
+app.get("/api/posts", safeHandler("posts", ["META_APP_SECRET"], postsHandler));
+app.get("/api/facebook/posts", safeHandler("posts", ["META_APP_SECRET"], postsHandler));
 
-app.post("/api/delete-post", deletePostHandler);
-app.post("/api/facebook/delete-post", deletePostHandler);
+app.post("/api/delete-post", safeHandler("deletePost", ["META_APP_SECRET"], deletePostHandler));
+app.post("/api/facebook/delete-post", safeHandler("deletePost", ["META_APP_SECRET"], deletePostHandler));
 
-app.post("/api/check-pages", checkPagesHandler);
+app.post("/api/check-pages", safeHandler("checkPages", ["META_APP_SECRET"], checkPagesHandler));
 
-app.post("/api/page-status", pageStatusHandler);
-app.get("/api/businesses", businessesHandler);
-app.post("/api/page-business-map", pageBusinessMapHandler);
+app.post("/api/page-status", safeHandler("pageStatus", ["META_APP_SECRET"], pageStatusHandler));
+app.get("/api/businesses", safeHandler("businesses", [], businessesHandler));
+app.post("/api/page-business-map", safeHandler("pageBusinessMap", [], pageBusinessMapHandler));
 
 // Background Job status/control endpoints
-app.post("/api/jobs/create", jobsCreateHandler);
-app.get("/api/jobs/status", jobsStatusHandler);
-app.get("/api/jobs/active", jobsActiveHandler);
-app.get("/api/jobs/results", jobsResultsHandler);
-app.post("/api/jobs/pause", jobsPauseHandler);
-app.post("/api/jobs/resume", jobsResumeHandler);
-app.post("/api/jobs/cancel", jobsCancelHandler);
-app.post("/api/jobs/retry-failed", jobsRetryFailedHandler);
+app.post("/api/jobs/create", safeHandler("jobsCreate", ["META_APP_SECRET"], jobsCreateHandler));
+app.get("/api/jobs/status", safeHandler("jobsStatus", ["META_APP_SECRET"], jobsStatusHandler));
+app.get("/api/jobs/active", safeHandler("jobsActive", ["META_APP_SECRET"], jobsActiveHandler));
+app.get("/api/jobs/results", safeHandler("jobsResults", ["META_APP_SECRET"], jobsResultsHandler));
+app.post("/api/jobs/pause", safeHandler("jobsPause", ["META_APP_SECRET"], jobsPauseHandler));
+app.post("/api/jobs/resume", safeHandler("jobsResume", ["META_APP_SECRET"], jobsResumeHandler));
+app.post("/api/jobs/cancel", safeHandler("jobsCancel", ["META_APP_SECRET"], jobsCancelHandler));
+app.post("/api/jobs/retry-failed", safeHandler("jobsRetryFailed", ["META_APP_SECRET"], jobsRetryFailedHandler));
 
-app.get("/api/api-manager/latest-results", apiManagerLatestResultsHandler);
-app.get("/api/admin-manager/latest-results", adminManagerLatestResultsHandler);
+app.get("/api/api-manager/latest-results", safeHandler("apiManagerLatestResults", ["META_APP_SECRET"], apiManagerLatestResultsHandler));
+app.get("/api/admin-manager/latest-results", safeHandler("adminManagerLatestResults", ["META_APP_SECRET"], adminManagerLatestResultsHandler));
 
 // Cron trigger endpoints
-app.post("/api/cron/process-jobs", cronProcessJobsHandler);
-app.post("/api/cron/recover-stalled-jobs", cronRecoverStalledJobsHandler);
+app.post("/api/cron/process-jobs", safeHandler("cronProcessJobs", ["META_APP_SECRET"], cronProcessJobsHandler));
+app.post("/api/cron/recover-stalled-jobs", safeHandler("cronRecoverStalledJobs", ["META_APP_SECRET"], cronRecoverStalledJobsHandler));
 
 export default app;

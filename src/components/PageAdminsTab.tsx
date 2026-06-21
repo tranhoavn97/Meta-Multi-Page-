@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   CheckCircle,
   XOctagon,
-  HelpCircle
+  HelpCircle,
+  SlidersHorizontal
 } from "lucide-react";
 
 interface PageAdminRecord {
@@ -151,68 +152,108 @@ export default function PageAdminsTab({
           </div>
         )}
 
-        {/* 2. TOP CONTROL CENTER: METRICS, FILTERS */}
-        <div className="glass-card border border-border resize-none rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-sm">
-          
-          {/* Metrics Row (Left side on large screens) */}
-          <div className="flex-1 grid grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="bg-background/40 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
-              <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
+        {/* 2. TOP CONTROL CENTER: METRICS */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
+          {/* TỔNG PAGE */}
+          <div className="bg-background/40 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 group">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-accent/20">
+              <Users className="w-5 h-5 text-accent" />
             </div>
-            <div className="bg-emerald-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">QUYỀN QUẢN LÝ</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
+            <div className="text-left min-w-0">
+              <p className="text-[9px] uppercase font-extrabold tracking-widest text-muted-foreground leading-none">TỔNG PAGE</p>
+              <p className="text-xl font-black text-foreground mt-1 select-none font-mono leading-none">{pages.length}</p>
+            </div>
+          </div>
+
+          {/* QUYỀN QUẢN LÝ */}
+          <div className="bg-emerald-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-500/30 group">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-emerald-500/20">
+              <CheckCircle className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-[9px] uppercase font-extrabold tracking-widest text-emerald-500 leading-none">QUYỀN QUẢN LÝ</p>
+              <p className="text-xl font-black text-emerald-500 mt-1 select-none font-mono leading-none">
                 {pageAdmins.length > 0 ? hasManageRights : "-"}
-              </p>
-            </div>
-            <div className="bg-blue-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">QUYỀN ĐĂNG BÀI</p>
-              <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? hasCreateRights : "-"}
-              </p>
-            </div>
-            <div className="bg-purple-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NẰM TRONG BM</p>
-              <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? inBmCount : "-"}
-              </p>
-            </div>
-            <div className="bg-teal-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(20,184,166,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-teal-600 dark:text-teal-400">CHƯA KHỞI TẠO</p>
-              <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? noBmCount : "-"}
-              </p>
-            </div>
-            <div className="bg-rose-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">THIẾU QUYỀN HẠN</p>
-              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? missingCount : "-"}
               </p>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex items-center justify-end gap-2 shrink-0">
-            {/* Dropdown Filter */}
-            <div className="flex items-center gap-2">
-              <DropdownSelect
-                value={filterType}
-                onChange={(val, label) => {
-                  setFilterType(val);
-                  addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
-                }}
-                options={[
-                  { value: "all", label: "Tất cả" },
-                  { value: "manage", label: "Có quyền quản lý" },
-                  { value: "create", label: "Có quyền đăng/xoá" },
-                  { value: "missing", label: "Thiếu quyền" },
-                  { value: "bm", label: "Nằm trong BM" },
-                  { value: "no-bm", label: "Chưa xác định BM" },
-                  { value: "token-err", label: "Token lỗi" },
-                ]}
-              />
+          {/* QUYỀN ĐĂNG BÀI */}
+          <div className="bg-blue-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-blue-500/30 group">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-blue-500/20">
+              <SlidersHorizontal className="w-5 h-5 text-blue-500" />
             </div>
+            <div className="text-left min-w-0">
+              <p className="text-[9px] uppercase font-extrabold tracking-widest text-blue-500 leading-none">QUYỀN ĐĂNG BÀI</p>
+              <p className="text-xl font-black text-blue-500 mt-1 select-none font-mono leading-none">
+                {pageAdmins.length > 0 ? hasCreateRights : "-"}
+              </p>
+            </div>
+          </div>
+
+          {/* NẰM TRONG BM */}
+          <div className="bg-purple-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-purple-500/30 group">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-purple-500/20">
+              <Briefcase className="w-5 h-5 text-purple-500" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-[9px] uppercase font-extrabold tracking-widest text-purple-500 leading-none">NẰM TRONG BM</p>
+              <p className="text-xl font-black text-purple-500 mt-1 select-none font-mono leading-none">
+                {pageAdmins.length > 0 ? inBmCount : "-"}
+              </p>
+            </div>
+          </div>
+
+          {/* CHƯA KHỞI TẠO */}
+          <div className="bg-teal-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-teal-500/30 group">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-teal-500/20">
+              <HelpCircle className="w-5 h-5 text-teal-500" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-[9px] uppercase font-extrabold tracking-widest text-teal-500 leading-none">CHƯA KHỞI TẠO</p>
+              <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-1 select-none font-mono leading-none">
+                {pageAdmins.length > 0 ? noBmCount : "-"}
+              </p>
+            </div>
+          </div>
+
+          {/* THIẾU QUYỀN HẠN */}
+          <div className="bg-rose-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-rose-500/30 group">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-rose-500/20">
+              <ShieldAlert className="w-5 h-5 text-rose-500" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-[9px] uppercase font-extrabold tracking-widest text-rose-500 leading-none">THIẾU QUYỀN</p>
+              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1 select-none font-mono leading-none">
+                {pageAdmins.length > 0 ? missingCount : "-"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. TOOLBAR: FILTERS */}
+        <div className="bg-card border border-border rounded-[18px] px-4 py-3 flex items-center justify-between gap-4 shrink-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-accent" />
+            <span className="text-xs font-bold text-foreground">Bộ lọc quản trị viên</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <DropdownSelect
+              value={filterType}
+              onChange={(val, label) => {
+                setFilterType(val);
+                addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
+              }}
+              options={[
+                { value: "all", label: "Tất cả" },
+                { value: "manage", label: "Có quyền quản lý" },
+                { value: "create", label: "Có quyền đăng/xoá" },
+                { value: "missing", label: "Thiếu quyền" },
+                { value: "bm", label: "Nằm trong BM" },
+                { value: "no-bm", label: "Chưa xác định BM" },
+                { value: "token-err", label: "Token lỗi" },
+              ]}
+            />
           </div>
         </div>
 

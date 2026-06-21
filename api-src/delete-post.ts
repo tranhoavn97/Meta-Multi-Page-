@@ -1,5 +1,7 @@
+import { fetchWithTimeout } from "./utils/wrapper";
+
 async function backendFetchJson(url: string, options: any = {}): Promise<any> {
-  const response = await fetch(url, options);
+  const response = await fetchWithTimeout(url, options);
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 

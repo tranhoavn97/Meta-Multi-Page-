@@ -102,34 +102,68 @@ return (
         <div className="glass-card border border-border rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-sm">
           
           {/* Metrics Row */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="bg-background/40 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
-              <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
+          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* TỔNG PAGE */}
+            <div className="bg-background/40 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 group">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-accent/20">
+                <Activity className="w-5 h-5 text-accent" />
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[9px] uppercase font-extrabold tracking-widest text-muted-foreground leading-none">TỔNG PAGE</p>
+                <p className="text-xl font-black text-foreground mt-1 select-none font-mono leading-none">{pages.length}</p>
+              </div>
             </div>
-            <div className="bg-emerald-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">BÌNH THƯỜNG</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? normalCount : "-"}
-              </p>
+
+            {/* BÌNH THƯỜNG */}
+            <div className="bg-emerald-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-500/30 group">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-emerald-500/20">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[9px] uppercase font-extrabold tracking-widest text-emerald-500 leading-none">BÌNH THƯỜNG</p>
+                <p className="text-xl font-black text-emerald-500 mt-1 select-none font-mono leading-none">
+                  {totalChecked > 0 ? normalCount : "-"}
+                </p>
+              </div>
             </div>
-            <div className="bg-amber-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(245,158,11,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">THIẾU QUYỀN</p>
-              <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? missingPermsCount : "-"}
-              </p>
+
+            {/* THIẾU QUYỀN */}
+            <div className="bg-amber-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-amber-500/30 group">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-amber-500/20">
+                <ShieldAlert className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[9px] uppercase font-extrabold tracking-widest text-amber-500 leading-none">THIẾU QUYỀN</p>
+                <p className="text-xl font-black text-amber-500 mt-1 select-none font-mono leading-none">
+                  {totalChecked > 0 ? missingPermsCount : "-"}
+                </p>
+              </div>
             </div>
-            <div className="bg-rose-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">TOKEN LỖI</p>
-              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? tokenErrorCount : "-"}
-              </p>
+
+            {/* TOKEN LỖI */}
+            <div className="bg-rose-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-rose-500/30 group">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-rose-500/20">
+                <XOctagon className="w-5 h-5 text-rose-500" />
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[9px] uppercase font-extrabold tracking-widest text-rose-500 leading-none">TOKEN LỖI</p>
+                <p className="text-xl font-black text-rose-500 mt-1 select-none font-mono leading-none">
+                  {totalChecked > 0 ? tokenErrorCount : "-"}
+                </p>
+              </div>
             </div>
-            <div className="bg-purple-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center col-span-2 md:col-span-1 transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NGHI HẠN CHẾ</p>
-              <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? restrictedCount : "-"}
-              </p>
+
+            {/* NGHI HẠN CHẾ */}
+            <div className="bg-purple-500/5 backdrop-blur-md border border-border/80 rounded-[16px] p-3.5 flex items-center gap-3.5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:border-purple-500/30 group col-span-2 md:col-span-1">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 shadow-sm transition-all group-hover:bg-purple-500/20">
+                <Info className="w-5 h-5 text-purple-500" />
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-[9px] uppercase font-extrabold tracking-widest text-purple-500 leading-none">NGHI HẠN CHẾ</p>
+                <p className="text-xl font-black text-purple-500 mt-1 select-none font-mono leading-none">
+                  {totalChecked > 0 ? restrictedCount : "-"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
