@@ -9,33 +9,7 @@ interface ThemeSettingsTabProps {
   setIsDark?: (dark: boolean) => void;
 }
 
-const PRESET_WALLPAPERS = [
-  {
-    name: "Mac OS Big Sur",
-    url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1920&q=80",
-    thumb: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=150&q=80"
-  },
-  {
-    name: "Purple Dreamscape",
-    url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80",
-    thumb: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80"
-  },
-  {
-    name: "Dark Space Stars",
-    url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80",
-    thumb: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=150&q=80"
-  },
-  {
-    name: "Mist Ocean",
-    url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80",
-    thumb: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=150&q=80"
-  },
-  {
-    name: "Minimal Mountain",
-    url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80",
-    thumb: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=150&q=80"
-  }
-];
+const DEFAULT_WALLPAPER_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80";
 
 export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
   const { config, setConfig } = useThemeConfig();
@@ -49,9 +23,19 @@ export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
   };
 
   const bgType = config.bgType || "gradient";
-  const currentImageUrl = config.bgImageUrl || PRESET_WALLPAPERS[1].url;
+  const currentImageUrl = config.bgImageUrl || DEFAULT_WALLPAPER_URL;
   const blurAmount = config.blurAmount !== undefined ? config.blurAmount : 24;
   const borderRadius = config.borderRadius !== undefined ? config.borderRadius : 20;
+
+  const addSavedImage = (imageUrl: string) => {
+    const list = config.savedBgImages || [];
+    if (!list.includes(imageUrl)) {
+      const newList = [imageUrl, ...list].slice(0, 5);
+      handleUpdate({ bgType: "image", bgImageUrl: imageUrl, savedBgImages: newList });
+    } else {
+      handleUpdate({ bgType: "image", bgImageUrl: imageUrl });
+    }
+  };
 
   // Handles raw image processing, scaling & jpeg compression for localStorage performance
   const processImageFile = (file: File) => {
@@ -104,14 +88,14 @@ export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
             ctx.drawImage(img, 0, 0, width, height);
             // High-efficiency JPEG format compressing at 55% quality (~50KB payload)
             const compressedBase64 = canvas.toDataURL("image/jpeg", 0.55);
-            handleUpdate({ bgType: "image", bgImageUrl: compressedBase64 });
+            addSavedImage(compressedBase64);
           } else {
             // Fallback to raw base64 if canvas context is unavailable
-            handleUpdate({ bgType: "image", bgImageUrl: e.target?.result as string });
+            addSavedImage(e.target?.result as string);
           }
         } catch (err) {
           console.error("Image optimization failed, using draft:", err);
-          handleUpdate({ bgType: "image", bgImageUrl: e.target?.result as string });
+          addSavedImage(e.target?.result as string);
         } finally {
           setIsProcessing(false);
         }
@@ -277,6 +261,66 @@ export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
                   >
                     Khôi phục gốc
                   </button>
+                </div>
+              </div>
+
+              {/* SAVED USER WALLPAPERS */}
+              <div className="flex flex-col gap-3 mt-3 pt-3 border-t border-white/5">
+                <span className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                  Hình nền đã tải lên của bạn:
+                </span>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {(config.savedBgImages || []).length === 0 ? (
+                    <div className="col-span-full border border-dashed border-white/10 rounded-xl py-6 px-4 text-center text-slate-550 text-[11px] select-none">
+                      Chưa có hình nền tự tải nào. Kéo thả hoặc bấm vào ô trên để tải lên.
+                    </div>
+                  ) : (
+                    (config.savedBgImages || []).map((imgUrl, idx) => {
+                      const isSelected = bgType === "image" && config.bgImageUrl === imgUrl;
+                      return (
+                        <div 
+                          key={idx}
+                          onClick={() => handleUpdate({ bgType: "image", bgImageUrl: imgUrl })}
+                          className={`group relative rounded-xl aspect-[16/10] overflow-hidden border cursor-pointer transition-all ${
+                            isSelected 
+                              ? "border-accent ring-2 ring-accent/30 shadow-md scale-102" 
+                              : "border-white/5 hover:border-white/10 opacity-70 hover:opacity-100"
+                          }`}
+                          title={`Hình ảnh tự tải ${idx + 1}`}
+                        >
+                          <img 
+                            src={imgUrl} 
+                            alt="" 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                          />
+                          {/* Remove custom wallpaper */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newList = (config.savedBgImages || []).filter((_, i) => i !== idx);
+                              const fallbackUrl = config.bgImageUrl === imgUrl 
+                                ? (newList.length > 0 ? newList[0] : DEFAULT_WALLPAPER_URL) 
+                                : config.bgImageUrl;
+                              handleUpdate({ bgImageUrl: fallbackUrl, savedBgImages: newList });
+                            }}
+                            className="absolute top-1 left-1 w-4 h-4 rounded-full bg-red-650 hover:bg-red-700 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md z-10 text-[9px]"
+                            title="Xóa ảnh"
+                          >
+                            ✕
+                          </button>
+                          
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent flex items-center justify-center text-white shadow-sm">
+                              <Check className="w-2.5 h-2.5 stroke-[3px]" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>

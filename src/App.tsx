@@ -38,7 +38,8 @@ import {
   Briefcase,
   Sun,
   Moon,
-  Loader2
+  Loader2,
+  Palette
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 import { safeFetchJson } from "./utils/safeFetchJson";
@@ -226,7 +227,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
                   onClick={() => handleSelectDay(dateStr)}
                   className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-accent text-white shadow-md border border-white/10"
+                      ? "bg-accent text-white shadow-md border border-accent/20"
                       : isToday
                       ? "bg-accent/10 text-accent ring-1 ring-accent/30 font-extrabold"
                       : isCurrentMonth
@@ -295,14 +296,14 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-1 bg-background border border-border hover:bg-muted hover:border-accent focus:border-accent rounded-xl px-2.5 h-9 text-xs outline-none text-foreground font-bold cursor-pointer transition-all select-none min-w-[70px] shadow-sm"
+        className="flex items-center justify-between gap-1.5 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-xs outline-none text-foreground font-bold cursor-pointer transition-all select-none min-w-[50px]"
       >
         <span>{selectedOption?.label}</span>
-        <ChevronRight className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90 text-accent" : ""}`} />
+        <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${isOpen ? "rotate-90 text-accent" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1.5 z-[99] w-[115px] bg-card border border-border rounded-xl shadow-lg p-1 overflow-hidden transition-all">
+        <div className="absolute right-0 top-[115%] z-[99] w-[160px] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -311,14 +312,14 @@ function CustomSelect({
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
                 value === opt.value
-                  ? "bg-accent/10 text-accent"
-                  : "text-foreground hover:bg-muted"
+                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold"
+                  : "text-foreground hover:bg-white/10"
               }`}
             >
               <span>{opt.label}</span>
-              {value === opt.value && <Check className="w-3.5 h-3.5 text-accent stroke-[3.5px]" />}
+              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px]" />}
             </button>
           ))}
         </div>
@@ -365,6 +366,13 @@ export default function App() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState<boolean>(false);
 
+  // Meta API rate limiting and Polling states
+  const [isMetaRateLimited, setIsMetaRateLimited] = useState<boolean>(false);
+  const [rateLimitUnlockTime, setRateLimitUnlockTime] = useState<number | null>(null);
+  const [jobsErrorCount, setJobsErrorCount] = useState<number>(0);
+  const [isTabVisible, setIsTabVisible] = useState<boolean>(true);
+  const [hasRunningJobs, setHasRunningJobs] = useState<boolean>(false);
+
   // Filters State
   const [filters, setFilters] = useState<FilterCriteria>({
     olderThanDays: 30,
@@ -374,8 +382,8 @@ export default function App() {
     enableDateRange: false,
     keyword: "",
     enableKeyword: false,
-    maxPostsToFetch: 1000,
-    maxPostsToShow: 1000,
+    maxPostsToFetch: 100,
+    maxPostsToShow: 300,
     timeRangePreset: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
@@ -481,13 +489,197 @@ export default function App() {
     return false;
   };
 
-  // Custom log adder helper
+  // Listen to tab visibility to optimize polling
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(document.visibilityState === "visible");
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  // Poll /api/jobs/active dynamically matching user's specific constraints (Requirement 6)
+  useEffect(() => {
+    if (jobsErrorCount >= 3) return;
+
+    let timerId: any = null;
+
+    const performPoll = async () => {
+      try {
+        const res = await fetch("/api/jobs/active");
+        if (!res.ok) {
+          throw new Error(`HTTP Error ${res.status}`);
+        }
+        const data = await res.json();
+        
+        // Reset error count on successful communication
+        setJobsErrorCount(0);
+
+        // Check if there are active jobs
+        const running = !!(data && data.activeJobsCount && data.activeJobsCount > 0);
+        setHasRunningJobs(running);
+      } catch (err: any) {
+        setJobsErrorCount(prev => {
+          const nextVal = prev + 1;
+          if (nextVal >= 3) {
+            addLog("system", `Đã dừng kiểm tra trạng thái tiến trình nền do API báo lỗi 3 lần liên tiếp: ${err.message}`, "failed");
+          }
+          return nextVal;
+        });
+      }
+    };
+
+    // Determine poll interval dynamically based on requirements
+    let currentInterval = 25000; // default 20-30s when no jobs are running
+
+    if (!isTabVisible) {
+      currentInterval = 60000; // max 60s when tab is hidden
+    } else if (hasRunningJobs) {
+      currentInterval = 2000; // 2s when job is running
+    }
+
+    const runLoop = () => {
+      performPoll().finally(() => {
+        timerId = setTimeout(runLoop, currentInterval);
+      });
+    };
+
+    timerId = setTimeout(runLoop, currentInterval);
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [hasRunningJobs, isTabVisible, jobsErrorCount]);
+
+  // Meta Rate Limit Count down timer (Requirement 1)
+  useEffect(() => {
+    if (!rateLimitUnlockTime) return;
+    const interval = setInterval(() => {
+      if (Date.now() >= rateLimitUnlockTime) {
+        setIsMetaRateLimited(false);
+        setRateLimitUnlockTime(null);
+        addLog("system", "Hết thời gian tạm khoá 10 phút. Bạn có thể tiếp tục thực hiện quét bài viết.", "success");
+        toast.success("Hệ thống đã tự động mở khóa giới hạn Meta API. Bạn có thể quét tiếp.", "Đã mở khóa");
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [rateLimitUnlockTime]);
+
+  const triggerMetaRateLimit = () => {
+    setIsMetaRateLimited(true);
+    setRateLimitUnlockTime(Date.now() + 10 * 60 * 1000); // 10 minutes
+    addLog("system", "ỨNG DỤNG ĐÃ CHẠM GIỚI HẠN REQUEST CỦA META. TẠM KHÓA TOÀN BỘ YÊU CẦU TRONG 10 PHÚT.", "failed");
+    toast.error("Ứng dụng bị tạm khóa quét trong 10 phút do chạm giới hạn API của Meta.", "Chạm giới hạn Meta");
+  };
+
+  const checkAndWarnUsage = (info: any, pageName: string) => {
+    if (!info) return;
+
+    const parseMaxPercentage = (headerVal: any): number => {
+      if (!headerVal) return 0;
+      try {
+        if (typeof headerVal === "string") {
+          if (headerVal.startsWith("{")) {
+            const parsed = JSON.parse(headerVal);
+            let maxPct = 0;
+            for (const key in parsed) {
+              const val = parseFloat(parsed[key]);
+              if (!isNaN(val) && val > maxPct) {
+                maxPct = val;
+              }
+            }
+            return maxPct;
+          } else {
+            const val = parseFloat(headerVal);
+            return isNaN(val) ? 0 : val;
+          }
+        } else if (typeof headerVal === "object") {
+          let maxPct = 0;
+          for (const key in headerVal) {
+            const val = parseFloat(headerVal[key]);
+            if (!isNaN(val) && val > maxPct) {
+              maxPct = val;
+            }
+          }
+          return maxPct;
+        }
+      } catch (e) {
+        // ignored
+      }
+      return 0;
+    };
+
+    const appPct = parseMaxPercentage(info.appUsage);
+    const pagePct = parseMaxPercentage(info.pageUsage);
+    const bizPct = parseMaxPercentage(info.businessUsage);
+
+    const maxPct = Math.max(appPct, pagePct, bizPct);
+
+    if (maxPct > 80) {
+      addLog("system", `Cảnh báo sử dụng API trên "${pageName}": ${maxPct.toFixed(1)}% (vượt mức cho phép 80%). Tự động dừng để đảm bảo an toàn.`, "skipped");
+      toast.warning(`Tự động tạm dừng quét vì mức sử dụng API Meta của trang "${pageName}" đạt ${maxPct.toFixed(0)}%.`, "Nguy cơ giới hạn");
+      scanCancelledRef.current = true;
+    }
+  };
+
+  // Dedicated fetch with exponential backoff & Rate Limit detection compliance (Requirement 2 & 10)
+  const fetchWithBackoff = async (url: string, options: any = {}, retryCount = 0): Promise<any> => {
+    if (isMetaRateLimited) {
+      throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
+    }
+
+    try {
+      const data = await safeFetchJson(url, options);
+
+      if (data && data.error) {
+        const errorMsg = data.error?.message || data.error || "";
+        const errorCode = data.errorCode || data.error?.code;
+
+        if (errorCode === 4 || errorMsg.toLowerCase().includes("application request limit reached")) {
+          triggerMetaRateLimit();
+          throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
+        }
+      }
+      return data;
+    } catch (err: any) {
+      const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
+      const errMsg = err.message || "";
+
+      if (errCode === 4 || errMsg.toLowerCase().includes("application request limit reached")) {
+        triggerMetaRateLimit();
+        throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
+      }
+
+      // Max 3 retries
+      if (retryCount >= 3) {
+        throw err;
+      }
+
+      // Backoff intervals: 5s, 15s, 60s
+      const backoffDelays = [5000, 15000, 60000];
+      const backoffDelay = backoffDelays[retryCount] || 60000;
+
+      addLog("system", `Có lỗi xảy ra: ${errMsg}. Đang thử lại lần ${retryCount + 1}/3 sau ${backoffDelay / 1000} giây...`, "processing");
+      await new Promise(resolve => setTimeout(resolve, backoffDelay));
+
+      return fetchWithBackoff(url, options, retryCount + 1);
+    }
+  };
+
+  // Custom log adder helper with access token filter (Requirement 11)
   const addLog = (postId: string, message: string, status: DeletionLog["status"]) => {
     const timeString = new Date().toLocaleTimeString("vi-VN");
+    // Sanitary function to wipe credentials
+    const sanitizeMessage = (msg: string): string => {
+      if (!msg) return "";
+      return msg.replace(/(access_token|token|user_token|userToken)=[^&/\s"']+/gi, "$1=[HIDDEN]");
+    };
+    const sanitizedMsg = sanitizeMessage(message);
+
     const newLog: DeletionLog = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).substring(2, 9),
       postId,
-      postMessageSnippet: message,
+      postMessageSnippet: sanitizedMsg,
       pageName: "Hệ thống",
       status,
       timestamp: timeString
@@ -626,9 +818,27 @@ export default function App() {
     }
   };
 
-  // Fetch listed Pages
-  const fetchPages = async (tokenToUse?: string) => {
+  // Fetch listed Pages with cache tracking (Requirement 7)
+  const fetchPages = async (tokenToUse?: string, forceRefresh = false) => {
     const activeToken = tokenToUse || userToken;
+
+    // Check Cache first if not forcing refresh
+    if (!forceRefresh) {
+      const cachedPagesStr = sessionStorage.getItem("meta_cached_pages");
+      if (cachedPagesStr) {
+        try {
+          const cachedPages = JSON.parse(cachedPagesStr);
+          if (cachedPages && cachedPages.length > 0) {
+            setPages(cachedPages);
+            addLog("system", `[Cache] Tải thành công ${cachedPages.length} Fanpages quản lý từ bộ nhớ đệm.`, "success");
+            return;
+          }
+        } catch (e) {
+          // parse failed, fetch fresh
+        }
+      }
+    }
+
     setLoadingPages(true);
     setApiError(null);
     addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /api/pages...", "pending");
@@ -638,9 +848,19 @@ export default function App() {
       if (activeToken) {
         urlParams.append("user_token", activeToken);
       }
-      const data = await safeFetchJson(`/api/pages?${urlParams.toString()}`);
+      
+      // Use our fetchWithBackoff for pages loading (Requirement 2 & 10)
+      const data = await fetchWithBackoff(`/api/pages?${urlParams.toString()}`);
+
+      if (data && data.rateLimitInfo) {
+        checkAndWarnUsage(data.rateLimitInfo, "Danh sách Trang");
+      }
 
       if (data.error) {
+        if (data.errorCode === 4) {
+          triggerMetaRateLimit();
+          return;
+        }
         setApiError(data.error);
         addLog("system", `Lỗi API lấy trang: ${data.error}`, "failed");
         if (!handleAuthError(data.error)) {
@@ -651,7 +871,9 @@ export default function App() {
 
       if (data.data) {
         setPages(data.data);
-        addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý.`, "success");
+        // Cache to sessionStorage
+        sessionStorage.setItem("meta_cached_pages", JSON.stringify(data.data));
+        addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý từ Meta API và lưu vào bộ đệm.`, "success");
         toast.success(`Đã tải thành công ${data.data.length} Fanpages quản lý.`, "Tải Fanpage");
       } else {
         setPages([]);
@@ -659,6 +881,12 @@ export default function App() {
         toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
+      const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
+      if (errCode === 4 || err.message?.includes("giới hạn request")) {
+        triggerMetaRateLimit();
+        return;
+      }
+
       setApiError(err.message);
       addLog("system", `Lỗi tải danh sách Fanpage: ${err.message}`, "failed");
       if (!handleAuthError(err.message)) {
@@ -676,38 +904,62 @@ export default function App() {
     }
   }, [userToken]);
 
-  // Fetch posts from SELECTED pages
-  const fetchPostsFromSelectedPages = async () => {
+  // Fetch posts from SELECTED pages with concurrency and cache (Requirement 3, 7, 8, 9, 10 & 2)
+  const fetchPostsFromSelectedPages = async (forceRefresh = false) => {
     if (selectedPageIds.length === 0) {
       addLog("system", "Yêu cầu hành động thất bại: Vui lòng tích chọn ít nhất 1 Fanpage bên cột Trái.", "skipped");
       toast.warning("Yêu cầu hành động thất bại: Vui lòng tích chọn ít nhất 1 Fanpage bên cột Trái.", "Chưa chọn Fanpage");
       return;
     }
 
+    if (isMetaRateLimited) {
+      const remainingSec = Math.ceil(((rateLimitUnlockTime || 0) - Date.now()) / 1000);
+      toast.error(`Ứng dụng đang trong thời gian tạm khóa 10 phút do giới hạn của Meta. Vui lòng chờ ${remainingSec > 0 ? remainingSec : 0}s nữa.`, "Giới hạn Request");
+      return;
+    }
+
     setLoadingPosts(true);
     setApiError(null);
-    setPosts([]);
     setSelectedPostIds([]);
     scanCancelledRef.current = false;
     addLog("system", `Bắt đầu tải các bài viết từ ${selectedPageIds.length} Fanpage đã chọn...`, "pending");
-    toast.info(`Bắt đầu tải và quét các bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết");
+    toast.info(`Bắt đầu tải bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết");
 
     let allFetchedPosts: FacebookPost[] = [];
     setScanProgress({ current: 0, total: selectedPageIds.length, currentPageName: "Đang khởi tạo..." });
 
+    const pageIdQueue = [...selectedPageIds];
+    const maxConcurrency = 2; // Tối đa 2 Page được quét cùng lúc (Requirement 3)
     let index = 0;
-    for (const pageId of selectedPageIds) {
-      if (scanCancelledRef.current) {
-        addLog("system", `Đã dừng quét theo yêu cầu của người dùng tại bước ${index}/${selectedPageIds.length}.`, "skipped");
-        toast.warning("Đã dừng quá trình quét bài viết theo yêu cầu.", "Hủy quét");
-        break;
-      }
+
+    const scanSinglePage = async (pageId: string) => {
+      if (scanCancelledRef.current || isMetaRateLimited) return;
 
       const pageInfo = pages.find(p => p.id === pageId);
-      if (!pageInfo) continue;
+      if (!pageInfo) return;
 
-      setScanProgress({ current: index, total: selectedPageIds.length, currentPageName: pageInfo.name });
-      addLog("system", `Đang đọc bài viết từ Page: "${pageInfo.name}"...`, "processing");
+      const currentIdx = index++;
+      setScanProgress(p => ({ ...p, current: currentIdx, currentPageName: pageInfo.name }));
+
+      // Check Cache first if not forcing refresh (Requirement 7)
+      if (!forceRefresh) {
+        const cachedPostsStr = sessionStorage.getItem(`meta_posts_cache_${pageId}`);
+        if (cachedPostsStr) {
+          try {
+            const cachedPostsList = JSON.parse(cachedPostsStr);
+            if (Array.isArray(cachedPostsList) && cachedPostsList.length > 0) {
+              allFetchedPosts = [...allFetchedPosts, ...cachedPostsList];
+              addLog("system", `[Cache] Tải thành công ${cachedPostsList.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
+              return;
+            }
+          } catch (e) {
+            // cache invalid, fetch fresh
+          }
+        }
+      }
+
+      // Fresh fetch (Requirement 9)
+      addLog("system", `[Meta API] Đang tải trực tiếp bài viết từ Page: "${pageInfo.name}"...`, "processing");
 
       try {
         const urlParams = new URLSearchParams();
@@ -716,14 +968,20 @@ export default function App() {
         if (pageInfo.access_token) {
           urlParams.append("user_token", pageInfo.access_token);
         }
-        
-        const data = await safeFetchJson(`/api/posts?${urlParams.toString()}`);
+
+        const data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
+
+        if (data && data.rateLimitInfo) {
+          checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
+        }
 
         if (data.error) {
+          if (data.errorCode === 4) {
+            triggerMetaRateLimit();
+            return;
+          }
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
-          index++;
-          setScanProgress(p => ({ ...p, current: index }));
-          continue;
+          return;
         }
 
         if (data.data && data.data.length > 0) {
@@ -744,11 +1002,20 @@ export default function App() {
           }));
 
           allFetchedPosts = [...allFetchedPosts, ...mapped];
-          addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}".`, "success");
+          
+          // Cache posts list (Requirement 7)
+          sessionStorage.setItem(`meta_posts_cache_${pageId}`, JSON.stringify(mapped));
+          addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}" và lưu vào bộ nhớ đệm.`, "success");
         } else {
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
         }
       } catch (err: any) {
+        const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
+        if (errCode === 4 || err.message?.includes("giới hạn request")) {
+          triggerMetaRateLimit();
+          return;
+        }
+
         if (err.responseJson && err.responseJson.isDetailedError) {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
@@ -763,15 +1030,23 @@ export default function App() {
           }
         }
       }
+    };
 
-      index++;
-      setScanProgress(p => ({ ...p, current: index, currentPageName: `Đã xong: ${pageInfo.name}` }));
-    }
+    // Worker queue pattern execution
+    const worker = async () => {
+      while (pageIdQueue.length > 0 && !scanCancelledRef.current && !isMetaRateLimited) {
+        const pageId = pageIdQueue.shift()!;
+        await scanSinglePage(pageId);
+      }
+    };
 
-    // Sort all selected posts by created_time desc
+    const spawnCount = Math.min(maxConcurrency, pageIdQueue.length);
+    const workers = Array.from({ length: spawnCount }, () => worker());
+    await Promise.all(workers);
+
+    // Sort and Deduplicate
     allFetchedPosts.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
 
-    // Deduplicate posts by ID to prevent duplicate key rendering warnings
     const uniquePostsMap = new Map<string, FacebookPost>();
     for (const p of allFetchedPosts) {
       if (!uniquePostsMap.has(p.id)) {
@@ -782,7 +1057,9 @@ export default function App() {
 
     setPosts(uniquePosts);
     setLoadingPosts(false);
-    addLog("system", `Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết hợp lệ (đã loại bỏ trùng lặp).`, "success");
+    setScanProgress(p => ({ ...p, current: selectedPageIds.length, currentPageName: "Hoàn tất!" }));
+
+    addLog("system", `Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết hợp lệ.`, "success");
     if (uniquePosts.length > 0) {
       toast.success(`Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết khác nhau.`, "Đã quét xong");
     } else {
@@ -1038,7 +1315,7 @@ export default function App() {
       <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-3 md:gap-4 overflow-hidden min-h-0 flex-1">
       
         {/* LEFT COMPACT/MAIN NAVIGATION SIDEBAR */}
-        <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-5 shadow-lg relative z-30 h-auto md:h-full overflow-y-auto rounded-[24px] border border-white/[0.08] ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
+        <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-5 shadow-lg relative z-30 h-auto md:h-full overflow-y-auto rounded-[24px] border border-transparent ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
           {/* Logo & Branding */}
           <div className="flex items-center gap-3 w-full justify-between select-none px-1">
             <div 
@@ -1080,24 +1357,24 @@ export default function App() {
                    addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
                  }}
                  title={isSidebarCollapsed ? "Bài viết" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
                    activeTab === "posts"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
                      : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
                  }`}
               >
                 {activeTab === "posts" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
                   activeTab === "posts"
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                    : "bg-emerald-500/10 text-emerald-400/80 border-emerald-500/10 group-hover:bg-emerald-500/20 group-hover:text-emerald-400"
+                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
+                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
                 }`}>
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
                 {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-emerald-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "posts" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
                     Bài viết
                   </span>
                 )}
@@ -1112,24 +1389,24 @@ export default function App() {
                    addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
                  }}
                  title={isSidebarCollapsed ? "Trạng thái API" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
                    activeTab === "status"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
                      : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
                  }`}
               >
                 {activeTab === "status" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
                   activeTab === "status"
-                    ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                    : "bg-blue-500/10 text-blue-400/80 border-blue-500/10 group-hover:bg-blue-500/20 group-hover:text-blue-400"
+                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
+                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
                 }`}>
-                  <Activity className="w-4 h-4" />
+                  <Activity className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
                 {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-blue-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "status" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
                     Trạng thái API
                   </span>
                 )}
@@ -1144,24 +1421,24 @@ export default function App() {
                    addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
                  }}
                  title={isSidebarCollapsed ? "Quản trị viên" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
                    activeTab === "admins"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
                      : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
                  }`}
               >
                 {activeTab === "admins" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
                   activeTab === "admins"
-                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                    : "bg-purple-500/10 text-purple-400/80 border-purple-500/10 group-hover:bg-purple-500/20 group-hover:text-purple-400"
+                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
+                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
                 }`}>
-                  <Users className="w-4 h-4" />
+                  <Users className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
                 {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-purple-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "admins" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
                     Quản trị viên
                   </span>
                 )}
@@ -1174,7 +1451,7 @@ export default function App() {
           {/* Group 2: System Settings / Utilities */}
           <div className="flex flex-col gap-3">
             {!isSidebarCollapsed && (
-              <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
+              <span className="hidden sm:block px-2 text-[10px] font-extrabold tracking-widest text-slate-500 uppercase select-none font-sans">
                 Hệ thống
               </span>
             )}
@@ -1189,50 +1466,53 @@ export default function App() {
                    addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
                  }}
                  title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
                    activeTab === "theme"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
                      : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
                  }`}
               >
                 {activeTab === "theme" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
                   activeTab === "theme"
-                    ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                    : "bg-amber-500/10 text-amber-500/10 border-amber-500/10 group-hover:bg-amber-500/20 group-hover:text-amber-450"
+                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
+                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
                 }`}>
-                  <Settings className="w-4 h-4" />
+                  <Palette className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
                 {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-amber-450 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "theme" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
                     Tuỳ biến
                   </span>
                 )}
               </button>
 
-              {/* Nút cài đặt API (Bỏ gradient, tạo viên thuốc mờ tinh tế) */}
+              {/* Nút cài đặt API */}
               <button 
                 id="btn-settings"
                 type="button"
                 onClick={() => setShowConfig(!showConfig)}
-                className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
                   showConfig 
-                    ? "bg-[#1877F2]/15 border-[#1877F2]/30 text-white" 
+                    ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm" 
                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
                 }`}
                 title={isSidebarCollapsed ? "Cài đặt API" : undefined}
               >
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                {showConfig && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
                   showConfig 
-                    ? "bg-slate-400/20 border-slate-400/30 text-white" 
-                    : "bg-white/[0.03] border-white/[0.06] text-slate-400 group-hover:text-white"
+                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
+                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
                 }`}>
-                  <Settings className="w-4 h-4 text-slate-300" />
+                  <Settings className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
                 </div>
                 {!isSidebarCollapsed && (
-                  <span className="hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap text-slate-300 group-hover:text-white">
+                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${showConfig ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
                     Cài đặt API
                   </span>
                 )}
@@ -1245,18 +1525,18 @@ export default function App() {
             {/* Connection status indicator (Đèn nhấp nháy) */}
             {userToken ? (
               <div className={`flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
-                <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-white/50"></span>
+                <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-emerald-500/40"></span>
                 {!isSidebarCollapsed && <span className="font-mono">Đã kết nối</span>}
               </div>
             ) : (
               <div className={`flex bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
-                <span className="w-2   h-2 shrink-0 bg-amber-500 rounded-full animate-ping border border-white/50"></span>
+                <span className="w-2 h-2 shrink-0 bg-amber-500 rounded-full animate-ping border border-amber-500/40"></span>
                 {!isSidebarCollapsed && <span className="font-mono text-[11px]">Cần đăng nhập</span>}
               </div>
             )}
 
             {/* User credentials & Sync status */}
-            <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] transition-all duration-300 overflow-hidden">
+            <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-transparent hover:border-slate-800 transition-all duration-300 overflow-hidden">
               <div className="relative shrink-0 select-none">
                 <img 
                   src={userToken ? "https://graph.facebook.com/v19.0/me/picture?access_token=" + userToken : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} 
@@ -1312,6 +1592,22 @@ export default function App() {
             </div>
           )}
 
+          {/* META RATE LIMIT ALERT BANNER */}
+          {isMetaRateLimited && (
+            <div className="mb-3 backdrop-blur-md bg-red-500/15 border-l-4 border-red-500 p-3.5 rounded-r-xl flex items-start gap-3 text-red-150 shadow-lg shrink-0 relative z-20">
+              <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5 animate-pulse" />
+              <div className="text-xs flex-1">
+                <span className="font-extrabold uppercase tracking-wider block text-[11px] text-red-400 mb-0.5">Giới hạn yêu cầu của Meta</span>
+                <p className="font-medium text-[12px]">Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.</p>
+                {rateLimitUnlockTime && (
+                  <span className="text-[10px] text-red-400 font-mono mt-1 block">
+                    Khóa tạm thời đến: {new Date(rateLimitUnlockTime).toLocaleTimeString("vi-VN")} ( Còn khoảng {Math.ceil((rateLimitUnlockTime - Date.now()) / 1000)} giây)
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* MAIN CONTAINER */}
           <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3.5 items-stretch overflow-hidden">
         
@@ -1349,7 +1645,7 @@ export default function App() {
                   className={`flex-1 py-2 px-2 rounded-xl text-[10px] uppercase font-bold border transition-all flex items-center justify-center gap-1 ${
                     selectedPageIds.length === pages.length
                       ? "btn-primary shadow-accent"
-                      : "bg-muted text-muted-foreground border-transparent hover:bg-border"
+                      : "bg-[#252a37] text-slate-100 border-[#3b4354]/60 hover:bg-[#343b4e] hover:text-white"
                   }`}
                 >
                   <Check className={`w-3 h-3 stroke-[3px] ${selectedPageIds.length === pages.length ? "text-white" : ""}`} />
@@ -1361,7 +1657,7 @@ export default function App() {
                     setSelectedPageIds([]);
                     addLog("system", "Đã hủy chọn toàn bộ các Fanpage.", "success");
                   }}
-                  className="flex-1 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100/50 rounded-xl text-[10px] uppercase font-bold transition-all text-center"
+                  className="flex-1 py-2 px-2 bg-rose-700 hover:bg-rose-600 text-white border border-rose-600/20 rounded-xl text-[10px] uppercase font-bold transition-all text-center cursor-pointer shadow-md shadow-black/20"
                 >
                   Bỏ chọn hết
                 </button>
@@ -1504,16 +1800,16 @@ export default function App() {
                     
                     {/* Filter: Date Range Selection / Dropdown */}
                     <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
-                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-background hover:bg-muted border border-border rounded-xl transition-all h-10 w-full shadow-sm">
-                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider select-none shrink-0 border-r border-border pr-2">
-                          Thời gian
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 w-full shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                          thời gian
                         </span>
                         
                         <div 
-                          className="relative h-7 px-3 flex items-center justify-between gap-2 cursor-pointer min-w-[120px] hover:text-accent transition-colors"
+                          className="relative h-7 pl-1.5 pr-1 flex items-center justify-between gap-2 cursor-pointer min-w-[110px] hover:text-accent transition-colors flex-1"
                           onClick={() => setShowTimeDropdown(!showTimeDropdown)}
                         >
-                          <span className="text-xs font-semibold text-foreground truncate">
+                          <span className="text-xs font-bold text-foreground truncate group-hover:text-accent transition-colors">
                             {filters.timeRangePreset === "today" && "Hôm nay"}
                             {filters.timeRangePreset === "week" && "Tuần này"}
                             {filters.timeRangePreset === "month" && "Tháng này"}
@@ -1521,7 +1817,7 @@ export default function App() {
                             {filters.timeRangePreset === "all" && "Tất cả"}
                             {filters.timeRangePreset === "custom" && "Tuỳ chỉnh..."}
                           </span>
-                          <span className="text-muted-foreground text-[10px]">▼</span>
+                          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${showTimeDropdown ? "rotate-90 text-accent" : ""}`} />
                         </div>
                         
                         {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
@@ -1542,7 +1838,7 @@ export default function App() {
                       {/* Dropdown Menu */}
                       {showTimeDropdown && (
                         <>
-                          <div className="absolute top-[110%] left-0 right-0 z-[100] bg-card border border-border rounded-xl shadow-lg p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
+                          <div className="absolute top-[115%] left-0 right-0 z-[100] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 min-w-[200px] ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
                             {[
                               { id: "today", label: "Hôm nay" },
                               { id: "week", label: "Tuần này" },
@@ -1553,10 +1849,10 @@ export default function App() {
                             ].map((preset) => (
                               <button
                                 key={preset.id}
-                                className={`text-left px-3 py-2.5 text-xs font-semibold rounded-lg transition-all ${
+                                className={`text-left px-3.5 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
                                   filters.timeRangePreset === preset.id 
-                                    ? "btn-primary shadow-accent text-white" 
-                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold" 
+                                    : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
                                 }`}
                                 onClick={() => {
                                   const val = preset.id;
@@ -1608,21 +1904,20 @@ export default function App() {
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-background hover:bg-muted border border-border rounded-xl transition-all h-10 shrink-0 shadow-sm text-foreground">
-                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 select-none shrink-0 border-r border-border pr-2">
-                        Tải
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 shrink-0 shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group text-foreground">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                        tải
                       </span>
                       <div className="flex items-center gap-1">
                         <CustomSelect
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
                           options={[
-                            { value: 10, label: "10" },
                             { value: 50, label: "50" },
                             { value: 100, label: "100" },
-                            { value: 250, label: "250" },
-                            { value: 500, label: "500" },
-                            { value: 1000, label: "1000" }
+                            { value: 150, label: "150 (Tải thêm)" },
+                            { value: 200, label: "200 (Tải thêm)" },
+                            { value: 300, label: "300 (Tối đa)" }
                           ]}
                         />
                       </div>
@@ -1711,7 +2006,7 @@ export default function App() {
                   setPostListContainerHeight(target.clientHeight);
                 }
               }}
-              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-white/20 rounded-b-[24px] shadow-sm"
+              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-border rounded-b-[24px] shadow-sm"
             >
               {loadingPosts ? (
                 <div className="flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[300px] py-6 max-w-md mx-auto">
@@ -1753,7 +2048,7 @@ export default function App() {
                       scanCancelledRef.current = true;
                       addLog("system", "Đang gửi yêu cầu dừng quét...", "pending");
                     }}
-                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-[10px] font-bold transition-all shadow-sm cursor-pointer select-none"
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 text-[10px] font-bold transition-all shadow-sm cursor-pointer select-none"
                   >
                     <XOctagon className="w-3.5 h-3.5 shrink-0" />
                     Dừng quét ngay
@@ -1830,7 +2125,7 @@ export default function App() {
                                     ? "bg-rose-500/10 border-rose-500/40 shadow-[0_4px_12px_rgba(239,68,68,0.15)] animate-pulse cursor-wait"
                                     : isChecked 
                                       ? "bg-accent/15 border-accent/40 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md cursor-pointer" 
-                                      : "bg-background/20 backdrop-blur-md border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 hover:border-white/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer"
+                                      : "bg-background/20 backdrop-blur-md border-border/30 dark:border-slate-800/40 hover:bg-white/5 dark:hover:bg-white/5 hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer"
                                 }`}
                               >
                                 {/* Checkbox / Loading Spinner */}
@@ -1916,7 +2211,7 @@ export default function App() {
                                       href={post.permalink_url} 
                                       target="_blank" 
                                       rel="noreferrer" 
-                                      className="text-[10px] text-blue-500 font-bold hover:text-blue-600 hover:underline flex items-center justify-center p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+                                      className="text-[10px] text-blue-400 font-bold hover:text-blue-300 flex items-center justify-center p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/15 transition-colors"
                                     >
                                       <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
@@ -1976,9 +2271,9 @@ export default function App() {
                   <button
                     id="btn-load-posts"
                     type="button"
-                    onClick={fetchPostsFromSelectedPages}
-                    disabled={selectedPageIds.length === 0 || loadingPosts}
-                    className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow-md"
+                    onClick={() => fetchPostsFromSelectedPages(true)}
+                    disabled={selectedPageIds.length === 0 || loadingPosts || isMetaRateLimited}
+                    className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow"
                   >
                     <RotateCw className={`w-3.5 h-3.5 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
                     Tải bài viết
@@ -1989,13 +2284,13 @@ export default function App() {
                     type="button"
                     onClick={() => setShowConfirmModal(true)}
                     disabled={selectedPostIds.length === 0 || isDeleting}
-                    className={`flex-1 py-2.5 rounded-full font-black text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 select-none active:scale-95 border ${
+                    className={`flex-1 py-2.5 rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 border ${
                       selectedPostIds.length > 0 
-                        ? 'bg-rose-500 hover:bg-rose-600 text-white border-transparent shadow-[0_4px_16px_rgba(244,63,94,0.45)] hover:shadow-[0_6px_22px_rgba(244,63,94,0.65)] hover:scale-[1.04] ring-2 ring-rose-500/30 cursor-pointer' 
-                        : 'bg-muted/40 text-muted-foreground/50 border-transparent opacity-40 cursor-not-allowed'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white border-transparent cursor-pointer shadow-md shadow-rose-950/25' 
+                        : 'bg-muted/40 text-muted-foreground/40 border-transparent opacity-40 cursor-not-allowed'
                     }`}
                   >
-                    <Trash2 className={`w-3.5 h-3.5 shrink-0 ${selectedPostIds.length > 0 ? "animate-bounce" : ""}`} />
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
                     {selectedPostIds.length > 0 ? `Xóa bài viết (${selectedPostIds.length})` : "Xóa bài viết"}
                   </button>
                 </div>
@@ -2010,7 +2305,7 @@ export default function App() {
                           deleteCancelledRef.current = true;
                           addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
                         }}
-                        className="w-full py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white border-transparent text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-rose-500/20"
+                        className="w-full py-2.5 rounded-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600/50 text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-sm"
                       >
                         Dừng xóa
                       </button>
@@ -2022,7 +2317,7 @@ export default function App() {
                           scanCancelledRef.current = true;
                           addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
                         }}
-                        className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white border-transparent text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
+                        className="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600/50 text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-sm"
                       >
                         Dừng nạp
                       </button>
@@ -2031,10 +2326,10 @@ export default function App() {
                 )}
               </div>
 
-              <div className="bg-rose-50 border border-rose-200 p-2.5 rounded-xl flex items-start gap-2 text-rose-600">
+              <div className="bg-rose-950/10 border border-rose-500/20 p-2.5 rounded-xl flex items-start gap-2 text-rose-400">
                 <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div className="text-[10px] font-medium leading-relaxed">
-                  <span className="font-bold text-rose-600 uppercase block mb-0.5">Lưu ý:</span>
+                  <span className="font-bold text-rose-500 uppercase block mb-0.5">Lưu ý:</span>
                   Xóa bài viết là VĨNH VIỄN.
                 </div>
               </div>
@@ -2286,7 +2581,7 @@ export default function App() {
       {showConfirmModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border p-6 md:p-8 rounded-[40px] shadow-2xl w-full max-w-[480px] text-center">
-            <div className="w-16 h-16 bg-rose-50 border border-rose-100 text-rose-500 rounded-[20px] flex items-center justify-center mx-auto mb-5 shadow-sm transform -rotate-6">
+            <div className="w-16 h-16 bg-rose-950/20 border border-rose-500/25 text-rose-400 rounded-[20px] flex items-center justify-center mx-auto mb-5 shadow-inner transform -rotate-6">
               <Trash2 className="w-8 h-8" />
             </div>
 
@@ -2294,18 +2589,18 @@ export default function App() {
               Xác nhận hủy hoại vĩnh viễn?
             </h2>
             <p className="text-[13px] text-muted-foreground leading-relaxed mb-6">
-              Bạn đang chuẩn bị tiến hành xóa hàng loạt <b className="text-rose-600 font-mono text-sm bg-rose-50 px-1.5 py-0.5 rounded shadow-sm">{selectedPostIds.length} bài đăng</b> khỏi các Fanpage. Hành động này sẽ triệt tiêu vĩnh viễn toàn bộ lượt Thích, Bình luận, và Chia sẻ đi kèm.
+              Bạn đang chuẩn bị tiến hành xóa hàng loạt <b className="text-rose-400 font-mono text-sm bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-500/15">{selectedPostIds.length} bài đăng</b> khỏi các Fanpage. Hành động này sẽ triệt tiêu vĩnh viễn toàn bộ lượt Thích, Bình luận, và Chia sẻ đi kèm.
             </p>
 
             {/* Checkbox safety safeguard constraint (confirm=true requirement) */}
-            <div className="bg-rose-50 border border-rose-100 p-4 rounded-[20px] text-left mb-6 shadow-sm">
+            <div className="bg-rose-950/10 border border-rose-500/20 p-4 rounded-[20px] text-left mb-6 shadow-sm">
               <label className="flex items-start gap-3 cursor-pointer select-none">
                 <div 
                   onClick={() => setDoubleConfirm(!doubleConfirm)}
-                  className={`mt-0.5 w-5 h-5 rounded-[6px] flex items-center justify-center border-2 transition-all cursor-pointer shrink-0 ${
+                  className={`mt-0.5 w-5 h-5 rounded-[6px] flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
                     doubleConfirm 
-                      ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20" 
-                      : "border-border hover:border-rose-300 bg-background"
+                      ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-950/45" 
+                      : "border-border hover:border-rose-550 bg-background"
                   }`}
                 >
                   {doubleConfirm && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
@@ -2317,7 +2612,7 @@ export default function App() {
                   onChange={(e) => setDoubleConfirm(e.target.checked)}
                   className="sr-only"
                 />
-                <div className="text-[12px] text-rose-700 leading-relaxed font-semibold">
+                <div className="text-[12px] text-rose-400 leading-relaxed font-semibold">
                   <span>Tôi hiểu đây là quyết định một chiều, không thể khôi phục và đồng ý xóa các bài viết đã chọn.</span>
                 </div>
               </label>
@@ -2330,7 +2625,7 @@ export default function App() {
                   setShowConfirmModal(false);
                   setDoubleConfirm(false);
                 }}
-                className="flex-1 py-3.5 bg-muted hover:bg-muted/80 text-foreground rounded-full font-bold text-[13px] transition-all border border-border shadow-sm"
+                className="flex-1 py-3.5 bg-muted hover:bg-muted/80 text-foreground rounded-full font-bold text-[13px] transition-all border border-border shadow-sm cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -2339,7 +2634,7 @@ export default function App() {
                 id="btn-confirm-delete"
                 onClick={executeBatchDeletion}
                 disabled={!doubleConfirm}
-                className="flex-1 py-3.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full font-bold text-[13px] shadow-md shadow-[0_4px_16px_rgba(244,63,94,0.35)] hover:shadow-[0_6px_22px_rgba(244,63,94,0.55)] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold text-[13px] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-rose-950/15"
               >
                 Xác nhận xóa
               </button>
