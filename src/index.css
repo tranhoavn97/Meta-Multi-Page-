@@ -5,176 +5,196 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+:root {
+  /* Dark Mode Default colors (Apple Dark Material) */
+  --bg-main: #000000;
+  --bg-surface: rgba(28, 28, 30, 0.45);
+  --bg-surface-hover: rgba(44, 44, 46, 0.5);
+  --bg-sidebar: rgba(20, 20, 22, 0.7);
+  --bg-card: rgba(28, 28, 30, 0.5);
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --bg-input-focus: rgba(255, 255, 255, 0.08);
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-focus: #0a84ff;
+  --text-primary: #f5f5f7;
+  --text-secondary: #86868b;
+  --accent-blue: #0a84ff;
+  --accent-blue-hover: #2f96ff;
+  --accent-green: #30d158;
+  --accent-red: #ff453a;
+  --accent-orange: #ff9f0a;
+  --bg-toast: rgba(30, 30, 32, 0.85);
+  --shadow-main: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.light-theme {
+  /* Light Mode values (Apple Light Material) */
+  --bg-main: #f5f5f7;
+  --bg-surface: rgba(255, 255, 255, 0.65);
+  --bg-surface-hover: rgba(240, 240, 243, 0.8);
+  --bg-sidebar: rgba(255, 255, 255, 0.85);
+  --bg-card: rgba(255, 255, 255, 0.75);
+  --bg-input: rgba(0, 0, 0, 0.04);
+  --bg-input-focus: rgba(0, 0, 0, 0.01);
+  --border-primary: rgba(0, 0, 0, 0.07);
+  --border-focus: #0071e3;
+  --text-primary: #1d1d1f;
+  --text-secondary: #86868b;
+  --accent-blue: #0071e3;
+  --accent-blue-hover: #005bb5;
+  --accent-green: #34c759;
+  --accent-red: #ff3b30;
+  --accent-orange: #ff9500;
+  --bg-toast: rgba(255, 255, 255, 0.9);
+  --shadow-main: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
 body {
   font-family: var(--font-sans);
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom scrollbar - Glassy */
+/* Custom scrollbar - Glassy Apple style */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(120, 120, 128, 0.2);
+  border-radius: 9999px;
+  border: 2px solid transparent;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(120, 120, 128, 0.4);
 }
 
+/* Redefining glass-card in Apple Material Design style */
 @utility glass-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.01));
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-  border-right: 1px solid rgba(0, 0, 0, 0.4);
-  box-shadow: 
-    10px 10px 30px 0 rgba(0, 0, 0, 0.5),
-    -5px -5px 20px 0 rgba(255, 255, 255, 0.03);
+  background: var(--bg-card);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-main);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-button {
-  border-radius: 9999px !important;
-}
-
+/* Redefining buttons to look like native Apple components */
 .neu-button {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
-  backdrop-filter: blur(12px);
-  border-radius: 9999px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
-  border-right: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 
-    4px 4px 10px rgba(0, 0, 0, 0.4),
-    -2px -2px 8px rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
+  background: var(--bg-surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px !important; /* Squircle style rounded-xl */
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 .neu-button:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
-  box-shadow: 
-    6px 6px 14px rgba(0, 0, 0, 0.5),
-    -3px -3px 10px rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
+  background: var(--bg-surface-hover);
+  border-color: var(--border-primary);
+  transform: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 .neu-button:active {
-  background: rgba(0, 0, 0, 0.2);
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transform: translateY(1px);
+  background: var(--bg-surface);
+  opacity: 0.7;
+  transform: scale(0.98);
 }
 
 .neu-button-pressed {
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 9999px !important;
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.6), inset -2px -2px 6px rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(0, 0, 0, 0.4);
-  border-left: 1px solid rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--accent-blue);
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .neu-button-primary {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.6));
-  backdrop-filter: blur(12px);
-  border-radius: 9999px !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
-  border-left: 1px solid rgba(255, 255, 255, 0.2);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-  border-right: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 
-    4px 4px 12px rgba(0, 0, 0, 0.4),
-    -2px -2px 8px rgba(255, 255, 255, 0.1),
-    0 0 12px rgba(59, 130, 246, 0.5);
-  transition: all 0.2s ease;
+  background: var(--accent-blue);
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 .neu-button-primary:hover {
-  background: linear-gradient(135deg, rgba(74, 144, 255, 0.9), rgba(46, 115, 250, 0.7));
-  box-shadow: 
-    6px 6px 16px rgba(0, 0, 0, 0.5),
-    -3px -3px 10px rgba(255, 255, 255, 0.15),
-    0 0 20px rgba(59, 130, 246, 0.7);
-  transform: translateY(-1px);
+  background: var(--accent-blue-hover);
+  transform: none;
+  box-shadow: 0 2px 6px rgba(0, 113, 227, 0.3);
 }
 .neu-button-primary:active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.8), rgba(29, 78, 216, 0.9));
-  box-shadow: inset 4px 4px 10px rgba(0, 0, 0, 0.4), inset -2px -2px 8px rgba(255, 255, 255, 0.1);
-  border-top: 1px solid rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  transform: translateY(1px);
+  background: var(--accent-blue);
+  opacity: 0.85;
+  transform: scale(0.98);
 }
 
+/* Inputs styled in Apple search bar / text field style */
 .neu-input {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(0, 0, 0, 0.6);
-  border-left: 1px solid rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.03);
-  transition: all 0.2s ease-in-out;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px !important; /* SF style rounding */
+  color: var(--text-primary);
+  box-shadow: none;
+  transition: all 0.2s ease;
 }
 .neu-input:focus, .neu-input:focus-within {
-  background: rgba(0, 0, 0, 0.35);
-  border-top: 1px solid rgba(59, 130, 246, 0.6);
-  border-left: 1px solid rgba(59, 130, 246, 0.4);
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.6), inset -2px -2px 8px rgba(59, 130, 246, 0.2), 0 0 10px rgba(59, 130, 246, 0.2);
+  background: var(--bg-input-focus);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
   outline: none;
 }
 
+/* Redefining panels and list headers */
 @utility neu-panel {
-  background: rgba(15, 23, 42, 0.35);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.6);
-  border-right: 1px solid rgba(0, 0, 0, 0.4);
-  box-shadow: inset 2px 2px 4px rgba(255,255,255,0.02), inset -2px -2px 6px rgba(0,0,0,0.3), 4px 4px 12px rgba(0,0,0,0.4);
+  background: var(--bg-card);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-main);
+  border-radius: 16px !important;
 }
 
 @utility neu-flat {
-  background: rgba(255, 255, 255, 0.03);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-  box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px !important;
+  transition: all 0.2s ease;
+}
+@utility neu-flat:hover {
+  background: var(--bg-surface-hover);
 }
 
-@utility glass-text {
-  background: linear-gradient(to right, #ffffff, #93c5fd);
+.glass-text {
+  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+/* Disable the invert filter hack completely */
 html.light-theme {
-  filter: invert(1) hue-rotate(180deg);
+  filter: none !important;
 }
-
 html.light-theme img:not(.bg-backdrop),
 html.light-theme video:not(.bg-backdrop) {
-  filter: invert(1) hue-rotate(180deg);
+  filter: none !important;
 }
 
-/* Fix light mode transparency for UI elements */
 html.light-theme .glass-card {
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--bg-card);
 }
 html.light-theme .neu-input,
 html.light-theme .absolute.glass-card,
 html.light-theme .absolute.neu-input {
-  background: rgba(0, 0, 0, 0.95);
+  background: var(--bg-input);
 }
 html.light-theme select.neu-input option {
-  background: #000;
-  color: #fff;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
