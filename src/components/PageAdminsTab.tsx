@@ -10,7 +10,8 @@ import {
   ShieldAlert,
   CheckCircle,
   XOctagon,
-  HelpCircle
+  HelpCircle,
+  Facebook
 } from "lucide-react";
 
 interface PageAdminRecord {
@@ -36,7 +37,8 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
   const [pageAdmins, setPageAdmins] = useState<PageAdminRecord[]>([]);
   const [scanning, setScanning] = useState(false);
   const [logs, setLogs] = useState<{ id: string; time: string; context: string; message: string; status: "success" | "failed" | "processing" | "skipped" }[]>([]);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [progress, setProgress] = useState({ current: 0, total: 0, currentStepName: "" });
+  const [activeLogTab, setActiveLogTab] = useState<"all" | "success" | "error">("all");
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [hasBmPermission, setHasBmPermission] = useState<boolean | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
@@ -85,7 +87,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
     setPageAdmins([]);
     setLogs([]);
     setBusinesses([]);
-    setProgress({ current: 0, total: 1 });
+    setProgress({ current: 0, total: 1, currentStepName: "Đang tải dữ liệu BM..." });
 
     addLog("Hàng đợi", "Bắt đầu tải thông tin tài khoản & danh sách Business Manager...", "processing");
 
@@ -113,7 +115,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
 
     // 2. Scan each business and mapping connected pages
     const totalSteps = pages.length + (bmList.length > 0 ? bmList.length : 0);
-    setProgress({ current: 0, total: totalSteps });
+    setProgress({ current: 0, total: totalSteps, currentStepName: "Đang phân tích BM..." });
     
     let currentStepNum = 0;
     const pageToBmMap: Record<string, { businessName: string; businessId: string; type: "Owned Page" | "Client Page" }> = {};
@@ -126,7 +128,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
           return;
         }
         currentStepNum++;
-        setProgress({ current: currentStepNum, total: totalSteps });
+        setProgress({ current: currentStepNum, total: totalSteps, currentStepName: `BM: ${bm.name}` });
         addLog(bm.name, `Đang phân tích các Page trực thuộc Business Manager...`, "processing");
 
         try {
@@ -174,7 +176,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         return;
       }
       currentStepNum++;
-      setProgress({ current: currentStepNum, total: totalSteps });
+      setProgress({ current: currentStepNum, total: totalSteps, currentStepName: `Trang: ${page.name}` });
       
       const mapInfo = pageToBmMap[page.id];
       const tasks = page.tasks || [];
@@ -212,7 +214,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
 
     setPageAdmins(records);
     setScanning(false);
-    setProgress({ current: totalSteps, total: totalSteps });
+    setProgress({ current: totalSteps, total: totalSteps, currentStepName: "Hoàn thành" });
     addLog("Hệ thống", "Đã hoàn thành phân tích quản trị và tổ chức Business Manager!", "success");
   };
 
@@ -323,137 +325,186 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
 
         {/* 4. MAIN INTERACTIVE TABLE WITH INTEGRATED FILTER HEADER */}
         <div className="flex-1 glass-card border flex flex-col overflow-hidden min-h-0 shadow-sm rounded-[24px]">
-          {/* Integrated Filter Header */}
-          <div className="px-5 py-4 flex items-center justify-between border-b border-white/10 bg-black/10 shrink-0 select-none">
-            <span className="text-xs font-black uppercase tracking-wider text-foreground">
-              Bộ lọc quản trị viên
-            </span>
-            <div className="flex items-center gap-2">
-              <DropdownSelect
-                value={filterType}
-                onChange={(val, label) => {
-                  setFilterType(val);
-                  addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
+          {scanning ? (
+            <div className="flex-1 flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[350px] py-6 max-w-md mx-auto">
+              <div className="relative flex items-center justify-center">
+                <div className="w-14 h-14 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
+                <Facebook className="w-6 h-6 text-accent absolute fill-current animate-pulse" />
+              </div>
+
+              <div className="text-center space-y-0.5 mt-2">
+                <h3 className="font-bold text-xs tracking-wider text-muted-foreground uppercase opacity-80">Đang phân tích quản trị viên & BM</h3>
+                <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+                  Tiến trình: <span className="text-accent font-mono font-bold text-xs">{progress.current}/{progress.total}</span> Hoàn thành
+                </p>
+              </div>
+
+              <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
+                <div 
+                  className="pretty-progress-bar"
+                  style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+                />
+              </div>
+
+              <div className="flex flex-col items-center gap-1.5 w-full animate-pulse mt-2">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">Đang xử lý:</span>
+                <div className="bg-accent/10 border border-accent/20 rounded-[10px] px-3 py-1 text-[11px] text-accent font-bold max-w-full truncate shadow-sm flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping shrink-0" />
+                  {progress.currentStepName || "Đang khởi tạo..."}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  cancelScanRef.current = true;
+                  addLog("Yêu cầu", "Đang gửi yêu cầu dừng quét...", "skipped");
                 }}
-                options={[
-                  { value: "all", label: "Tất cả" },
-                  { value: "manage", label: "Có quyền quản lý" },
-                  { value: "create", label: "Có quyền đăng/xoá" },
-                  { value: "missing", label: "Thiếu quyền" },
-                  { value: "bm", label: "Nằm trong BM" },
-                  { value: "no-bm", label: "Chưa xác định BM" },
-                  { value: "token-err", label: "Token lỗi" },
-                ]}
-              />
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 text-[10px] font-bold transition-all shadow-sm cursor-pointer select-none"
+              >
+                <XOctagon className="w-3.5 h-3.5 shrink-0" />
+                Dừng quét ngay
+              </button>
+
+              <p className="text-[10px] text-muted-foreground/80 text-center leading-relaxed mt-4 max-w-[80%]">
+                Hệ thống đang truy vấn thông tin Business Manager, phân tách chéo phân lớp sở hữu và kiểm tra chi tiết các vai trò thành viên quản trị.
+              </p>
             </div>
-          </div>
-        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar bg-transparent px-3 pb-3">
-          <table className="w-full text-left border-separate border-spacing-0">
-              <thead className="sticky top-2 z-10 select-none drop-shadow-sm">
-              <tr className="group">
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-r-0 rounded-l-[20px]">Fanpage</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Page ID</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[10%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Category</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Quyền của tôi</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business Manager</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business ID</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Phân loại</th>
-                <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Trạng thái</th>
-                <th className="px-5 py-4 text-center text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-l-0 rounded-r-[20px]">FB Link</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border text-xs font-medium text-foreground">
-              {filteredPageAdmins.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-12 text-center text-muted-foreground">
-                    <Info className="w-10 h-10 mx-auto opacity-40 mb-4 text-muted-foreground" />
-                    <p className="text-[13px] font-bold text-foreground">Chứa kết quả quyền hạn quản trị</p>
-                    <p className="text-[11px] text-muted-foreground mt-1.5">Vui lòng click <strong className="text-accent font-bold">"Kiểm tra quyền & BM"</strong> để trích xuất quyền và mô hình BM.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredPageAdmins.map((row) => {
-                  let statusBg = "bg-emerald-50 text-emerald-600 border border-emerald-200";
-                  if (row.status === "Thiếu quyền") {
-                    statusBg = "bg-amber-50 text-amber-600 border border-amber-200";
-                  } else if (row.status === "Token lỗi") {
-                    statusBg = "bg-rose-50 text-rose-600 border border-rose-200";
-                  }
-
-                  let typeBg = "bg-muted text-muted-foreground border border-border";
-                  if (row.businessType === "Owned Page") {
-                    typeBg = "bg-purple-50 text-purple-600 border border-purple-200";
-                  } else if (row.businessType === "Client Page") {
-                    typeBg = "bg-teal-50 text-teal-600 border border-teal-200";
-                  }
-
-                  return (
-                    <tr key={row.pageId} className="hover:bg-muted/40 transition-colors">
-                      <td className="p-3.5 font-bold select-all font-sans text-xs flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-accent/10 overflow-hidden flex items-center justify-center border border-accent/20 shrink-0">
-                          <span className="text-xs font-black text-accent">{row.name.substring(0,1).toUpperCase()}</span>
-                        </div>
-                        <span className="truncate max-w-[140px] text-foreground leading-snug" title={row.name}>{row.name}</span>
-                      </td>
-                      <td className="p-3.5 font-mono text-xs select-all text-muted-foreground">{row.pageId}</td>
-                      <td className="p-3.5 text-muted-foreground truncate max-w-[110px]" title={row.category}>{row.category}</td>
-                      <td className="p-3.5 text-xs font-sans">
-                        <span className="font-bold text-foreground">{getTaskLabels(row.tasks)}</span>
-                      </td>
-                      <td className="p-3.5 font-bold text-xs capitalize truncate max-w-[130px] text-foreground" title={row.businessName}>
-                        {row.businessName === "N/A" ? (
-                          <span className="opacity-60 font-mono italic text-[11px] text-muted-foreground">Ngoại vi (N/A)</span>
-                        ) : (
-                          row.businessName
-                        )}
-                      </td>
-                      <td className="p-3.5 font-mono text-[11px] text-muted-foreground select-all">
-                        {row.businessId === "N/A" ? (
-                          <span className="opacity-60 font-mono">—</span>
-                        ) : (
-                          row.businessId
-                        )}
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold uppercase tracking-wider shadow-sm ${typeBg}`}>
-                          {row.businessType}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold tracking-wide shadow-sm ${statusBg}`}>
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-center">
-                        <div className="flex flex-col gap-1 w-[130px] mx-auto">
-                          <a 
-                            href={`https://www.facebook.com/${row.pageId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1.5 text-blue-600 transition-all border border-blue-100 shadow-sm"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            Mở Page FB
-                          </a>
-                          <a 
-                            href={`https://business.facebook.com/latest/home?asset_id=${row.pageId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1.5 text-indigo-600 transition-all border border-indigo-100 shadow-sm"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            Meta Suite
-                          </a>
-                        </div>
-                      </td>
+          ) : (
+            <>
+              {/* Integrated Filter Header */}
+              <div className="px-5 py-4 flex items-center justify-between border-b border-white/10 bg-black/10 shrink-0 select-none">
+                <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Bộ lọc quản trị viên
+                </span>
+                <div className="flex items-center gap-2">
+                  <DropdownSelect
+                    value={filterType}
+                    onChange={(val, label) => {
+                      setFilterType(val);
+                      addLog("Bộ lọc", `Áp dụng hiển thị phân loại [${label}]`, "skipped");
+                    }}
+                    options={[
+                      { value: "all", label: "Tất cả" },
+                      { value: "manage", label: "Có quyền quản lý" },
+                      { value: "create", label: "Có quyền đăng/xoá" },
+                      { value: "missing", label: "Thiếu quyền" },
+                      { value: "bm", label: "Nằm trong BM" },
+                      { value: "no-bm", label: "Chưa xác định BM" },
+                      { value: "token-err", label: "Token lỗi" },
+                    ]}
+                  />
+                </div>
+              </div>
+              <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar bg-transparent px-3 pb-3">
+                <table className="w-full text-left border-separate border-spacing-0">
+                  <thead className="sticky top-2 z-10 select-none drop-shadow-sm">
+                    <tr className="group">
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-r-0 rounded-l-[20px]">Fanpage</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Page ID</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[10%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Category</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Quyền của tôi</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business Manager</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business ID</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Phân loại</th>
+                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Trạng thái</th>
+                      <th className="px-5 py-4 text-center text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-l-0 rounded-r-[20px]">FB Link</th>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  </thead>
+                  <tbody className="divide-y divide-border text-xs font-medium text-foreground">
+                    {filteredPageAdmins.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="p-12 text-center text-muted-foreground">
+                          <Info className="w-10 h-10 mx-auto opacity-40 mb-4 text-muted-foreground" />
+                          <p className="text-[13px] font-bold text-foreground">Chứa kết quả quyền hạn quản trị</p>
+                          <p className="text-[11px] text-muted-foreground mt-1.5">Vui lòng click <strong className="text-accent font-bold">"Kiểm tra quyền & BM"</strong> để trích xuất quyền và mô hình BM.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPageAdmins.map((row) => {
+                        let statusBg = "bg-emerald-50 text-emerald-600 border border-emerald-200";
+                        if (row.status === "Thiếu quyền") {
+                          statusBg = "bg-amber-50 text-amber-600 border border-amber-200";
+                        } else if (row.status === "Token lỗi") {
+                          statusBg = "bg-rose-50 text-rose-600 border border-rose-200";
+                        }
+
+                        let typeBg = "bg-muted text-muted-foreground border border-border";
+                        if (row.businessType === "Owned Page") {
+                          typeBg = "bg-purple-50 text-purple-600 border border-purple-200";
+                        } else if (row.businessType === "Client Page") {
+                          typeBg = "bg-teal-50 text-teal-600 border border-teal-200";
+                        }
+
+                        return (
+                          <tr key={row.pageId} className="hover:bg-muted/40 transition-colors">
+                            <td className="p-3.5 font-bold select-all font-sans text-xs flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-accent/10 overflow-hidden flex items-center justify-center border border-accent/20 shrink-0">
+                                <span className="text-xs font-black text-accent">{row.name.substring(0,1).toUpperCase()}</span>
+                              </div>
+                              <span className="truncate max-w-[140px] text-foreground leading-snug" title={row.name}>{row.name}</span>
+                            </td>
+                            <td className="p-3.5 font-mono text-xs select-all text-muted-foreground">{row.pageId}</td>
+                            <td className="p-3.5 text-muted-foreground truncate max-w-[110px]" title={row.category}>{row.category}</td>
+                            <td className="p-3.5 text-xs font-sans">
+                              <span className="font-bold text-foreground">{getTaskLabels(row.tasks)}</span>
+                            </td>
+                            <td className="p-3.5 font-bold text-xs capitalize truncate max-w-[130px] text-foreground" title={row.businessName}>
+                              {row.businessName === "N/A" ? (
+                                <span className="opacity-60 font-mono italic text-[11px] text-muted-foreground">Ngoại vi (N/A)</span>
+                              ) : (
+                                row.businessName
+                              )}
+                            </td>
+                            <td className="p-3.5 font-mono text-[11px] text-muted-foreground select-all">
+                              {row.businessId === "N/A" ? (
+                                <span className="opacity-60 font-mono">—</span>
+                              ) : (
+                                row.businessId
+                              )}
+                            </td>
+                            <td className="p-3.5">
+                              <span className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold uppercase tracking-wider shadow-sm ${typeBg}`}>
+                                {row.businessType}
+                              </span>
+                            </td>
+                            <td className="p-3.5">
+                              <span className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold tracking-wide shadow-sm ${statusBg}`}>
+                                {row.status}
+                              </span>
+                            </td>
+                            <td className="p-3.5 text-center">
+                              <div className="flex flex-col gap-1 w-[130px] mx-auto">
+                                <a 
+                                  href={`https://www.facebook.com/${row.pageId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1.5 text-blue-600 transition-all border border-blue-100 shadow-sm"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  Mở Page FB
+                                </a>
+                                <a 
+                                  href={`https://business.facebook.com/latest/home?asset_id=${row.pageId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1.5 text-indigo-600 transition-all border border-indigo-100 shadow-sm"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  Meta Suite
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
-      </div>
     </div>
 
       {/* RIGHT SIDEBAR: PROGRESS AND LOGS & ACTIONS */}
@@ -527,42 +578,117 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         </div>
 
         {/* LIVE LOG CONSOLE TERMINAL */}
-        <div className="flex-1 flex flex-col bg-muted/40 rounded-xl p-3 shadow-inner min-h-[150px] overflow-hidden border border-border">
-          <div className="flex items-center justify-between border-b border-border pb-2.5 mb-2 shrink-0">
+        <div className="flex-1 flex flex-col bg-muted/30 rounded-xl p-3 shadow-inner min-h-[150px] overflow-hidden border border-border">
+          <div className="flex items-center justify-between border-b border-border pb-2 mb-2 shrink-0">
             <span className="text-[10px] uppercase tracking-widest text-accent font-extrabold font-mono flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping" />
-              Logs
+              Terminal Logs
             </span>
             <button 
               type="button"
               onClick={() => setLogs([])}
               className="text-[10px] hover:underline text-muted-foreground hover:text-foreground font-bold"
             >
-              Xóa
+              Xóa tất cả
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] text-accent p-1 custom-scrollbar pr-1 flex flex-col-reverse">
-            {logs.length === 0 ? (
-              <p className="text-muted-foreground/50 italic py-1">Chưa có nhật ký...</p>
-            ) : (
-              logs.map((log) => {
-                let tagColor = "text-accent";
-                if (log.status === "success") tagColor = "text-emerald-600 font-bold";
-                if (log.status === "failed") tagColor = "text-rose-600 font-black";
-                if (log.status === "skipped") tagColor = "text-muted-foreground font-medium";
+          {/* Log Tabs */}
+          <div className="flex gap-1 border-b border-border/40 pb-2 mb-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveLogTab("all")}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+                activeLogTab === "all"
+                  ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-300 dark:border-slate-750"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent"
+              }`}
+            >
+              Tất cả
+              <span className="bg-slate-300/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+                {logs.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLogTab("success")}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+                activeLogTab === "success"
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-500/30"
+                  : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 border border-transparent"
+              }`}
+            >
+              Thành công
+              <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+                {logs.filter(log => log.status === "success").length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLogTab("error")}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+                activeLogTab === "error"
+                  ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-500/30"
+                  : "text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 border border-transparent"
+              }`}
+            >
+              Lỗi
+              <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+                {logs.filter(log => log.status === "failed").length}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] p-1 custom-scrollbar pr-1.5">
+            {(() => {
+              const filtered = logs.filter((log) => {
+                if (activeLogTab === "error") return log.status === "failed";
+                if (activeLogTab === "success") return log.status === "success";
+                return true;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <p className="text-muted-foreground/50 italic py-1">
+                    {activeLogTab === "error" 
+                      ? "Không có nhật ký lỗi..." 
+                      : activeLogTab === "success" 
+                      ? "Không có nhật ký thành công..." 
+                      : "Chưa có nhật ký..."}
+                  </p>
+                );
+              }
+
+              return filtered.map((log) => {
+                let colorClass = "text-muted-foreground";
+                let prefix = "•";
+
+                if (log.status === "success") {
+                  colorClass = "text-emerald-600 font-semibold";
+                  prefix = "✔";
+                } else if (log.status === "failed") {
+                   colorClass = "text-rose-600 font-bold";
+                   prefix = "✘ LỖI";
+                } else if (log.status === "processing") {
+                   colorClass = "text-amber-500 font-medium animate-pulse";
+                   prefix = "➜";
+                } else if (log.status === "skipped") {
+                   colorClass = "text-blue-500 font-medium";
+                   prefix = "⏱";
+                }
 
                 return (
-                  <div key={log.id} className="py-1.5 border-b border-border/50 leading-relaxed flex items-start gap-2 break-words">
-                    <span className="text-muted-foreground font-bold select-none shrink-0">[{log.time.split(" ")[1] || log.time}]</span>
-                    <span className={`${tagColor} max-w-[80px] xl:max-w-[100px] truncate select-none font-bold shrink-0`} title={log.context}>
-                      {log.context}
+                  <div key={log.id} className={`${colorClass} flex items-start gap-1.5 leading-relaxed break-words py-1 border-b border-border/20`}>
+                    <span className="shrink-0 text-muted-foreground select-none">[{log.time}]</span>
+                    <span className="shrink-0 font-bold select-none">{prefix}</span>
+                    <span className="max-w-[70px] truncate select-none font-bold shrink-0 text-slate-400 dark:text-slate-500" title={log.context}>
+                      {log.context}:
                     </span>
-                    <span className="text-foreground/80 select-text leading-relaxed">{log.message}</span>
+                    <span className="text-foreground/80 font-medium">{log.message}</span>
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </div>
       </aside>

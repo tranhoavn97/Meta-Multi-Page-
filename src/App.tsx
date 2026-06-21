@@ -1612,8 +1612,7 @@ export default function App() {
           <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3.5 items-stretch overflow-hidden">
         
             {/* SUB-SIDEBAR: PAGES LIST */}
-            {activeTab === "posts" && (
-              <aside className="w-full xl:w-[260px] 2xl:w-[280px] bg-card rounded-[20px] p-4 flex flex-col shadow-sm border border-border overflow-hidden min-h-0 xl:h-full shrink-0">
+            <aside className={`w-full xl:w-[260px] 2xl:w-[280px] bg-card rounded-[20px] p-4 flex flex-col shadow-sm border border-border overflow-hidden min-h-0 xl:h-full shrink-0 ${activeTab === 'posts' ? '' : 'hidden'}`}>
           <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-border">
             <div className="flex justify-between items-center">
               <span className="text-xs uppercase tracking-widest text-muted-foreground font-mono font-bold flex items-center gap-1.5">
@@ -1784,13 +1783,11 @@ export default function App() {
 
 
         </aside>
-        )}
 
         {/* MAIN POST AREA & FILTERS */}
         <main className="flex-1 w-full flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
           
-          {activeTab === "posts" && (
-            <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
+            <div className={`flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full ${activeTab === 'posts' ? '' : 'hidden'}`}>
               <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
               <section className="relative z-30 bg-card rounded-[18px] p-4 text-foreground shadow-sm border border-border shrink-0">
@@ -2451,25 +2448,18 @@ export default function App() {
             </div>
           </aside>
           </div>
-          )}
 
-          {activeTab === "status" && (
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'status' ? '' : 'hidden'}`}>
               <PageStatusTab pages={pages} userToken={userToken} />
             </div>
-          )}
 
-          {activeTab === "admins" && (
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'admins' ? '' : 'hidden'}`}>
               <PageAdminsTab pages={pages} userToken={userToken} />
             </div>
-          )}
 
-          {activeTab === "theme" && (
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'theme' ? '' : 'hidden'}`}>
               <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} />
             </div>
-          )}
 
         </main>
       </div>
