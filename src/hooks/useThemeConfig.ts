@@ -47,11 +47,11 @@ export interface ThemeConfig {
 }
 
 const defaultThemeConfig: ThemeConfig = {
-  bgTheme: "default",
-  primaryColorName: "Xanh dương",
-  glassOpacity: 65,
-  bgOverlay: 40,
-  blurSize: "24px",
+  bgTheme: "ocean",
+  primaryColorName: "Cyan Neon",
+  glassOpacity: 45,
+  bgOverlay: 85,
+  blurSize: "28px",
   fontSize: "base",
   fontFamily: "Inter"
 };
@@ -97,7 +97,7 @@ export function useThemeConfig() {
         const b = parseInt(cleaned.substring(4, 6), 16);
         return `${r}, ${g}, ${b}`;
       }
-      return "59, 130, 246";
+      return "0, 243, 255";
     };
     const rgbVal = hexToRgb(selectedColor.hex);
     root.style.setProperty("--accent-rgb", rgbVal);
@@ -106,9 +106,9 @@ export function useThemeConfig() {
     const alphaGlass = config.glassOpacity / 100;
     const alphaBorder = Math.min(alphaGlass + 0.15, 1);
     if (isDark) {
-      root.style.setProperty("--glass", `rgba(15, 23, 42, ${alphaGlass})`);
-      root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${alphaBorder * 0.2})`);
-      root.style.setProperty("--card", `rgba(15, 23, 42, ${Math.max(alphaGlass - 0.1, 0.2)})`);
+      root.style.setProperty("--glass", `rgba(4, 12, 38, ${alphaGlass})`);
+      root.style.setProperty("--glass-border", `rgba(0, 243, 255, ${alphaBorder * 0.18})`);
+      root.style.setProperty("--card", `rgba(3, 9, 32, ${Math.max(alphaGlass - 0.12, 0.22)})`);
     } else {
       root.style.setProperty("--glass", `rgba(255, 255, 255, ${alphaGlass})`);
       root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${alphaBorder * 0.8})`);
@@ -118,7 +118,7 @@ export function useThemeConfig() {
     // Apply bg overlay
     const overlayAlpha = config.bgOverlay / 100;
     if (isDark) {
-      root.style.setProperty("--bg", `rgba(3, 7, 18, ${overlayAlpha})`);
+      root.style.setProperty("--bg", `rgba(2, 6, 22, ${overlayAlpha})`);
     } else {
       root.style.setProperty("--bg", `rgba(248, 250, 252, ${overlayAlpha})`);
     }

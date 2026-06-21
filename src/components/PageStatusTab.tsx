@@ -179,39 +179,35 @@ const restrictedCount = pageStatuses.filter(s => s.status.includes("Nghi bị h�
 return (
     <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full text-foreground">
       <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-hidden h-full">
-        {/* TOP CONTROL CENTER: METRICS */}
-        <div className="glass-card border border-border rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-sm">
-          
-          {/* Metrics Row */}
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="bg-background/40 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
-              <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
-            </div>
-            <div className="bg-emerald-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">BÌNH THƯỜNG</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? normalCount : "-"}
-              </p>
-            </div>
-            <div className="bg-amber-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(245,158,11,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">THIẾU QUYỀN</p>
-              <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? missingPermsCount : "-"}
-              </p>
-            </div>
-            <div className="bg-rose-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">TOKEN LỖI</p>
-              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? tokenErrorCount : "-"}
-              </p>
-            </div>
-            <div className="bg-purple-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center col-span-2 md:col-span-1 transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NGHI HẠN CHẾ</p>
-              <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
-                {totalChecked > 0 ? restrictedCount : "-"}
-              </p>
-            </div>
+        {/* TOP STATUS METRICS: STANDALONE CELLS */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
+            <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">BÌNH THƯỜNG</p>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
+              {totalChecked > 0 ? normalCount : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(245,158,11,0.05)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400">THIẾU QUYỀN</p>
+            <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5 select-none font-mono">
+              {totalChecked > 0 ? missingPermsCount : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">TOKEN LỖI</p>
+            <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
+              {totalChecked > 0 ? tokenErrorCount : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center col-span-2 md:col-span-1 transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NGHI HẠN CHẾ</p>
+            <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
+              {totalChecked > 0 ? restrictedCount : "-"}
+            </p>
           </div>
         </div>
 

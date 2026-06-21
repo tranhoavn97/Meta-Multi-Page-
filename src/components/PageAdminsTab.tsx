@@ -283,50 +283,51 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
           </div>
         )}
 
-        {/* 2. TOP CONTROL CENTER: METRICS, FILTERS */}
-        <div className="glass-card border border-border resize-none rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0 shadow-sm">
-          
-          {/* Metrics Row (Left side on large screens) */}
-          <div className="flex-1 grid grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="bg-background/40 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
-              <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
-            </div>
-            <div className="bg-emerald-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">QUYỀN QUẢN LÝ</p>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? hasManageRights : "-"}
-              </p>
-            </div>
-            <div className="bg-blue-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">QUYỀN ĐĂNG BÀI</p>
-              <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? hasCreateRights : "-"}
-              </p>
-            </div>
-            <div className="bg-purple-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(168,85,247,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NẰM TRONG BM</p>
-              <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? inBmCount : "-"}
-              </p>
-            </div>
-            <div className="bg-teal-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(20,184,166,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-teal-600 dark:text-teal-400">CHƯA KHỞI TẠO</p>
-              <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? noBmCount : "-"}
-              </p>
-            </div>
-            <div className="bg-rose-500/10 backdrop-blur-[24px] border border-white/20 rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">THIẾU QUYỀN HẠN</p>
-              <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
-                {pageAdmins.length > 0 ? missingCount : "-"}
-              </p>
-            </div>
+        {/* 2. TOP METRICS PANEL: STANDALONE INDIVIDUAL CELLS */}
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 shrink-0">
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
+            <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
           </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">QUYỀN QUẢN LÝ</p>
+            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? hasManageRights : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">QUYỀN ĐĂNG BÀI</p>
+            <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? hasCreateRights : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NẰM TRONG BM</p>
+            <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? inBmCount : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-teal-600 dark:text-teal-400">CHƯA KHỞI TẠO</p>
+            <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? noBmCount : "-"}
+            </p>
+          </div>
+          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">THIẾU QUYỀN</p>
+            <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
+              {pageAdmins.length > 0 ? missingCount : "-"}
+            </p>
+          </div>
+        </div>
 
-          {/* Filters */}
-          <div className="flex items-center justify-end gap-2 shrink-0">
-            {/* Dropdown Filter */}
+        {/* 4. MAIN INTERACTIVE TABLE WITH INTEGRATED FILTER HEADER */}
+        <div className="flex-1 glass-card border flex flex-col overflow-hidden min-h-0 shadow-sm rounded-[24px]">
+          {/* Integrated Filter Header */}
+          <div className="px-5 py-4 flex items-center justify-between border-b border-white/10 bg-black/10 shrink-0 select-none">
+            <span className="text-xs font-black uppercase tracking-wider text-foreground">
+              Bộ lọc quản trị viên
+            </span>
             <div className="flex items-center gap-2">
               <DropdownSelect
                 value={filterType}
@@ -346,12 +347,6 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
               />
             </div>
           </div>
-        </div>
-
-  
-
-      {/* 4. MAIN INTERACTIVE TABLE */}
-      <div className="flex-1 glass-card border flex flex-col overflow-hidden min-h-0 shadow-sm rounded-[24px]">
         <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar bg-transparent px-3 pb-3">
           <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-2 z-10 select-none drop-shadow-sm">
