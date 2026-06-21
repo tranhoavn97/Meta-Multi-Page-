@@ -1,10 +1,8 @@
 {
   "rewrites": [
-    { "source": "/auth/callback", "destination": "/api/auth/callback" },
-    { "source": "/auth/callback/", "destination": "/api/auth/callback" },
-    { "source": "/api/pages/:pageId/posts", "destination": "/api/pages/posts?pageId=:pageId" },
-    { "source": "/api/pages/:pageId/scan", "destination": "/api/pages/scan?pageId=:pageId" },
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/auth/callback", "destination": "/api/index" },
+    { "source": "/auth/callback/", "destination": "/api/index" },
+    { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
