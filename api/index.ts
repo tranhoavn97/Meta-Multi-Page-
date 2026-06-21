@@ -1,34 +1,34 @@
 import express from "express";
-import { safeHandler } from "../api-src/utils/wrapper";
+import { safeHandler } from "./_lib/utils/wrapper.js";
 
 // Handlers
-import pagesHandler from "../api-src/pages-list";
-import postsHandler from "../api-src/posts";
-import deletePostHandler from "../api-src/delete-post";
-import checkPagesHandler from "../api-src/check-pages";
-import authUrlHandler from "../api-src/auth/url";
-import authCallbackHandler from "../api-src/auth/callback";
-import pageStatusHandler from "../api-src/page-status";
-import businessesHandler from "../api-src/businesses";
-import pageBusinessMapHandler from "../api-src/page-business-map";
+import pagesHandler from "./_lib/pages-list.js";
+import postsHandler from "./_lib/posts.js";
+import deletePostHandler from "./_lib/delete-post.js";
+import checkPagesHandler from "./_lib/check-pages.js";
+import authUrlHandler from "./_lib/auth/url.js";
+import authCallbackHandler from "./_lib/auth/callback.js";
+import pageStatusHandler from "./_lib/page-status.js";
+import businessesHandler from "./_lib/businesses.js";
+import pageBusinessMapHandler from "./_lib/page-business-map.js";
 
 // Job & Cron Handlers
-import jobsCreateHandler from "../api-src/jobs/create";
-import jobsStatusHandler from "../api-src/jobs/status";
-import jobsActiveHandler from "../api-src/jobs/active";
-import jobsResultsHandler from "../api-src/jobs/results";
-import jobsPauseHandler from "../api-src/jobs/pause";
-import jobsResumeHandler from "../api-src/jobs/resume";
-import jobsCancelHandler from "../api-src/jobs/cancel";
-import jobsRetryFailedHandler from "../api-src/jobs/retry-failed";
-import pagesSyncHandler from "../api-src/pages/sync";
-import pagesPostsHandler from "../api-src/pages/posts";
-import pagesScanHandler from "../api-src/pages/scan";
-import pagesAvatarHandler from "../api-src/pages/avatar";
-import cronProcessJobsHandler from "../api-src/cron/process-jobs";
-import cronRecoverStalledJobsHandler from "../api-src/cron/recover-stalled-jobs";
-import apiManagerLatestResultsHandler from "../api-src/api-manager/latest-results";
-import adminManagerLatestResultsHandler from "../api-src/admin-manager/latest-results";
+import jobsCreateHandler from "./_lib/jobs/create.js";
+import jobsStatusHandler from "./_lib/jobs/status.js";
+import jobsActiveHandler from "./_lib/jobs/active.js";
+import jobsResultsHandler from "./_lib/jobs/results.js";
+import jobsPauseHandler from "./_lib/jobs/pause.js";
+import jobsResumeHandler from "./_lib/jobs/resume.js";
+import jobsCancelHandler from "./_lib/jobs/cancel.js";
+import jobsRetryFailedHandler from "./_lib/jobs/retry-failed.js";
+import pagesSyncHandler from "./_lib/pages/sync.js";
+import pagesPostsHandler from "./_lib/pages/posts.js";
+import pagesScanHandler from "./_lib/pages/scan.js";
+import pagesAvatarHandler from "./_lib/pages/avatar.js";
+import cronProcessJobsHandler from "./_lib/cron/process-jobs.js";
+import cronRecoverStalledJobsHandler from "./_lib/cron/recover-stalled-jobs.js";
+import apiManagerLatestResultsHandler from "./_lib/api-manager/latest-results.js";
+import adminManagerLatestResultsHandler from "./_lib/admin-manager/latest-results.js";
 
 const app = express();
 app.use(express.json());
