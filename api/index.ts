@@ -2,7 +2,7 @@ import express from "express";
 import { safeHandler } from "../api-src/utils/wrapper";
 
 // Handlers
-import pagesHandler from "../api-src/pages";
+import pagesHandler from "../api-src/pages-list";
 import postsHandler from "../api-src/posts";
 import deletePostHandler from "../api-src/delete-post";
 import checkPagesHandler from "../api-src/check-pages";
