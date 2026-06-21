@@ -1594,23 +1594,23 @@ export default function App() {
       {/* BACKGROUND LAYER - Aurora Light Theme */}
       <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden bg-[#060A13]">
         <div
-          className="absolute -top-[10%] left-[20%] w-[50%] h-[50%] rounded-full opacity-[0.15] blur-[120px]"
+          className="absolute -top-[10%] left-[20%] w-[50%] h-[50%] rounded-full opacity-[0.25] blur-[120px]"
           style={{
-            background: "radial-gradient(circle, #06B6D4 0%, transparent 70%)",
+            background: "radial-gradient(circle, var(--bg-gradient-2) 0%, transparent 70%)",
             animation: "breathe 18s infinite alternate ease-in-out"
           }}
         />
         <div
-          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full opacity-[0.15] blur-[120px]"
+          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full opacity-[0.25] blur-[120px]"
           style={{
-            background: "radial-gradient(circle, #3B82F6 0%, transparent 70%)",
+            background: "radial-gradient(circle, var(--bg-gradient-1) 0%, transparent 70%)",
             animation: "breathe 22s infinite alternate-reverse ease-in-out"
           }}
         />
         <div
-          className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full opacity-[0.1] blur-[120px]"
+          className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full opacity-[0.18] blur-[120px]"
           style={{
-            background: "radial-gradient(circle, #8B5CF6 0%, transparent 70%)",
+            background: "radial-gradient(circle, var(--bg-gradient-3) 0%, transparent 70%)",
             animation: "breathe 25s infinite alternate ease-in-out"
           }}
         />
