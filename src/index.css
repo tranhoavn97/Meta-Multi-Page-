@@ -18,6 +18,14 @@
   --color-glass-border: var(--glass-border);
 }
 
+html {
+  background-color: #F0F4F8;
+  transition: background-color 0.3s ease;
+}
+html.dark {
+  background-color: #0B0F19;
+}
+
 :root {
   --bg: #F0F4F8;
   --fg: #0F172A;
