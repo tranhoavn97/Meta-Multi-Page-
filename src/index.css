@@ -96,16 +96,17 @@ button {
   color: var(--color-foreground);
   border-radius: 12px !important;
   box-shadow: var(--shadow-glass);
-  transition: all 0.2s ease-out;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 .neu-button:hover {
   background: var(--color-card);
-  border-color: rgba(0,82,255,0.4);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 .neu-button:active {
-  transform: scale(0.98);
+  transform: scale(0.975);
 }
 
 .neu-button-pressed {
@@ -121,17 +122,18 @@ button {
   background: linear-gradient(to right, var(--color-accent), var(--color-accent-secondary));
   color: white;
   border-radius: 12px !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
   border: none;
-  transition: all 0.2s ease-out;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 .neu-button-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.45);
-  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
+  filter: brightness(1.05);
 }
 .neu-button-primary:active {
-  transform: scale(0.98);
+  transform: scale(0.975);
 }
 
 .neu-input {
@@ -147,7 +149,7 @@ button {
 .neu-input:focus, .neu-input:focus-within {
   border-color: var(--color-accent);
   background: var(--color-glass);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   outline: none;
 }
 
@@ -183,4 +185,28 @@ button {
   color: transparent;
 }
 
-
+/* Premium Apple slider control */
+input[type="range"] {
+  appearance: none;
+  background: var(--color-border);
+  height: 6px;
+  border-radius: 999px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+  background-color: var(--color-accent);
+}
