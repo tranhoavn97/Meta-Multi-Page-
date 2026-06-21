@@ -1592,20 +1592,32 @@ export default function App() {
   return (
     <div className={`relative h-screen min-h-screen lg:min-h-0 bg-transparent text-foreground flex flex-col select-none overflow-hidden font-sans`}>
       {/* BACKGROUND LAYER - Aurora Light Theme */}
-      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full">
+      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden bg-[#060A13]">
         <div
-          className="absolute inset-0 z-0 opacity-40 blur-3xl"
+          className="absolute -top-[10%] left-[20%] w-[50%] h-[50%] rounded-full opacity-[0.15] blur-[120px]"
           style={{
-            background: `
-              radial-gradient(circle at 0% 0%, var(--color-accent) 0%, transparent 40%),
-              radial-gradient(circle at 100% 100%, var(--color-accent-secondary) 0%, transparent 40%)
-            `,
+            background: "radial-gradient(circle, #06B6D4 0%, transparent 70%)",
+            animation: "breathe 18s infinite alternate ease-in-out"
+          }}
+        />
+        <div
+          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full opacity-[0.15] blur-[120px]"
+          style={{
+            background: "radial-gradient(circle, #3B82F6 0%, transparent 70%)",
+            animation: "breathe 22s infinite alternate-reverse ease-in-out"
+          }}
+        />
+        <div
+          className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full opacity-[0.1] blur-[120px]"
+          style={{
+            background: "radial-gradient(circle, #8B5CF6 0%, transparent 70%)",
+            animation: "breathe 25s infinite alternate ease-in-out"
           }}
         />
         {/* Dot pattern */}
         <div 
-          className="absolute inset-0 z-[1] opacity-[0.03]"
-          style={{ backgroundImage: 'radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
+          className="absolute inset-0 z-[1] opacity-[0.02]"
+          style={{ backgroundImage: "radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)", backgroundSize: "32px 32px" }}
         />
       </div>
 
@@ -1649,7 +1661,7 @@ export default function App() {
                title={isSidebarCollapsed ? "Bài viết" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "posts"
-                   ? "neu-button-primary text-white font-bold shadow-md"
+                   ? "active-nav-item text-white font-bold shadow-md"
                    : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
@@ -1667,7 +1679,7 @@ export default function App() {
                title={isSidebarCollapsed ? "Trạng thái API" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "status"
-                   ? "neu-button-primary text-white font-bold shadow-md"
+                   ? "active-nav-item text-white font-bold shadow-md"
                    : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
@@ -1685,7 +1697,7 @@ export default function App() {
                title={isSidebarCollapsed ? "Quản trị viên" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "admins"
-                   ? "neu-button-primary text-white font-bold shadow-md"
+                   ? "active-nav-item text-white font-bold shadow-md"
                    : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
@@ -1703,7 +1715,7 @@ export default function App() {
                title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
                className={`flex items-center justify-start gap-3.5 px-4 py-3 rounded-xl transition-all cursor-pointer outline-none focus:outline-none focus-visible:outline-none focus:ring-0 group w-full ${
                  activeTab === "theme"
-                   ? "neu-button-primary text-white font-bold shadow-md"
+                   ? "active-nav-item text-white font-bold shadow-md"
                    : "text-muted-foreground hover:text-foreground hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
                }`}
             >
