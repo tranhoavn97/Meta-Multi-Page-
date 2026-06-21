@@ -1943,7 +1943,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Middle row: Badges (Permissions & Monetization) */}
+                      {/* Middle row: Badges (Permissions) */}
                       <div className="flex flex-wrap gap-1 items-center">
                         {/* Permission Badges */}
                         {getPermissionBadges(page.tasks).map((badge, idx) => (
@@ -1954,36 +1954,6 @@ export default function App() {
                             {badge.label}
                           </span>
                         ))}
-
-                        {/* Monetization Badge with Tooltip */}
-                        {(() => {
-                          const mStatus = page.monetization_status || "Chưa xác định";
-                          let badgeClasses = "bg-slate-500/10 text-slate-400 border-slate-500/20";
-                          let badgeLabel = "Chưa xác định";
-                          
-                          if (mStatus === "Không đủ quyền kiểm tra") {
-                            badgeClasses = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-                            badgeLabel = "Không đủ quyền kiểm tra";
-                          } else if (mStatus === "Cần kiểm tra trên Meta") {
-                            badgeClasses = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-                            badgeLabel = "Cần kiểm tra trên Meta";
-                          } else if (mStatus.startsWith("Đặc biệt:") || (mStatus !== "Chưa xác định" && mStatus !== "Không đủ quyền kiểm tra" && mStatus !== "Cần kiểm tra trên Meta")) {
-                            badgeClasses = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                            badgeLabel = mStatus;
-                          }
-
-                          return (
-                            <div className="relative group/tooltip inline-block">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border cursor-help flex items-center gap-1 ${badgeClasses}`}>
-                                Kiếm tiền: {badgeLabel}
-                                <span className="text-[8px] font-normal opacity-60">ⓘ</span>
-                              </span>
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tooltip:block bg-slate-950/95 backdrop-blur-md text-slate-200 text-[10px] p-2 rounded-lg shadow-xl border border-white/10 w-48 text-center leading-normal z-[100] pointer-events-none transition-all animate-in fade-in slide-in-from-bottom-1 duration-150">
-                                Meta Graph API công khai không cung cấp trạng thái bật/tắt kiếm tiền chung cho mọi Fanpage.
-                              </div>
-                            </div>
-                          );
-                        })()}
                       </div>
 
                       {/* Bottom row: Sync and Meta BM buttons */}
