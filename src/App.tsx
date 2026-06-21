@@ -328,22 +328,14 @@ function CustomSelect({
 export default function App() {
   const toast = useToast();
 
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    return localStorage.getItem('theme') === 'dark' || 
-           (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  });
+  const [isDark, setIsDark] = useState<boolean>(true);
 
-  const { config, setConfig } = useThemeConfig(isDark); // Instantiate global theme styles
+  const { config, setConfig } = useThemeConfig(true); // Instantiate global theme styles
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  }, []);
 
   // OAuth / Credentials state
   const [appId, setAppId] = useState<string>(() => {
@@ -689,18 +681,13 @@ export default function App() {
     let allFetchedPosts: FacebookPost[] = [];
     setScanProgress({ current: 0, total: selectedPageIds.length, currentPageName: "Đang khởi tạo..." });
 
-    let index = 0;
-    for (const pageId of selectedPageIds) {
-      if (scanCancelledRef.current) {
-        addLog("system", `Đã dừng quét theo yêu cầu của người dùng tại bước ${index}/${selectedPageIds.length}.`, "skipped");
-        toast.warning("Đã dừng quá trình quét bài viết theo yêu cầu.", "Hủy quét");
-        break;
-      }
+    const fetchPagePostsConcurrently = async (pageId: string) => {
+      if (scanCancelledRef.current) return [];
 
       const pageInfo = pages.find(p => p.id === pageId);
-      if (!pageInfo) continue;
+      if (!pageInfo) return [];
 
-      setScanProgress({ current: index, total: selectedPageIds.length, currentPageName: pageInfo.name });
+      setScanProgress(p => ({ ...p, currentPageName: pageInfo.name }));
       addLog("system", `Đang đọc bài viết từ Page: "${pageInfo.name}"...`, "processing");
 
       try {
@@ -713,11 +700,12 @@ export default function App() {
         
         const data = await safeFetchJson(`/api/posts?${urlParams.toString()}`);
 
+        if (scanCancelledRef.current) return [];
+
         if (data.error) {
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
-          index++;
-          setScanProgress(p => ({ ...p, current: index }));
-          continue;
+          setScanProgress(p => ({ ...p, current: p.current + 1 }));
+          return [];
         }
 
         if (data.data && data.data.length > 0) {
@@ -737,12 +725,17 @@ export default function App() {
             shares: item.shares
           }));
 
-          allFetchedPosts = [...allFetchedPosts, ...mapped];
           addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}".`, "success");
+          setScanProgress(p => ({ ...p, current: p.current + 1, currentPageName: `Đã xong: ${pageInfo.name}` }));
+          return mapped;
         } else {
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
+          setScanProgress(p => ({ ...p, current: p.current + 1, currentPageName: `Đã xong: ${pageInfo.name}` }));
+          return [];
         }
       } catch (err: any) {
+        setScanProgress(p => ({ ...p, current: p.current + 1 }));
+        if (scanCancelledRef.current) return [];
         if (err.responseJson && err.responseJson.isDetailedError) {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
@@ -756,11 +749,13 @@ export default function App() {
              toast.error(`Lỗi kết nối Page ${pageInfo.name}: ${err.message}`, "Lỗi");
           }
         }
+        return [];
       }
+    };
 
-      index++;
-      setScanProgress(p => ({ ...p, current: index, currentPageName: `Đã xong: ${pageInfo.name}` }));
-    }
+    const fetchPromises = selectedPageIds.map(pageId => fetchPagePostsConcurrently(pageId));
+    const results = await Promise.all(fetchPromises);
+    allFetchedPosts = results.flat();
 
     // Sort all selected posts by created_time desc
     allFetchedPosts.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
@@ -1128,32 +1123,7 @@ export default function App() {
             )}
 
             <div className="flex flex-col gap-2.5 w-full">
-              {/* Sáng / Tối Segmented Control */}
-              <div className={`flex bg-muted/60 p-1 rounded-xl border border-border shrink-0 w-full ${isSidebarCollapsed ? 'hidden' : 'flex'}`}>
-                <button
-                  onClick={() => setIsDark(false)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-sm outline-none focus:outline-none focus-visible:outline-none focus:ring-0 ${!isDark ? 'bg-card border border-border text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <Sun className="w-4 h-4 shrink-0" />
-                  Sáng
-                </button>
-                <button
-                  onClick={() => setIsDark(true)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-sm outline-none focus:outline-none focus-visible:outline-none focus:ring-0 ${isDark ? 'bg-card border border-border text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  <Moon className="w-4 h-4 shrink-0" />
-                  Tối
-                </button>
-              </div>
 
-              {/* Collapsed Sáng Tối */}
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className={`flex justify-center items-center gap-2 p-2.5 neu-button text-xs font-semibold text-foreground shrink-0 w-full outline-none focus:outline-none focus-visible:outline-none focus:ring-0 ${isSidebarCollapsed ? 'flex' : 'hidden'}`}
-                title={isDark ? "Giao diện Sáng" : "Giao diện Tối"}
-              >
-                {isDark ? <Sun className="w-4 h-4 shrink-0 text-amber-500" /> : <Moon className="w-4 h-4 shrink-0 text-indigo-500" />}
-              </button>
 
               <button 
                 id="btn-settings"

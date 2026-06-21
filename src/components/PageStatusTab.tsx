@@ -65,19 +65,11 @@ const runPageStatusScan = async () => {
 
   addLog("Hàng đợi", `Bắt đầu quét kiểm tra trạng thái toàn bộ ${pages.length} Fanpage...`, "processing");
 
-  let itemsProcessed = 0;
-  
-  for (const page of pages) {
-    if (cancelScanRef.current) {
-      addLog("Hàng đợi", "Đã dừng chương trình kiểm tra bởi yêu cầu người dùng.", "skipped");
-      break;
-    }
-    setProgress({ current: itemsProcessed, total: pages.length });
+  const checkStatusConcurrently = async (page: any) => {
+    if (cancelScanRef.current) return;
     addLog(page.name, `Đang quét kiểm tra quyền và kết nối...`, "processing");
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 350));
-
       const res = await fetch("/api/page-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,6 +79,8 @@ const runPageStatusScan = async () => {
           pageAccessToken: page.access_token
         })
       });
+
+      if (cancelScanRef.current) return;
 
       const text = await res.text();
       let data: any;
@@ -112,6 +106,7 @@ const runPageStatusScan = async () => {
         throw new Error(data.error || "Không thể kiểm tra phản hồi khả dụng.");
       }
     } catch (err: any) {
+      if (cancelScanRef.current) return;
       const fallbackRecord: PageStatusRecord = {
         pageId: page.id,
         name: page.name,
@@ -130,10 +125,13 @@ const runPageStatusScan = async () => {
         return [...filtered, fallbackRecord];
       });
       addLog(page.name, `Quét thất bại: ${err.message || "Lỗi mạng hoặc server"}`, "failed");
+    } finally {
+      setProgress(p => ({ ...p, current: p.current + 1 }));
     }
+  };
 
-    itemsProcessed++;
-  }
+  const checkPromises = pages.map(page => checkStatusConcurrently(page));
+  await Promise.all(checkPromises);
 
   setProgress({ current: pages.length, total: pages.length });
   setScanning(false);

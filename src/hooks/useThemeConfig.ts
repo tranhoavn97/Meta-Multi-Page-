@@ -104,23 +104,13 @@ export function useThemeConfig(isDark: boolean) {
     // Apply glass opacity
     const alphaGlass = config.glassOpacity / 100;
     const alphaBorder = Math.min(alphaGlass + 0.15, 1);
-    if (isDark) {
-      root.style.setProperty("--glass", `rgba(15, 23, 42, ${alphaGlass})`);
-      root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${alphaBorder * 0.2})`);
-      root.style.setProperty("--card", `rgba(15, 23, 42, ${Math.max(alphaGlass - 0.1, 0.2)})`);
-    } else {
-      root.style.setProperty("--glass", `rgba(255, 255, 255, ${alphaGlass})`);
-      root.style.setProperty("--glass-border", `rgba(15, 23, 42, ${alphaBorder * 0.12})`);
-      root.style.setProperty("--card", `rgba(255, 255, 255, ${Math.max(alphaGlass - 0.15, 0.4)})`);
-    }
+    root.style.setProperty("--glass", `rgba(15, 23, 42, ${alphaGlass})`);
+    root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${alphaBorder * 0.2})`);
+    root.style.setProperty("--card", `rgba(15, 23, 42, ${Math.max(alphaGlass - 0.1, 0.2)})`);
 
     // Apply bg overlay
     const overlayAlpha = config.bgOverlay / 100;
-    if (isDark) {
-      root.style.setProperty("--bg", `rgba(3, 7, 18, ${overlayAlpha})`);
-    } else {
-      root.style.setProperty("--bg", `rgba(248, 250, 252, ${overlayAlpha})`);
-    }
+    root.style.setProperty("--bg", `rgba(3, 7, 18, ${overlayAlpha})`);
 
     // Apply blur size
     
@@ -139,6 +129,13 @@ export function useThemeConfig(isDark: boolean) {
 
     const fontVal = FONT_OPTIONS.find(f => f.name === config.fontFamily)?.value || FONT_OPTIONS[0].value;
 
+    let styleEl = document.getElementById("theme-dynamic-styles");
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = "theme-dynamic-styles";
+      document.head.appendChild(styleEl);
+    }
+
     styleEl.innerHTML = `
       :root {
         --font-sans: ${fontVal};
@@ -156,21 +153,23 @@ export function useThemeConfig(isDark: boolean) {
       .glass-card {
         border: 1px solid rgba(${rgbVal}, 0.25) !important;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.22), 0 0 15px rgba(${rgbVal}, 0.1) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
       }
       .glass-card:hover {
         border-color: rgba(${rgbVal}, 0.45) !important;
         box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.32), 0 0 22px rgba(${rgbVal}, 0.25) !important;
+        transform: translateY(-2px) !important;
       }
       
       .glass-panel {
         border: 1px solid rgba(${rgbVal}, 0.18) !important;
         box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.18), 0 0 10px rgba(${rgbVal}, 0.08) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
       }
       .glass-panel:hover {
         border-color: rgba(${rgbVal}, 0.38) !important;
         box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.25), 0 0 18px rgba(${rgbVal}, 0.2) !important;
+        transform: translateY(-1px) !important;
       }
       
       .neu-button-primary, .btn-primary {
@@ -178,18 +177,19 @@ export function useThemeConfig(isDark: boolean) {
         box-shadow: 0 0 12px 1px rgba(${rgbVal}, 0.32) !important;
         border: 1px solid rgba(${rgbVal}, 0.3) !important;
         color: white !important;
-        transition: all 0.25s ease !important;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
       }
       
       .neu-button-primary:hover, .btn-primary:hover {
         box-shadow: 0 0 20px 3px rgba(${rgbVal}, 0.48), 0 4px 12px rgba(0, 0, 0, 0.12) !important;
-        transform: translateY(-2px) !important;
+        transform: translateY(-2px) scale(1.02) !important;
         color: white !important;
       }
       
       .neu-input:focus, .neu-input:focus-within {
         border-color: rgba(${rgbVal}, 0.5) !important;
         box-shadow: 0 0 12px rgba(${rgbVal}, 0.2) !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
     `;
 

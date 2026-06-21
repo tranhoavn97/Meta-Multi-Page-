@@ -119,18 +119,11 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
     const pageToBmMap: Record<string, { businessName: string; businessId: string; type: "Owned Page" | "Client Page" }> = {};
 
     if (bmList.length > 0) {
-      for (const bm of bmList) {
-        if (cancelScanRef.current) {
-          addLog("Hàng đợi", "Đã dừng tiến trình quét phân tích Business Manager.", "skipped");
-          setScanning(false);
-          return;
-        }
-        currentStepNum++;
-        setProgress({ current: currentStepNum, total: totalSteps });
+      const scanBusinessConcurrently = async (bm: any) => {
+        if (cancelScanRef.current) return;
         addLog(bm.name, `Đang phân tích các Page trực thuộc Business Manager...`, "processing");
 
         try {
-          await new Promise(resolve => setTimeout(resolve, 350));
           const res = await fetch("/api/page-business-map", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -139,6 +132,9 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
               businessId: bm.id
             })
           });
+
+          if (cancelScanRef.current) return;
+
           const result = await res.json();
           if (result.success && result.data) {
             const { ownedPages, clientPages } = result.data;
@@ -158,8 +154,20 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
             addLog(bm.name, `Lỗi đọc dữ liệu: ${result.error || "Lỗi máy chủ"}`, "failed");
           }
         } catch (err: any) {
+          if (cancelScanRef.current) return;
           addLog(bm.name, `Quét lỗi map: ${err.message}`, "failed");
+        } finally {
+          setProgress(p => ({ ...p, current: p.current + 1 }));
         }
+      };
+
+      const bmPromises = bmList.map(bm => scanBusinessConcurrently(bm));
+      await Promise.all(bmPromises);
+
+      if (cancelScanRef.current) {
+        addLog("Hàng đợi", "Đã dừng tiến trình quét phân tích Business Manager.", "skipped");
+        setScanning(false);
+        return;
       }
     }
 

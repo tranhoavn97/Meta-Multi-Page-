@@ -32,29 +32,7 @@ export default function ThemeSettingsTab({
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4 lg:px-6 pb-20 flex flex-col gap-8">
 
-        {/* CHẾ ĐỘ HIỂN THỊ */}
-        <div className="glass-panel p-5 xl:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 transition-all">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-[13px] font-black uppercase tracking-wider text-foreground">CHẾ ĐỘ HIỂN THỊ</h3>
-            <p className="text-xs font-semibold text-muted-foreground">Chuyển đổi giao diện Sáng tối sang trọng</p>
-          </div>
-          <div className="flex bg-background/50 backdrop-blur-md p-1.5 rounded-2xl border border-border shrink-0 max-w-sm w-full sm:w-auto">
-            <button
-              onClick={() => setIsDark(false)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-6 rounded-xl text-sm font-bold transition-all shadow-sm ${!isDark ? 'glass-panel text-foreground' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              <Sun className="w-4 h-4 shrink-0 transition-transform" />
-              Sáng
-            </button>
-            <button
-              onClick={() => setIsDark(true)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-6 rounded-xl text-sm font-bold transition-all shadow-sm ${isDark ? 'glass-panel text-foreground' : 'text-muted-foreground hover:bg-muted'}`}
-            >
-              <Moon className="w-4 h-4 shrink-0 transition-transform" />
-              Tối
-            </button>
-          </div>
-        </div>
+
 
         {/* ẢNH NỀN ỨNG DỤNG */}
         <div className="glass-panel p-5 xl:p-6 flex flex-col gap-5 transition-all">
