@@ -74,7 +74,7 @@ body {
 }
 
 /* Redefining glass-card in Apple Material Design style */
-@utility glass-card {
+.glass-card {
   background: var(--bg-card);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
@@ -151,7 +151,7 @@ body {
 }
 
 /* Redefining panels and list headers */
-@utility neu-panel {
+.neu-panel {
   background: var(--bg-card);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -160,13 +160,13 @@ body {
   border-radius: 16px !important;
 }
 
-@utility neu-flat {
+.neu-flat {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 10px !important;
   transition: all 0.2s ease;
 }
-@utility neu-flat:hover {
+.neu-flat:hover {
   background: var(--bg-surface-hover);
 }
 
