@@ -1592,7 +1592,7 @@ export default function App() {
   return (
     <div className={`relative h-screen min-h-screen lg:min-h-0 bg-transparent text-foreground flex flex-col select-none overflow-hidden font-sans`}>
       {/* BACKGROUND LAYER - Aurora Light Theme */}
-      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden bg-[#060A13]">
+      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden">
         <div
           className="absolute -top-[10%] left-[20%] w-[50%] h-[50%] rounded-full opacity-[0.25] blur-[120px]"
           style={{
@@ -1614,9 +1614,14 @@ export default function App() {
             animation: "breathe 25s infinite alternate ease-in-out"
           }}
         />
+        {/* Dynamic Dark Overlay to control background dimming/brightness */}
+        <div 
+          className="absolute inset-0 z-[2]" 
+          style={{ backgroundColor: "var(--bg)" }} 
+        />
         {/* Dot pattern */}
         <div 
-          className="absolute inset-0 z-[1] opacity-[0.02]"
+          className="absolute inset-0 z-[3] opacity-[0.02]"
           style={{ backgroundImage: "radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)", backgroundSize: "32px 32px" }}
         />
       </div>
