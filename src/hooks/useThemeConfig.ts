@@ -129,12 +129,7 @@ export function useThemeConfig(isDark: boolean) {
 
     const fontVal = FONT_OPTIONS.find(f => f.name === config.fontFamily)?.value || FONT_OPTIONS[0].value;
 
-    let styleEl = document.getElementById("theme-dynamic-styles");
-    if (!styleEl) {
-      styleEl = document.createElement("style");
-      styleEl.id = "theme-dynamic-styles";
-      document.head.appendChild(styleEl);
-    }
+
 
     styleEl.innerHTML = `
       :root {
