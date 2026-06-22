@@ -1058,7 +1058,17 @@ export default function App() {
             if (data.data && data.data.length > 0) {
               const fetchedPosts = data.data;
               allFetchedPosts = [...allFetchedPosts, ...fetchedPosts];
-              setPosts([...allFetchedPosts]); // Update posts state to reflect real-time count
+              
+              // Deduplicate in real-time before updating state to avoid keys conflict
+              const seenIds = new Set<string>();
+              const uniqueRealtimePosts: FacebookPost[] = [];
+              for (const p of allFetchedPosts) {
+                if (p && p.id && !seenIds.has(p.id)) {
+                  seenIds.add(p.id);
+                  uniqueRealtimePosts.push(p);
+                }
+              }
+              setPosts(uniqueRealtimePosts); // Update posts state to reflect real-time count
               
               if (data.fromCache) {
                  addLog("system", `Hoàn thành tải ${fetchedPosts.length} bài viết từ "${pageInfo.name}" (Cache).`, "success");
@@ -1161,7 +1171,13 @@ export default function App() {
     const fromTime = (enableDateRange && filters.dateFrom) ? new Date(filters.dateFrom).getTime() : null;
     const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null; // add 1 day minus 1ms
 
+    const seenIds = new Set<string>();
+
     return posts.filter(post => {
+      if (!post || !post.id) return false;
+      if (seenIds.has(post.id)) return false;
+      seenIds.add(post.id);
+
       let postTime: number | null = null;
 
       // 1. Check keyword
@@ -1771,8 +1787,14 @@ export default function App() {
                 <div className="flex-1 space-y-1.5 overflow-y-auto p-3 pt-2 custom-scrollbar min-h-0">
                   {(() => {
                     const query = pageSearchQuery.trim().toLowerCase();
+                    const seenPageIds = new Set<string>();
                     const filteredList = pages.filter(
-                      page => page.name.toLowerCase().includes(query) || page.id.includes(query)
+                      page => {
+                        if (!page || !page.id) return false;
+                        if (seenPageIds.has(page.id)) return false;
+                        seenPageIds.add(page.id);
+                        return page.name.toLowerCase().includes(query) || page.id.includes(query);
+                      }
                     );
 
                     if (filteredList.length === 0) {

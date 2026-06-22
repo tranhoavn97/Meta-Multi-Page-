@@ -248,7 +248,12 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
   };
 
   // Filter Logic
+  const seenIds = new Set<string>();
   const filteredPageAdmins = pageAdmins.filter(r => {
+    if (!r || !r.pageId) return false;
+    if (seenIds.has(r.pageId)) return false;
+    seenIds.add(r.pageId);
+
     const tasks = r.tasks || [];
     const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
     const hasCreateContent = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("pages_manage_posts");

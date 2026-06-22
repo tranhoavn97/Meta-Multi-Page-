@@ -285,8 +285,15 @@ return (
                   </td>
                 </tr>
               ) : (
-                pageStatuses.map((row) => {
-                  let statusColor = "bg-emerald-50 text-emerald-600 border border-emerald-200";
+                (() => {
+                  const seenIds = new Set<string>();
+                  return pageStatuses.filter(row => {
+                    if (!row || !row.pageId) return false;
+                    if (seenIds.has(row.pageId)) return false;
+                    seenIds.add(row.pageId);
+                    return true;
+                  }).map((row) => {
+                    let statusColor = "bg-emerald-50 text-emerald-600 border border-emerald-200";
                   if (row.status.includes("Thiếu quyền")) {
                     statusColor = "bg-amber-50 text-amber-600 border border-amber-200";
                   } else if (row.status.includes("lỗi") || row.status.includes("hết hạn")) {
@@ -384,8 +391,9 @@ return (
                       </td>
                     </tr>
                   );
-                })
-              )}
+                });
+              })()
+            )}
             </tbody>
           </table>
         </div>
