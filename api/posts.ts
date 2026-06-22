@@ -47,15 +47,20 @@ export default async function handler(req: any, res: any) {
 
   try {
     // 1. Fetch the pages to get the specific page's access_token
-    const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
     let pageToken: string | null = null;
-    let allPagesData = await backendFetchJson(pagesUrl);
+    let allPagesData: any = null;
+    try {
+      const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
+      allPagesData = await backendFetchJson(pagesUrl);
 
-    if (allPagesData && allPagesData.data) {
-      const pageItem = allPagesData.data.find((p: any) => p.id === pageId);
-      if (pageItem) {
-        pageToken = pageItem.access_token;
+      if (allPagesData && allPagesData.data) {
+        const pageItem = allPagesData.data.find((p: any) => p.id === pageId);
+        if (pageItem) {
+          pageToken = pageItem.access_token;
+        }
       }
+    } catch (e) {
+      console.warn("Could not fetch page token from accounts endpoint, falling back to provided token:", e);
     }
 
     // Fallback to the main user token if we couldn't resolve the page access token

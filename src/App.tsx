@@ -1589,9 +1589,17 @@ export default function App() {
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar min-h-0">
               {(() => {
-                const query = pageSearchQuery.trim().toLowerCase();
+                const cleanString = (str: string) => {
+                  return str
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase();
+                };
+                const query = cleanString(pageSearchQuery.trim());
                 const filteredList = pages.filter(
-                  page => page.name.toLowerCase().includes(query) || page.id.includes(query)
+                  page => cleanString(page.name || "").includes(query) || (page.id || "").includes(query)
                 );
 
                 if (filteredList.length === 0) {

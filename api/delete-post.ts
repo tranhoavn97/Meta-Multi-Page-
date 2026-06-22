@@ -36,8 +36,9 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Missing META_ACCESS_TOKEN" });
   }
 
-  const { post_id, postId, confirm } = req.body || {};
+  const { post_id, postId, confirm, pageId: reqPageId, page_id: reqPageId2 } = req.body || {};
   const activePostId = post_id || postId;
+  const providedPageId = reqPageId || reqPageId2;
 
   if (!activePostId) {
     return res.status(400).json({ error: "Thiếu post_id hoặc postId của bài viết." });
@@ -50,18 +51,26 @@ export default async function handler(req: any, res: any) {
   try {
     // 1. Get pageId from the post_id (post_id is typically [pageId]_[postId])
     const parts = activePostId.split("_");
-    const pageId = parts[0];
+    const pageId = parts.length > 1 ? parts[0] : providedPageId;
+
+    if (!pageId) {
+      return res.status(400).json({ error: "Không tìm thấy pageId trong post_id và không được truyền trong request body." });
+    }
 
     // 2. Fetch pages list to find the corresponding page_access_token
-    const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
     let pageToken: string | null = null;
-    let allPagesData = await backendFetchJson(pagesUrl);
+    try {
+      const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
+      let allPagesData = await backendFetchJson(pagesUrl);
 
-    if (allPagesData && allPagesData.data) {
-      const pageItem = allPagesData.data.find((p: any) => p.id === pageId);
-      if (pageItem) {
-        pageToken = pageItem.access_token;
+      if (allPagesData && allPagesData.data) {
+        const pageItem = allPagesData.data.find((p: any) => p.id === pageId);
+        if (pageItem) {
+          pageToken = pageItem.access_token;
+        }
       }
+    } catch (e) {
+      console.warn("Could not fetch page token from accounts endpoint, falling back to provided token:", e);
     }
 
     const activeToken = pageToken || META_ACCESS_TOKEN;
