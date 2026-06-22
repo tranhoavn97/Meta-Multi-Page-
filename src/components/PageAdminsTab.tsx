@@ -594,46 +594,46 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
           </div>
 
           {/* Log Tabs */}
-          <div className="flex gap-1 border-b border-border/40 pb-2 mb-2 shrink-0">
+          <div className="flex items-center gap-2 border-b border-border/40 pb-3 mb-2 shrink-0">
             <button
               type="button"
               onClick={() => setActiveLogTab("all")}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 shrink-0 ${
                 activeLogTab === "all"
-                  ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-300 dark:border-slate-750"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent"
+                  ? "bg-slate-800 text-slate-100 border border-slate-700"
+                  : "text-slate-400 hover:text-slate-200 border border-transparent"
               }`}
             >
               Tất cả
-              <span className="bg-slate-300/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+              <span className="bg-slate-700/80 text-slate-300 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
                 {logs.length}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setActiveLogTab("success")}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 shrink-0 ${
                 activeLogTab === "success"
-                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-500/30"
-                  : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 border border-transparent"
+                  ? "bg-slate-800 text-slate-100 border border-slate-700"
+                  : "text-slate-400 hover:text-slate-200 border border-transparent"
               }`}
             >
               Thành công
-              <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+              <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
                 {logs.filter(log => log.status === "success").length}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setActiveLogTab("error")}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
+              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 shrink-0 ${
                 activeLogTab === "error"
-                  ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-500/30"
-                  : "text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 border border-transparent"
+                  ? "bg-slate-800 text-slate-100 border border-slate-700"
+                  : "text-slate-400 hover:text-slate-200 border border-transparent"
               }`}
             >
               Lỗi
-              <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
+              <span className="bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
                 {logs.filter(log => log.status === "failed").length}
               </span>
             </button>

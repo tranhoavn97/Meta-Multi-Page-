@@ -75,9 +75,22 @@ export function useThemeConfig() {
   const setConfig = (newConfig: ThemeConfig) => {
     setConfigState(newConfig);
     try {
-      localStorage.setItem("app_theme_config", JSON.stringify(newConfig));
+      const configString = JSON.stringify(newConfig);
+      const size = new Blob([configString]).size;
+      const MAX_SIZE = 4 * 1024 * 1024; // 4MB
+
+      if (size > MAX_SIZE) {
+        alert("Cảnh báo: Ảnh quá lớn (vượt quá 4MB). Ảnh sẽ tự động được xoá khỏi bộ nhớ lưu trữ để tránh lỗi dung lượng bộ nhớ trên trình duyệt (bạn vẫn có thể dùng ảnh này hiện tại nhưng sẽ bị mất sau khi tải lại trang).");
+        // Don't save base64 to localStorage if > 4MB
+        const fallbackConfig = { ...newConfig, bgType: "gradient", bgImageUrl: "", savedBgImages: [] };
+        localStorage.setItem("app_theme_config", JSON.stringify(fallbackConfig));
+        return;
+      }
+
+      localStorage.setItem("app_theme_config", configString);
     } catch (e) {
-      console.warn("Storage quota exceeded of localStorage, only applying theme in state", e);
+      alert("Cảnh báo: Không thể lưu cài đặt theme. Bộ nhớ trình duyệt LocalStorage đã quá giới hạn khả dụng.");
+      console.warn("Storage quota exceeded", e);
     }
   };
 

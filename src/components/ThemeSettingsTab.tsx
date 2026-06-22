@@ -2,17 +2,18 @@ import React, { useState, useRef } from "react";
 import { 
   Sun, Moon, LayoutTemplate, Type, Settings2, Palette, Box, Check, Image as ImageIcon, Sliders, Layers, Focus, Upload, AlertCircle, RefreshCw
 } from "lucide-react";
-import { useThemeConfig, APP_THEMES, COLOR_OPTIONS, FONT_OPTIONS } from "../hooks/useThemeConfig";
+import { useThemeConfig, APP_THEMES, COLOR_OPTIONS, FONT_OPTIONS, ThemeConfig } from "../hooks/useThemeConfig";
 
 interface ThemeSettingsTabProps {
+  config: ThemeConfig;
+  setConfig: (config: ThemeConfig) => void;
   isDark?: boolean;
   setIsDark?: (dark: boolean) => void;
 }
 
 const DEFAULT_WALLPAPER_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80";
 
-export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
-  const { config, setConfig } = useThemeConfig();
+export default function ThemeSettingsTab({ config, setConfig, isDark, setIsDark }: ThemeSettingsTabProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -28,16 +29,15 @@ export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
   const borderRadius = config.borderRadius !== undefined ? config.borderRadius : 20;
 
   const addSavedImage = (imageUrl: string) => {
-    const list = config.savedBgImages || [];
-    if (!list.includes(imageUrl)) {
-      const newList = [imageUrl, ...list].slice(0, 5);
-      handleUpdate({ bgType: "image", bgImageUrl: imageUrl, savedBgImages: newList });
-    } else {
-      handleUpdate({ bgType: "image", bgImageUrl: imageUrl });
-    }
+    setConfig({
+      ...config,
+      bgType: "image",
+      bgImageUrl: imageUrl,
+      savedBgImages: [imageUrl] // Temporarily keep max 1 image
+    });
   };
 
-  // Handles raw image processing, scaling & jpeg compression for localStorage performance
+  // Handles raw image processing, scaling & webp compression for localStorage performance
   const processImageFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       setUploadError("Vui lòng chọn một tệp hình ảnh hợp lệ (.png, .jpg, .jpeg, .webp)");
@@ -66,9 +66,9 @@ export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
           let width = img.width;
           let height = img.height;
           
-          // Optimal aspect preservation downscaling bounds: 1024x576 is ideal for blurred backgrounds
-          const MAX_WIDTH = 1024;
-          const MAX_HEIGHT = 576;
+          // Downscaling bounds: 1280x720
+          const MAX_WIDTH = 1280;
+          const MAX_HEIGHT = 720;
           
           if (width > MAX_WIDTH || height > MAX_HEIGHT) {
             if (width / height > MAX_WIDTH / MAX_HEIGHT) {
@@ -86,11 +86,9 @@ export default function ThemeSettingsTab({}: ThemeSettingsTabProps) {
           
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            // High-efficiency JPEG format compressing at 55% quality (~50KB payload)
-            const compressedBase64 = canvas.toDataURL("image/jpeg", 0.55);
+            const compressedBase64 = canvas.toDataURL("image/webp", 0.45);
             addSavedImage(compressedBase64);
           } else {
-            // Fallback to raw base64 if canvas context is unavailable
             addSavedImage(e.target?.result as string);
           }
         } catch (err) {

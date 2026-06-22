@@ -330,7 +330,7 @@ function CustomSelect({
 
 export default function App() {
   const toast = useToast();
-  const { config } = useThemeConfig(); // Instantiate global theme styles
+  const { config, setConfig } = useThemeConfig(); // Instantiate global theme styles
 
   const isDark = true;
   const setIsDark = () => {};
@@ -1340,7 +1340,7 @@ export default function App() {
           <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
 
           {/* Group 1: Navigation Links */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 flex-1 w-full">
             {!isSidebarCollapsed && (
               <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
                 Menu chính
@@ -1366,10 +1366,10 @@ export default function App() {
                 {activeTab === "posts" && (
                   <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
                   activeTab === "posts"
-                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
-                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
+                    ? "bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                    : "bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(99,102,241,0.2)]"
                 }`}>
                   <FileText className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
@@ -1398,10 +1398,10 @@ export default function App() {
                 {activeTab === "status" && (
                   <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
                   activeTab === "status"
-                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
-                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
+                    ? "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                    : "bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                 }`}>
                   <Activity className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
@@ -1430,10 +1430,10 @@ export default function App() {
                 {activeTab === "admins" && (
                   <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
                   activeTab === "admins"
-                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
-                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
+                    ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+                    : "bg-purple-500/15 text-purple-400 group-hover:bg-purple-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
                 }`}>
                   <Users className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
@@ -1475,10 +1475,10 @@ export default function App() {
                 {activeTab === "theme" && (
                   <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
                   activeTab === "theme"
-                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
-                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
+                    ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]"
+                    : "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
                 }`}>
                   <Palette className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
                 </div>
@@ -1504,10 +1504,10 @@ export default function App() {
                 {showConfig && (
                   <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
                 )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 border ${
+                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
                   showConfig 
-                    ? "bg-[var(--accent)]/20 text-[var(--accent)] border-[var(--accent)]/30"
-                    : "bg-white/[0.02] border-white/[0.05] text-slate-400 group-hover:bg-[var(--accent)]/10 group-hover:text-[var(--accent)] group-hover:border-[var(--accent)]/15"
+                    ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+                    : "bg-cyan-500/15 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(6,182,212,0.2)]"
                 }`}>
                   <Settings className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
                 </div>
@@ -1521,60 +1521,29 @@ export default function App() {
           </div>
 
           {/* Footer User Profile & Connection Status */}
-          <div className="mt-auto flex flex-col gap-3 w-full shrink-0">
-            {/* Connection status indicator (Đèn nhấp nháy) */}
-            {userToken ? (
-              <div className={`flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
-                <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-emerald-500/40"></span>
-                {!isSidebarCollapsed && <span className="font-mono">Đã kết nối</span>}
-              </div>
-            ) : (
-              <div className={`flex bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
-                <span className="w-2 h-2 shrink-0 bg-amber-500 rounded-full animate-ping border border-amber-500/40"></span>
-                {!isSidebarCollapsed && <span className="font-mono text-[11px]">Cần đăng nhập</span>}
-              </div>
-            )}
-
-            {/* User credentials & Sync status */}
-            <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-transparent hover:border-slate-800 transition-all duration-300 overflow-hidden">
-              <div className="relative shrink-0 select-none">
-                <img 
-                  src={userToken ? "https://graph.facebook.com/v19.0/me/picture?access_token=" + userToken : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} 
-                  alt="Avatar" 
-                  className="w-8.5 h-8.5 rounded-full object-cover ring-2 ring-[#1877F2]/30"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${userToken ? "User" : "Hoa Tran"}&background=1877F2&color=fff&size=80`;
-                  }}
-                />
-                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#090D16] ${userToken ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
-              </div>
+          <div className="flex flex-col gap-3 w-full shrink-0">
+            {/* User credentials & Logout */}
+            <button 
+              type="button"
+              onClick={() => {
+                if (userToken) {
+                  clearCredentials();
+                } else {
+                  handleOAuthLogin();
+                }
+              }}
+              title={userToken ? "Đăng xuất tài khoản" : "Cấu hình liên kết OAuth"}
+              className={`flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl border transition-all duration-300 font-bold text-[13px] ${
+                userToken 
+                  ? "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/30 shadow-sm" 
+                  : "bg-blue-500/10 text-[#1877F2] border-[#1877F2]/20 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/30 shadow-sm"
+              }`}
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
               {!isSidebarCollapsed && (
-                <div className="min-w-0 flex-1 flex items-center justify-between">
-                  <div className="text-left">
-                    <h4 className="text-[12px] font-bold text-slate-200 truncate max-w-[85px] leading-tight select-all">
-                      Hòa Trần
-                    </h4>
-                    <p className="text-[9px] text-slate-500 font-mono tracking-tight leading-none mt-0.5 whitespace-nowrap">
-                      {userToken ? "Hệ thống đồng bộ" : "Chưa kết nối FB"}
-                    </p>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (userToken) {
-                        clearCredentials();
-                      } else {
-                        handleOAuthLogin();
-                      }
-                    }}
-                    title={userToken ? "Đăng xuất tài khoản" : "Cấu hình liên kết OAuth"}
-                    className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <span>{userToken ? "Đăng xuất" : "Đăng nhập Facebook"}</span>
               )}
-            </div>
+            </button>
           </div>
         </aside>
 
@@ -2458,7 +2427,7 @@ export default function App() {
             </div>
 
             <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'theme' ? '' : 'hidden'}`}>
-              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} />
+              <ThemeSettingsTab config={config} setConfig={setConfig} isDark={isDark} setIsDark={setIsDark} />
             </div>
 
         </main>
