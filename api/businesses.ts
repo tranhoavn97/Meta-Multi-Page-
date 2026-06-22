@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -55,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
   } catch (globalError: any) {
-    console.error("Lỗi toàn cục trong API businesses:", globalError);
+    console.error("Lỗi toàn cục trong API businesses:", sanitizeSensitiveText(globalError.stack || globalError.message));
     return res.status(500).json({
       success: false,
       error: {

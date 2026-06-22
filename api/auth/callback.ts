@@ -4,6 +4,7 @@ import { parseCookies, clearCookie } from "../_lib/cookies";
 import { setMetaAccessToken } from "../_lib/session";
 import { GRAPH_API_VERSION, GRAPH_API_BASE, checkRequiredEnvVars } from "../_lib/meta-config";
 import { metaFetchJson } from "../_lib/meta-client";
+import { sanitizeSensitiveText } from "../_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -160,15 +161,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       </html>
     `);
   } catch (err: any) {
-    console.error("Lỗi trong quá trình callback OAuth:", err);
-    const status = err.status || 500;
-    return res.status(status).json({
+    console.error("Lỗi trong quá trình callback OAuth:", sanitizeSensitiveText(err.stack || err.message));
+    return res.status(500).json({
       success: false,
       error: {
-        code: err.code || "OAUTH_CALLBACK_FAILED",
-        message: err.message || "Lỗi máy chủ trong callback OAuth.",
-        metaCode: err.metaCode,
-        retryable: false
+        code: "INTERNAL_SERVER_ERROR",
+        message: err.message || "Lỗi máy chủ trong callback OAuth."
       }
     });
   }

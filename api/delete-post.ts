@@ -3,6 +3,7 @@ import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
 import { getPageAccessToken } from "./_lib/page-token-store";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -115,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 } catch (globalError: any) {
-  console.error("Lỗi hệ thống toàn cục trong delete-post:", globalError);
+  console.error("Lỗi hệ thống toàn cục trong delete-post:", sanitizeSensitiveText(globalError.stack || globalError.message));
   return res.status(500).json({
     success: false,
     error: {

@@ -3,6 +3,7 @@ import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson, parseUsagePercentage, getSingleQueryParam } from "./_lib/meta-client";
 import { getPageAccessToken } from "./_lib/page-token-store";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 const cache = new Map<string, { savedAt: number; posts: any[] }>();
 
@@ -158,12 +159,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rateLimitInfo
     });
   } catch (err: any) {
-    console.error(`Lỗi khi lấy bài viết cho page ${pageId}:`, err);
+    console.error(`Lỗi khi lấy bài viết cho page ${pageId}:`, sanitizeSensitiveText(err.stack || err.message));
     const status = err.status || 500;
     return res.status(status).json({
       success: false,
       error: {
-        code: err.code || "POSTS_FETCH_FAILED",
+        code: err.code || "INTERNAL_SERVER_ERROR",
         message: err.message || "Lỗi máy chủ khi lấy danh sách bài viết.",
         metaCode: err.metaCode,
         retryable: err.retryable || false,
@@ -172,7 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 } catch (globalError: any) {
-  console.error("Lỗi toàn cục trong posts API:", globalError);
+  console.error("Lỗi toàn cục trong posts API:", sanitizeSensitiveText(globalError.stack || globalError.message));
   return res.status(500).json({
     success: false,
     error: {

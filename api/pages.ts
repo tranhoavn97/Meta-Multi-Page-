@@ -3,6 +3,7 @@ import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson, parseUsagePercentage } from "./_lib/meta-client";
 import { registerPageTokens } from "./_lib/page-token-store";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -88,12 +89,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rateLimitInfo: lastRateLimitInfo
     });
   } catch (err: any) {
-    console.error("Lỗi trong quá trình lấy danh sách Page:", err);
+    console.error("Lỗi trong quá trình lấy danh sách Page:", sanitizeSensitiveText(err.stack || err.message));
     const status = err.status || 500;
     return res.status(status).json({
       success: false,
       error: {
-        code: err.code || "PAGES_FETCH_FAILED",
+        code: err.code || "INTERNAL_SERVER_ERROR",
         message: err.message || "Lỗi máy chủ khi lấy danh sách Fanpage.",
         metaCode: err.metaCode,
         retryable: err.retryable || false,
@@ -102,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 } catch (globalError: any) {
-  console.error("Lỗi toàn cục trong pages API:", globalError);
+  console.error("Lỗi toàn cục trong pages API:", sanitizeSensitiveText(globalError.stack || globalError.message));
   return res.status(500).json({
     success: false,
     error: {

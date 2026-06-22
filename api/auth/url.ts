@@ -1,4 +1,5 @@
 import { checkRequiredEnvVars } from "../_lib/meta-config";
+import { sanitizeSensitiveText } from "../_lib/sanitize";
 
 export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -47,7 +48,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ url: authUrl });
   } catch (error: any) {
-    console.error("Lỗi khi tạo Auth URL:", error);
+    console.error("Lỗi khi tạo Auth URL:", sanitizeSensitiveText(error.stack || error.message));
     return res.status(500).json({
       success: false,
       error: {

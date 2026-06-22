@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -102,14 +103,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    console.error("Lỗi khi kết nối kiểm tra Fanpages:", error);
-    const status = error.status || 500;
-    return res.status(status).json({
+    const errorMsg = error.message || "Không thể kết nối hoặc phân tích trạng thái từ Facebook.";
+    console.error("Lỗi khi kết nối kiểm tra Fanpages:", sanitizeSensitiveText(error.stack || error.message));
+    return res.status(500).json({
       success: false,
-      status: "error",
       error: {
-        code: error.code || "CHECK_PAGES_FAILED",
-        message: error.message || "Không thể kết nối hoặc phân tích trạng thái từ Facebook."
+        code: "INTERNAL_SERVER_ERROR",
+        message: errorMsg
       }
     });
   }

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -88,17 +89,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
   } catch (error: any) {
-    console.error("Lỗi Page Business Map API:", error);
+    console.error("Lỗi Page Business Map API:", sanitizeSensitiveText(error.stack || error.message));
     return res.status(500).json({
       success: false,
       error: {
-        code: "PAGE_BUSINESS_MAP_FAILED",
+        code: "INTERNAL_SERVER_ERROR",
         message: error.message || "Lỗi máy chủ khi thiết lập ánh xạ Trang-Doanh nghiệp"
       }
     });
   }
 } catch (globalError: any) {
-  console.error("Lỗi toàn cục trong page-business-map:", globalError);
+  console.error("Lỗi toàn cục trong page-business-map:", sanitizeSensitiveText(globalError.stack || globalError.message));
   return res.status(500).json({
     success: false,
     error: {

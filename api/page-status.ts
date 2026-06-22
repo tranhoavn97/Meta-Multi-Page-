@@ -3,6 +3,7 @@ import { getMetaAccessToken } from "./_lib/session";
 import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
 import { getPageAccessToken } from "./_lib/page-token-store";
+import { sanitizeSensitiveText } from "./_lib/sanitize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -148,17 +149,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error: any) {
-    console.error("Lỗi kiểm tra trạng thái trang:", error);
+    console.error("Lỗi kiểm tra trạng thái trang:", sanitizeSensitiveText(error.stack || error.message));
     return res.status(500).json({
       success: false,
       error: {
-        code: "PAGE_STATUS_CHECK_FAILED",
+        code: "INTERNAL_SERVER_ERROR",
         message: error.message || "Lỗi hệ thống khi tải kiểm tra trang."
       }
     });
   }
 } catch (globalError: any) {
-  console.error("Lỗi toàn cục trong page-status API:", globalError);
+  console.error("Lỗi toàn cục trong page-status API:", sanitizeSensitiveText(globalError.stack || globalError.message));
   return res.status(500).json({
     success: false,
     error: {
