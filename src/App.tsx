@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { 
   Facebook, 
   Settings, 
@@ -37,16 +36,15 @@ import {
   Users,
   Briefcase,
   Sun,
-  Moon,
-  Loader2
+  Moon
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
+// @ts-ignore
+import bgImage from "./assets/images/cosmic_swirl_bg_1781941929717.jpg";
 import { safeFetchJson } from "./utils/safeFetchJson";
 import { useToast } from "./components/Toast";
 import PageStatusTab from "./components/PageStatusTab";
 import PageAdminsTab from "./components/PageAdminsTab";
-import ThemeSettingsTab from "./components/ThemeSettingsTab";
-import { useThemeConfig } from "./hooks/useThemeConfig";
 import DateRangePickerModal from "./components/DateRangePickerModal";
 
 // ==========================================
@@ -176,21 +174,21 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-between w-full h-9 bg-background border border-border hover:glass-panel disabled:border-muted focus:border-accent rounded-xl px-3 text-xs text-left text-foreground disabled:opacity-35 cursor-pointer font-bold select-none transition-all shadow-sm"
+        className="relative flex items-center justify-between w-full h-9 neu-input hover:brightness-110 disabled:border-slate-800 hover:border-blue-500 focus:border-blue-500 rounded-xl px-3 text-xs text-left text-white disabled:opacity-35 cursor-pointer font-bold select-none transition-all shadow-sm"
       >
-        <span className={`${value ? "text-foreground" : "text-muted-foreground"} font-semibold font-mono`}>
+        <span className={`${value ? "text-white" : "text-white/40"} font-semibold font-mono`}>
           {displayValue()}
         </span>
-        <Calendar className="w-3.5 h-3.5 text-muted-foreground ml-1 shrink-0" />
+        <Calendar className="w-3.5 h-3.5 text-white/50 ml-1 shrink-0" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 z-[99] w-[270px] glass-card border border-border rounded-2xl shadow-xl p-4 text-foreground select-none transition-all">
-          <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="absolute right-0 top-full mt-2 z-[99] w-[270px] neu-input rounded-2xl shadow-2xl p-4 text-white select-none transition-all">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <button
               type="button"
               onClick={() => changeMonth(-1)}
-              className="p-1.5 hover:bg-muted rounded-lg transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-white/70 hover:text-white"
             >
               <ChevronRight className="w-4 h-4 rotate-180" />
             </button>
@@ -200,15 +198,15 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
             <button
               type="button"
               onClick={() => changeMonth(1)}
-              className="p-1.5 hover:bg-muted rounded-lg transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-white/70 hover:text-white"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase font-bold text-muted-foreground mt-2 font-mono">
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] uppercase font-bold text-slate-400 mt-2 font-mono">
             {["H", "B", "T", "N", "S", "B", "C"].map((d, idx) => (
-              <span key={idx} className={idx >= 5 ? "text-rose-500 font-extrabold" : ""}>{d}</span>
+              <span key={idx} className={idx >= 5 ? "text-rose-400 font-extrabold" : ""}>{d}</span>
             ))}
           </div>
 
@@ -226,12 +224,12 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
                   onClick={() => handleSelectDay(dateStr)}
                   className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-accent text-white shadow-md border border-white/10"
+                      ? "neu-button-primary text-white shadow-md shadow-blue-500/30 scale-105"
                       : isToday
-                      ? "bg-accent/10 text-accent ring-1 ring-accent/30 font-extrabold"
+                      ? "bg-white/10 text-blue-400 ring-1 ring-blue-500/30 font-extrabold"
                       : isCurrentMonth
-                      ? "text-foreground hover:bg-muted"
-                      : "text-muted-foreground hover:bg-muted"
+                      ? "text-white hover:bg-white/10"
+                      : "text-white/20 hover:bg-white/5"
                   }`}
                 >
                   {day}
@@ -240,18 +238,18 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
             })}
           </div>
 
-          <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-border text-[11px] font-bold">
+          <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-slate-800 text-[11px] font-bold">
             <button
               type="button"
               onClick={handleClear}
-              className="text-rose-500 hover:text-rose-400 hover:underline cursor-pointer"
+              className="text-rose-400 hover:text-rose-300 hover:underline cursor-pointer"
             >
               Xóa
             </button>
             <button
               type="button"
               onClick={handleToday}
-              className="text-accent hover:text-accent/80 hover:underline cursor-pointer"
+              className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
             >
               Hôm nay
             </button>
@@ -295,14 +293,14 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-1.5 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-xs outline-none text-foreground font-bold cursor-pointer transition-all select-none min-w-[50px]"
+        className="flex items-center justify-between gap-1 neu-input hover:brightness-110 hover:border-blue-500 focus:border-blue-500 rounded-xl px-2.5 h-9 text-xs outline-none text-white font-bold cursor-pointer transition-all select-none min-w-[70px] shadow-sm"
       >
         <span>{selectedOption?.label}</span>
-        <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${isOpen ? "rotate-90 text-accent" : ""}`} />
+        <ChevronRight className={`w-3 h-3 text-white/55 transition-transform duration-200 ${isOpen ? "rotate-90 text-blue-400" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-[115%] z-[99] w-[160px] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
+        <div className="absolute right-0 top-full mt-1.5 z-[99] w-[115px] neu-input rounded-xl shadow-2xl p-1 overflow-hidden transition-all">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -311,10 +309,10 @@ function CustomSelect({
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
+              className={`w-full text-left px-2.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                 value === opt.value
-                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold"
-                  : "text-foreground hover:bg-white/10"
+                  ? "neu-button-primary text-white"
+                  : "text-white/80 hover:bg-white/10 hover:text-white"
               }`}
             >
               <span>{opt.label}</span>
@@ -329,15 +327,20 @@ function CustomSelect({
 
 export default function App() {
   const toast = useToast();
-  const { config } = useThemeConfig(); // Instantiate global theme styles
-
-  const isDark = true;
-  const setIsDark = () => {};
+  
+  // Theme state
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("meta_app_theme") as "dark" | "light") || "dark";
+  });
 
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('theme', 'dark');
-  }, []);
+    localStorage.setItem("meta_app_theme", theme);
+    if (theme === "light") {
+      document.documentElement.classList.add("light-theme");
+    } else {
+      document.documentElement.classList.remove("light-theme");
+    }
+  }, [theme]);
 
   // OAuth / Credentials state
   const [appId, setAppId] = useState<string>(() => {
@@ -361,16 +364,8 @@ export default function App() {
   const [loadingPages, setLoadingPages] = useState<boolean>(false);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [currentlyDeletingId, setCurrentlyDeletingId] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState<boolean>(false);
-
-  // Meta API rate limiting and Polling states
-  const [isMetaRateLimited, setIsMetaRateLimited] = useState<boolean>(false);
-  const [rateLimitUnlockTime, setRateLimitUnlockTime] = useState<number | null>(null);
-  const [jobsErrorCount, setJobsErrorCount] = useState<number>(0);
-  const [isTabVisible, setIsTabVisible] = useState<boolean>(true);
-  const [hasRunningJobs, setHasRunningJobs] = useState<boolean>(false);
 
   // Filters State
   const [filters, setFilters] = useState<FilterCriteria>({
@@ -381,8 +376,8 @@ export default function App() {
     enableDateRange: false,
     keyword: "",
     enableKeyword: false,
-    maxPostsToFetch: 100,
-    maxPostsToShow: 300,
+    maxPostsToFetch: 1000,
+    maxPostsToShow: 1000,
     timeRangePreset: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
@@ -424,7 +419,6 @@ export default function App() {
 
   // Logs & Progress
   const [logs, setLogs] = useState<DeletionLog[]>([]);
-  const [activeLogTab, setActiveLogTab] = useState<"all" | "error" | "success">("all");
   const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const [scanProgress, setScanProgress] = useState<{ current: number; total: number; currentPageName: string }>({ current: 0, total: 0, currentPageName: "" });
   const [deletedCountSession, setDeletedCountSession] = useState<number>(0);
@@ -434,14 +428,11 @@ export default function App() {
   const [doubleConfirm, setDoubleConfirm] = useState<boolean>(false);
 
   // Active Tab state for Page Status and Admin/Business views integration
-  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins" | "theme">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "status" | "admins">("posts");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   // References for logging & scroll
   const logContainerRef = useRef<HTMLDivElement>(null);
-  const postListScrollRef = useRef<HTMLDivElement>(null);
-  const [postListScrollTop, setPostListScrollTop] = useState(0);
-  const [postListContainerHeight, setPostListContainerHeight] = useState(500);
   const scanCancelledRef = useRef<boolean>(false);
   const deleteCancelledRef = useRef<boolean>(false);
 
@@ -488,197 +479,13 @@ export default function App() {
     return false;
   };
 
-  // Listen to tab visibility to optimize polling
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(document.visibilityState === "visible");
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
-
-  // Poll /api/jobs/active dynamically matching user's specific constraints (Requirement 6)
-  useEffect(() => {
-    if (jobsErrorCount >= 3) return;
-
-    let timerId: any = null;
-
-    const performPoll = async () => {
-      try {
-        const res = await fetch("/api/jobs/active");
-        if (!res.ok) {
-          throw new Error(`HTTP Error ${res.status}`);
-        }
-        const data = await res.json();
-        
-        // Reset error count on successful communication
-        setJobsErrorCount(0);
-
-        // Check if there are active jobs
-        const running = !!(data && data.activeJobsCount && data.activeJobsCount > 0);
-        setHasRunningJobs(running);
-      } catch (err: any) {
-        setJobsErrorCount(prev => {
-          const nextVal = prev + 1;
-          if (nextVal >= 3) {
-            addLog("system", `Đã dừng kiểm tra trạng thái tiến trình nền do API báo lỗi 3 lần liên tiếp: ${err.message}`, "failed");
-          }
-          return nextVal;
-        });
-      }
-    };
-
-    // Determine poll interval dynamically based on requirements
-    let currentInterval = 25000; // default 20-30s when no jobs are running
-
-    if (!isTabVisible) {
-      currentInterval = 60000; // max 60s when tab is hidden
-    } else if (hasRunningJobs) {
-      currentInterval = 2000; // 2s when job is running
-    }
-
-    const runLoop = () => {
-      performPoll().finally(() => {
-        timerId = setTimeout(runLoop, currentInterval);
-      });
-    };
-
-    timerId = setTimeout(runLoop, currentInterval);
-
-    return () => {
-      if (timerId) clearTimeout(timerId);
-    };
-  }, [hasRunningJobs, isTabVisible, jobsErrorCount]);
-
-  // Meta Rate Limit Count down timer (Requirement 1)
-  useEffect(() => {
-    if (!rateLimitUnlockTime) return;
-    const interval = setInterval(() => {
-      if (Date.now() >= rateLimitUnlockTime) {
-        setIsMetaRateLimited(false);
-        setRateLimitUnlockTime(null);
-        addLog("system", "Hết thời gian tạm khoá 10 phút. Bạn có thể tiếp tục thực hiện quét bài viết.", "success");
-        toast.success("Hệ thống đã tự động mở khóa giới hạn Meta API. Bạn có thể quét tiếp.", "Đã mở khóa");
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [rateLimitUnlockTime]);
-
-  const triggerMetaRateLimit = () => {
-    setIsMetaRateLimited(true);
-    setRateLimitUnlockTime(Date.now() + 10 * 60 * 1000); // 10 minutes
-    addLog("system", "ỨNG DỤNG ĐÃ CHẠM GIỚI HẠN REQUEST CỦA META. TẠM KHÓA TOÀN BỘ YÊU CẦU TRONG 10 PHÚT.", "failed");
-    toast.error("Ứng dụng bị tạm khóa quét trong 10 phút do chạm giới hạn API của Meta.", "Chạm giới hạn Meta");
-  };
-
-  const checkAndWarnUsage = (info: any, pageName: string) => {
-    if (!info) return;
-
-    const parseMaxPercentage = (headerVal: any): number => {
-      if (!headerVal) return 0;
-      try {
-        if (typeof headerVal === "string") {
-          if (headerVal.startsWith("{")) {
-            const parsed = JSON.parse(headerVal);
-            let maxPct = 0;
-            for (const key in parsed) {
-              const val = parseFloat(parsed[key]);
-              if (!isNaN(val) && val > maxPct) {
-                maxPct = val;
-              }
-            }
-            return maxPct;
-          } else {
-            const val = parseFloat(headerVal);
-            return isNaN(val) ? 0 : val;
-          }
-        } else if (typeof headerVal === "object") {
-          let maxPct = 0;
-          for (const key in headerVal) {
-            const val = parseFloat(headerVal[key]);
-            if (!isNaN(val) && val > maxPct) {
-              maxPct = val;
-            }
-          }
-          return maxPct;
-        }
-      } catch (e) {
-        // ignored
-      }
-      return 0;
-    };
-
-    const appPct = parseMaxPercentage(info.appUsage);
-    const pagePct = parseMaxPercentage(info.pageUsage);
-    const bizPct = parseMaxPercentage(info.businessUsage);
-
-    const maxPct = Math.max(appPct, pagePct, bizPct);
-
-    if (maxPct > 80) {
-      addLog("system", `Cảnh báo sử dụng API trên "${pageName}": ${maxPct.toFixed(1)}% (vượt mức cho phép 80%). Tự động dừng để đảm bảo an toàn.`, "skipped");
-      toast.warning(`Tự động tạm dừng quét vì mức sử dụng API Meta của trang "${pageName}" đạt ${maxPct.toFixed(0)}%.`, "Nguy cơ giới hạn");
-      scanCancelledRef.current = true;
-    }
-  };
-
-  // Dedicated fetch with exponential backoff & Rate Limit detection compliance (Requirement 2 & 10)
-  const fetchWithBackoff = async (url: string, options: any = {}, retryCount = 0): Promise<any> => {
-    if (isMetaRateLimited) {
-      throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
-    }
-
-    try {
-      const data = await safeFetchJson(url, options);
-
-      if (data && data.error) {
-        const errorMsg = data.error?.message || data.error || "";
-        const errorCode = data.errorCode || data.error?.code;
-
-        if (errorCode === 4 || errorMsg.toLowerCase().includes("application request limit reached")) {
-          triggerMetaRateLimit();
-          throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
-        }
-      }
-      return data;
-    } catch (err: any) {
-      const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
-      const errMsg = err.message || "";
-
-      if (errCode === 4 || errMsg.toLowerCase().includes("application request limit reached")) {
-        triggerMetaRateLimit();
-        throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
-      }
-
-      // Max 3 retries
-      if (retryCount >= 3) {
-        throw err;
-      }
-
-      // Backoff intervals: 5s, 15s, 60s
-      const backoffDelays = [5000, 15000, 60000];
-      const backoffDelay = backoffDelays[retryCount] || 60000;
-
-      addLog("system", `Có lỗi xảy ra: ${errMsg}. Đang thử lại lần ${retryCount + 1}/3 sau ${backoffDelay / 1000} giây...`, "processing");
-      await new Promise(resolve => setTimeout(resolve, backoffDelay));
-
-      return fetchWithBackoff(url, options, retryCount + 1);
-    }
-  };
-
-  // Custom log adder helper with access token filter (Requirement 11)
+  // Custom log adder helper
   const addLog = (postId: string, message: string, status: DeletionLog["status"]) => {
     const timeString = new Date().toLocaleTimeString("vi-VN");
-    // Sanitary function to wipe credentials
-    const sanitizeMessage = (msg: string): string => {
-      if (!msg) return "";
-      return msg.replace(/(access_token|token|user_token|userToken)=[^&/\s"']+/gi, "$1=[HIDDEN]");
-    };
-    const sanitizedMsg = sanitizeMessage(message);
-
     const newLog: DeletionLog = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: Math.random().toString(36).substr(2, 9),
       postId,
-      postMessageSnippet: sanitizedMsg,
+      postMessageSnippet: message,
       pageName: "Hệ thống",
       status,
       timestamp: timeString
@@ -769,13 +576,6 @@ export default function App() {
     }
   }, [logs]);
 
-  // Measure container height for virtual scrolling
-  useEffect(() => {
-    if (postListScrollRef.current) {
-      setPostListContainerHeight(postListScrollRef.current.clientHeight);
-    }
-  }, [posts, activeTab, filters]);
-
   // Initiate OAuth window action
   const handleOAuthLogin = async () => {
     setApiError(null);
@@ -817,27 +617,9 @@ export default function App() {
     }
   };
 
-  // Fetch listed Pages with cache tracking (Requirement 7)
-  const fetchPages = async (tokenToUse?: string, forceRefresh = false) => {
+  // Fetch listed Pages
+  const fetchPages = async (tokenToUse?: string) => {
     const activeToken = tokenToUse || userToken;
-
-    // Check Cache first if not forcing refresh
-    if (!forceRefresh) {
-      const cachedPagesStr = sessionStorage.getItem("meta_cached_pages");
-      if (cachedPagesStr) {
-        try {
-          const cachedPages = JSON.parse(cachedPagesStr);
-          if (cachedPages && cachedPages.length > 0) {
-            setPages(cachedPages);
-            addLog("system", `[Cache] Tải thành công ${cachedPages.length} Fanpages quản lý từ bộ nhớ đệm.`, "success");
-            return;
-          }
-        } catch (e) {
-          // parse failed, fetch fresh
-        }
-      }
-    }
-
     setLoadingPages(true);
     setApiError(null);
     addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /api/pages...", "pending");
@@ -847,19 +629,9 @@ export default function App() {
       if (activeToken) {
         urlParams.append("user_token", activeToken);
       }
-      
-      // Use our fetchWithBackoff for pages loading (Requirement 2 & 10)
-      const data = await fetchWithBackoff(`/api/pages?${urlParams.toString()}`);
-
-      if (data && data.rateLimitInfo) {
-        checkAndWarnUsage(data.rateLimitInfo, "Danh sách Trang");
-      }
+      const data = await safeFetchJson(`/api/pages?${urlParams.toString()}`);
 
       if (data.error) {
-        if (data.errorCode === 4) {
-          triggerMetaRateLimit();
-          return;
-        }
         setApiError(data.error);
         addLog("system", `Lỗi API lấy trang: ${data.error}`, "failed");
         if (!handleAuthError(data.error)) {
@@ -870,9 +642,7 @@ export default function App() {
 
       if (data.data) {
         setPages(data.data);
-        // Cache to sessionStorage
-        sessionStorage.setItem("meta_cached_pages", JSON.stringify(data.data));
-        addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý từ Meta API và lưu vào bộ đệm.`, "success");
+        addLog("system", `Đã tải thành công ${data.data.length} Fanpages quản lý.`, "success");
         toast.success(`Đã tải thành công ${data.data.length} Fanpages quản lý.`, "Tải Fanpage");
       } else {
         setPages([]);
@@ -880,12 +650,6 @@ export default function App() {
         toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
-      const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
-      if (errCode === 4 || err.message?.includes("giới hạn request")) {
-        triggerMetaRateLimit();
-        return;
-      }
-
       setApiError(err.message);
       addLog("system", `Lỗi tải danh sách Fanpage: ${err.message}`, "failed");
       if (!handleAuthError(err.message)) {
@@ -903,62 +667,38 @@ export default function App() {
     }
   }, [userToken]);
 
-  // Fetch posts from SELECTED pages with concurrency and cache (Requirement 3, 7, 8, 9, 10 & 2)
-  const fetchPostsFromSelectedPages = async (forceRefresh = false) => {
+  // Fetch posts from SELECTED pages
+  const fetchPostsFromSelectedPages = async () => {
     if (selectedPageIds.length === 0) {
       addLog("system", "Yêu cầu hành động thất bại: Vui lòng tích chọn ít nhất 1 Fanpage bên cột Trái.", "skipped");
       toast.warning("Yêu cầu hành động thất bại: Vui lòng tích chọn ít nhất 1 Fanpage bên cột Trái.", "Chưa chọn Fanpage");
       return;
     }
 
-    if (isMetaRateLimited) {
-      const remainingSec = Math.ceil(((rateLimitUnlockTime || 0) - Date.now()) / 1000);
-      toast.error(`Ứng dụng đang trong thời gian tạm khóa 10 phút do giới hạn của Meta. Vui lòng chờ ${remainingSec > 0 ? remainingSec : 0}s nữa.`, "Giới hạn Request");
-      return;
-    }
-
     setLoadingPosts(true);
     setApiError(null);
+    setPosts([]);
     setSelectedPostIds([]);
     scanCancelledRef.current = false;
     addLog("system", `Bắt đầu tải các bài viết từ ${selectedPageIds.length} Fanpage đã chọn...`, "pending");
-    toast.info(`Bắt đầu tải bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết");
+    toast.info(`Bắt đầu tải và quét các bài viết từ ${selectedPageIds.length} Fanpage...`, "Quét bài viết");
 
     let allFetchedPosts: FacebookPost[] = [];
     setScanProgress({ current: 0, total: selectedPageIds.length, currentPageName: "Đang khởi tạo..." });
 
-    const pageIdQueue = [...selectedPageIds];
-    const maxConcurrency = 2; // Tối đa 2 Page được quét cùng lúc (Requirement 3)
     let index = 0;
-
-    const scanSinglePage = async (pageId: string) => {
-      if (scanCancelledRef.current || isMetaRateLimited) return;
-
-      const pageInfo = pages.find(p => p.id === pageId);
-      if (!pageInfo) return;
-
-      const currentIdx = index++;
-      setScanProgress(p => ({ ...p, current: currentIdx, currentPageName: pageInfo.name }));
-
-      // Check Cache first if not forcing refresh (Requirement 7)
-      if (!forceRefresh) {
-        const cachedPostsStr = sessionStorage.getItem(`meta_posts_cache_${pageId}`);
-        if (cachedPostsStr) {
-          try {
-            const cachedPostsList = JSON.parse(cachedPostsStr);
-            if (Array.isArray(cachedPostsList) && cachedPostsList.length > 0) {
-              allFetchedPosts = [...allFetchedPosts, ...cachedPostsList];
-              addLog("system", `[Cache] Tải thành công ${cachedPostsList.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
-              return;
-            }
-          } catch (e) {
-            // cache invalid, fetch fresh
-          }
-        }
+    for (const pageId of selectedPageIds) {
+      if (scanCancelledRef.current) {
+        addLog("system", `Đã dừng quét theo yêu cầu của người dùng tại bước ${index}/${selectedPageIds.length}.`, "skipped");
+        toast.warning("Đã dừng quá trình quét bài viết theo yêu cầu.", "Hủy quét");
+        break;
       }
 
-      // Fresh fetch (Requirement 9)
-      addLog("system", `[Meta API] Đang tải trực tiếp bài viết từ Page: "${pageInfo.name}"...`, "processing");
+      const pageInfo = pages.find(p => p.id === pageId);
+      if (!pageInfo) continue;
+
+      setScanProgress({ current: index, total: selectedPageIds.length, currentPageName: pageInfo.name });
+      addLog("system", `Đang đọc bài viết từ Page: "${pageInfo.name}"...`, "processing");
 
       try {
         const urlParams = new URLSearchParams();
@@ -967,20 +707,14 @@ export default function App() {
         if (pageInfo.access_token) {
           urlParams.append("user_token", pageInfo.access_token);
         }
-
-        const data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
-
-        if (data && data.rateLimitInfo) {
-          checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
-        }
+        
+        const data = await safeFetchJson(`/api/posts?${urlParams.toString()}`);
 
         if (data.error) {
-          if (data.errorCode === 4) {
-            triggerMetaRateLimit();
-            return;
-          }
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
-          return;
+          index++;
+          setScanProgress(p => ({ ...p, current: index }));
+          continue;
         }
 
         if (data.data && data.data.length > 0) {
@@ -1001,20 +735,11 @@ export default function App() {
           }));
 
           allFetchedPosts = [...allFetchedPosts, ...mapped];
-          
-          // Cache posts list (Requirement 7)
-          sessionStorage.setItem(`meta_posts_cache_${pageId}`, JSON.stringify(mapped));
-          addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}" và lưu vào bộ nhớ đệm.`, "success");
+          addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}".`, "success");
         } else {
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
         }
       } catch (err: any) {
-        const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
-        if (errCode === 4 || err.message?.includes("giới hạn request")) {
-          triggerMetaRateLimit();
-          return;
-        }
-
         if (err.responseJson && err.responseJson.isDetailedError) {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
@@ -1029,23 +754,15 @@ export default function App() {
           }
         }
       }
-    };
 
-    // Worker queue pattern execution
-    const worker = async () => {
-      while (pageIdQueue.length > 0 && !scanCancelledRef.current && !isMetaRateLimited) {
-        const pageId = pageIdQueue.shift()!;
-        await scanSinglePage(pageId);
-      }
-    };
+      index++;
+      setScanProgress(p => ({ ...p, current: index, currentPageName: `Đã xong: ${pageInfo.name}` }));
+    }
 
-    const spawnCount = Math.min(maxConcurrency, pageIdQueue.length);
-    const workers = Array.from({ length: spawnCount }, () => worker());
-    await Promise.all(workers);
-
-    // Sort and Deduplicate
+    // Sort all selected posts by created_time desc
     allFetchedPosts.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
 
+    // Deduplicate posts by ID to prevent duplicate key rendering warnings
     const uniquePostsMap = new Map<string, FacebookPost>();
     for (const p of allFetchedPosts) {
       if (!uniquePostsMap.has(p.id)) {
@@ -1056,9 +773,7 @@ export default function App() {
 
     setPosts(uniquePosts);
     setLoadingPosts(false);
-    setScanProgress(p => ({ ...p, current: selectedPageIds.length, currentPageName: "Hoàn tất!" }));
-
-    addLog("system", `Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết hợp lệ.`, "success");
+    addLog("system", `Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết hợp lệ (đã loại bỏ trùng lặp).`, "success");
     if (uniquePosts.length > 0) {
       toast.success(`Tổng hợp xong! Tìm thấy tổng số ${uniquePosts.length} bài viết khác nhau.`, "Đã quét xong");
     } else {
@@ -1205,8 +920,6 @@ export default function App() {
         continue;
       }
 
-      setCurrentlyDeletingId(postId);
-
       const snippet = post.message 
           ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
           : "[Bài viết hình ảnh/video không có tiêu đề]";
@@ -1247,7 +960,6 @@ export default function App() {
       }
     }
 
-    setCurrentlyDeletingId(null);
     setIsDeleting(false);
     setDeletedCountSession(prev => prev + countSuccess);
     
@@ -1273,302 +985,162 @@ export default function App() {
   };
 
   return (
-    <div className={`relative h-screen min-h-screen lg:min-h-0 bg-transparent text-foreground flex flex-col select-none overflow-hidden font-sans`}>
-      {/* BACKGROUND LAYER - Aurora dynamic themes & customizable image wallpapers */}
-      <div className="absolute inset-0 z-[1] pointer-events-none w-full h-full overflow-hidden">
-        {config?.bgType === 'image' ? (
-          <div 
-            className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
-            style={{ 
-              backgroundImage: `url(${config?.bgImageUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80'})`,
-              filter: `blur(${config?.blurAmount !== undefined ? config.blurAmount * 0.2 : 4}px)` // elegant background layer blur depth
-            }}
-          />
-        ) : (
-          <div
-            className="absolute inset-x-0 top-0 h-full w-full z-0 opacity-45 blur-[120px] transition-all duration-1000 ease-in-out"
-            style={{
-              background: `
-                radial-gradient(circle at 10% 15%, var(--bg-gradient-1) 0%, transparent 55%),
-                radial-gradient(circle at 90% 85%, var(--bg-gradient-2) 0%, transparent 55%),
-                radial-gradient(circle at 50% 50%, var(--bg-gradient-3) 0%, transparent 45%)
-              `,
-            }}
-          />
-        )}
-        
-        {/* Transparent dark cover layer corresponding to dynamically customizable bgOverlay slider */}
-        <div 
-          className="absolute inset-0 z-[2] transition-colors duration-500"
-          style={{ backgroundColor: `rgba(2, 6, 22, ${(config?.bgOverlay ?? 85) / 100})` }}
+    <div className="relative h-screen min-h-screen lg:min-h-0 bg-[#030a16] text-slate-100 flex flex-col select-none overflow-hidden">
+      {/* BACKGROUND IMAGE LAYER */}
+      <div className="absolute inset-0 z-0 pointer-events-none w-full h-full">
+        <img 
+          src={bgImage} 
+          alt="Cosmic backdrop" 
+          className="w-full h-full object-cover bg-backdrop scale-[1.03] blur-[6px] opacity-75 brightness-[0.38]"
+          referrerPolicy="no-referrer"
         />
-
-        {/* Dot pattern matching the background */}
-        <div 
-          className="absolute inset-0 z-[3] opacity-[0.035]"
-          style={{ backgroundImage: 'radial-gradient(circle, var(--color-foreground) 1px, transparent 1px)', backgroundSize: '32px 32px' }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#030a16]/40 to-[#030a16]/95" />
       </div>
 
       {/* FOREGROUND CONTENT */}
-      <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-3 md:gap-4 overflow-hidden min-h-0 flex-1">
+      <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-3 md:gap-4 overflow-hidden min-h-0 flex-1 max-w-[2000px] mx-auto">
       
         {/* LEFT COMPACT/MAIN NAVIGATION SIDEBAR */}
-        <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-5 shadow-lg relative z-30 h-auto md:h-full overflow-y-auto rounded-[24px] border border-white/[0.08] ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
+        <aside className={`w-full transition-all duration-300 glass-card rounded-2xl p-4 shrink-0 flex flex-col gap-6 shadow-xl relative z-30 h-auto md:h-full overflow-y-auto ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[220px] xl:w-[240px]'}`}>
           {/* Logo & Branding */}
-          <div className="flex items-center gap-3 w-full justify-between select-none px-1">
-            <div 
-              className="flex items-center gap-3 overflow-hidden cursor-pointer group"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title="Mở rộng / Thu gọn Sidebar"
-            >
-              <div className="w-10 h-10 bg-[#1877F2]/10 border border-[#1877F2]/25 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:bg-[#1877F2]/20 shrink-0">
-                <Facebook className="w-5 h-5 text-[#1877F2] fill-current" />
+          <div className="flex items-center gap-3 w-full justify-between">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 neu-button-primary rounded-xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 shrink-0" title="Meta Page Manager">
+                <Facebook className="w-5 h-5 text-white fill-current" />
               </div>
               {!isSidebarCollapsed && (
                 <div className="hidden sm:block whitespace-nowrap">
-                  <h1 className="text-[16px] font-sans font-semibold tracking-tight text-foreground transition-colors">
-                    Meta Page
+                  <h1 className="text-sm xl:text-base font-extrabold tracking-tight glass-text leading-tight">
+                    Meta Page Manager
                   </h1>
-                  <p className="text-[9px] text-slate-400 mt-0.5 font-mono tracking-wider">MANAGER</p>
+                  <p className="text-[10px] text-white/50 mt-0.5 whitespace-nowrap">Phát triển bởi Hoà Trần</p>
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
-
-          {/* Group 1: Navigation Links */}
-          <div className="flex flex-col gap-3">
-            {!isSidebarCollapsed && (
-              <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
-                Menu chính
-              </span>
-            )}
             
-            <nav className="flex flex-row md:flex-col gap-1.5 w-full justify-between md:justify-start">
-              {/* Tab: Bài viết */}
+            <div className="flex items-center gap-1 shrink-0">
               <button
-                 id="tab-posts"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("posts");
-                   addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Bài viết" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
-                   activeTab === "posts"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-amber-400"
+                title="Sáng / Tối"
               >
-                {activeTab === "posts" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
-                  activeTab === "posts"
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                    : "bg-emerald-500/10 text-emerald-400/80 border-emerald-500/10 group-hover:bg-emerald-500/20 group-hover:text-emerald-400"
-                }`}>
-                  <FileText className="w-4 h-4" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-emerald-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Bài viết
-                  </span>
-                )}
+                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </button>
-
-              {/* Tab: Trạng thái API */}
               <button
-                 id="tab-status"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("status");
-                   addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Trạng thái API" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
-                   activeTab === "status"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className="hidden md:flex p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white"
               >
-                {activeTab === "status" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
-                  activeTab === "status"
-                    ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                    : "bg-blue-500/10 text-blue-400/80 border-blue-500/10 group-hover:bg-blue-500/20 group-hover:text-blue-400"
-                }`}>
-                  <Activity className="w-4 h-4" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-blue-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Trạng thái API
-                  </span>
-                )}
+                {isSidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
               </button>
-
-              {/* Tab: Quản trị viên */}
-              <button
-                 id="tab-admins"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("admins");
-                   addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Quản trị viên" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
-                   activeTab === "admins"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
-              >
-                {activeTab === "admins" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
-                  activeTab === "admins"
-                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                    : "bg-purple-500/10 text-purple-400/80 border-purple-500/10 group-hover:bg-purple-500/20 group-hover:text-purple-400"
-                }`}>
-                  <Users className="w-4 h-4" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-purple-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Quản trị viên
-                  </span>
-                )}
-              </button>
-            </nav>
+            </div>
           </div>
 
-          <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
+          <div className="hidden sm:block w-px h-px md:w-full md:h-px bg-white/10" />
 
-          {/* Group 2: System Settings / Utilities */}
-          <div className="flex flex-col gap-3">
-            {!isSidebarCollapsed && (
-              <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
-                Hệ thống
-              </span>
-            )}
+          {/* Navigation Links */}
+          <nav className="flex flex-row md:flex-col gap-2 flex-1 w-full justify-between md:justify-start">
+            <button
+              id="tab-posts"
+              type="button"
+              onClick={() => {
+                setActiveTab("posts");
+                addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+              }}
+              title={isSidebarCollapsed ? "Bài viết" : undefined}
+              className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 md:py-3 rounded-xl transition-all cursor-pointer ${
+                activeTab === "posts"
+                  ? "neu-button-primary text-white"
+                  : "text-slate-300 hover:text-white neu-flat hover:brightness-125 border border-transparent hover:border-white/10"
+              }`}
+            >
+              <FileText className={`w-4 h-4 shrink-0 ${activeTab === "posts" ? "text-white animate-pulse" : "text-slate-400"}`} />
+              {!isSidebarCollapsed && <span className="hidden sm:block text-xs font-black tracking-wide font-sans whitespace-nowrap">Bài viết</span>}
+            </button>
 
-            <nav className="flex flex-col gap-1.5 w-full">
-              {/* Tab: Tuỳ biến */}
-              <button
-                 id="tab-theme"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("theme");
-                   addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
-                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
-                   activeTab === "theme"
-                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
-              >
-                {activeTab === "theme" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
-                  activeTab === "theme"
-                    ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                    : "bg-amber-500/10 text-amber-500/10 border-amber-500/10 group-hover:bg-amber-500/20 group-hover:text-amber-450"
-                }`}>
-                  <Settings className="w-4 h-4" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-amber-450 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Tuỳ biến
-                  </span>
-                )}
-              </button>
+            <button
+              id="tab-status"
+              type="button"
+              onClick={() => {
+                setActiveTab("status");
+                addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+              }}
+              title={isSidebarCollapsed ? "Trạng thái API" : undefined}
+              className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 md:py-3 rounded-xl transition-all cursor-pointer ${
+                activeTab === "status"
+                  ? "neu-button-primary text-white"
+                  : "text-slate-300 hover:text-white neu-flat hover:brightness-125 border border-transparent hover:border-white/10"
+              }`}
+            >
+              <Activity className={`w-4 h-4 shrink-0 ${activeTab === "status" ? "text-white animate-pulse" : "text-slate-400"}`} />
+              {!isSidebarCollapsed && <span className="hidden sm:block text-xs font-black tracking-wide font-sans whitespace-nowrap">Trạng thái API</span>}
+            </button>
 
-              {/* Nút cài đặt API (Bỏ gradient, tạo viên thuốc mờ tinh tế) */}
-              <button 
-                id="btn-settings"
-                type="button"
-                onClick={() => setShowConfig(!showConfig)}
-                className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
-                  showConfig 
-                    ? "bg-[#1877F2]/15 border-[#1877F2]/30 text-white" 
-                    : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                }`}
-                title={isSidebarCollapsed ? "Cài đặt API" : undefined}
-              >
-                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
-                  showConfig 
-                    ? "bg-slate-400/20 border-slate-400/30 text-white" 
-                    : "bg-white/[0.03] border-white/[0.06] text-slate-400 group-hover:text-white"
-                }`}>
-                  <Settings className="w-4 h-4 text-slate-300" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className="hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap text-slate-300 group-hover:text-white">
-                    Cài đặt API
-                  </span>
-                )}
-              </button>
-            </nav>
-          </div>
+            <button
+              id="tab-admins"
+              type="button"
+              onClick={() => {
+                setActiveTab("admins");
+                addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+              }}
+              title={isSidebarCollapsed ? "Quản trị viên" : undefined}
+              className={`flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 md:py-3 rounded-xl transition-all cursor-pointer ${
+                activeTab === "admins"
+                  ? "neu-button-primary text-white"
+                  : "text-slate-300 hover:text-white neu-flat hover:brightness-125 border border-transparent hover:border-white/10"
+              }`}
+            >
+              <Users className={`w-4 h-4 shrink-0 ${activeTab === "admins" ? "text-white animate-pulse" : "text-slate-400"}`} />
+              {!isSidebarCollapsed && <span className="hidden sm:block text-xs font-black tracking-wide font-sans whitespace-nowrap">Quản trị viên</span>}
+            </button>
+          </nav>
 
-          {/* Footer User Profile & Connection Status */}
-          <div className="mt-auto flex flex-col gap-3 w-full shrink-0">
-            {/* Connection status indicator (Đèn nhấp nháy) */}
-            {userToken ? (
-              <div className={`flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
-                <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-white/50"></span>
-                {!isSidebarCollapsed && <span className="font-mono">Đã kết nối</span>}
+          <div className="hidden sm:block w-full h-px bg-white/10 mt-auto" />
+
+          {/* System status and user actions */}
+          <div className="flex flex-row md:flex-col items-center md:items-stretch justify-between md:justify-start gap-3 w-full shrink-0">
+             {userToken ? (
+              <div className={`bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 shadow-inner ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Connected" : undefined}>
+                <span className="w-2 h-2 shrink-0 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                {!isSidebarCollapsed && <span>Connected</span>}
               </div>
             ) : (
-              <div className={`flex bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
-                <span className="w-2   h-2 shrink-0 bg-amber-500 rounded-full animate-ping border border-white/50"></span>
-                {!isSidebarCollapsed && <span className="font-mono text-[11px]">Cần đăng nhập</span>}
+              <div className={`bg-amber-500/10 border border-amber-400/20 text-amber-300 text-[10px] px-3 py-2 rounded-xl font-bold flex items-center justify-center gap-2 ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Auth Required" : undefined}>
+                <span className="w-2 h-2 shrink-0 bg-amber-400 rounded-full animate-ping"></span>
+                {!isSidebarCollapsed && <span>Auth Required</span>}
               </div>
             )}
 
-            {/* User credentials & Sync status */}
-            <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] transition-all duration-300 overflow-hidden">
-              <div className="relative shrink-0 select-none">
-                <img 
-                  src={userToken ? "https://graph.facebook.com/v19.0/me/picture?access_token=" + userToken : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} 
-                  alt="Avatar" 
-                  className="w-8.5 h-8.5 rounded-full object-cover ring-2 ring-[#1877F2]/30"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${userToken ? "User" : "Hoa Tran"}&background=1877F2&color=fff&size=80`;
-                  }}
-                />
-                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#090D16] ${userToken ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
-              </div>
-              {!isSidebarCollapsed && (
-                <div className="min-w-0 flex-1 flex items-center justify-between">
-                  <div className="text-left">
-                    <h4 className="text-[12px] font-bold text-slate-200 truncate max-w-[85px] leading-tight select-all">
-                      Hòa Trần
-                    </h4>
-                    <p className="text-[9px] text-slate-500 font-mono tracking-tight leading-none mt-0.5 whitespace-nowrap">
-                      {userToken ? "Hệ thống đồng bộ" : "Chưa kết nối FB"}
-                    </p>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (userToken) {
-                        clearCredentials();
-                      } else {
-                        handleOAuthLogin();
-                      }
-                    }}
-                    title={userToken ? "Đăng xuất tài khoản" : "Cấu hình liên kết OAuth"}
-                    className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            <div className={`flex ${isSidebarCollapsed ? 'flex-col' : 'gap-2'}`}>
+              <button 
+                id="btn-settings"
+                onClick={() => setShowConfig(!showConfig)}
+                className={`flex-1 flex justify-center items-center gap-2 p-2.5 neu-button text-xs font-bold text-white/90 ${isSidebarCollapsed ? 'mb-2' : ''}`}
+                title="Cài đặt thông số API"
+              >
+                <Settings className="w-4 h-4" />
+                {!isSidebarCollapsed && <span className="hidden xl:block whitespace-nowrap">Cài đặt API</span>}
+              </button>
+
+              {!userToken ? (
+                <button
+                  id="btn-login"
+                  onClick={handleOAuthLogin}
+                  className="flex-1 p-2.5 neu-button-primary text-xs font-bold flex items-center justify-center gap-2 text-white"
+                  title={isSidebarCollapsed ? "Đăng nhập" : undefined}
+                >
+                  <Facebook className="w-4 h-4 fill-current shrink-0" />
+                  {!isSidebarCollapsed && <span className="hidden xl:block whitespace-nowrap">Đăng nhập</span>}
+                </button>
+              ) : (
+                <button
+                  id="btn-logout"
+                  onClick={clearCredentials}
+                  className="flex-1 p-2.5 neu-button !bg-rose-600/80 !border-rose-500/50 hover:!bg-rose-500 text-xs font-bold flex items-center justify-center gap-2 text-white"
+                  title={isSidebarCollapsed ? "Đăng xuất" : undefined}
+                >
+                  <LogOut className="w-4 h-4 shrink-0" />
+                  {!isSidebarCollapsed && <span className="hidden xl:block whitespace-nowrap">Đăng xuất</span>}
+                </button>
               )}
             </div>
           </div>
@@ -1588,32 +1160,16 @@ export default function App() {
             </div>
           )}
 
-          {/* META RATE LIMIT ALERT BANNER */}
-          {isMetaRateLimited && (
-            <div className="mb-3 backdrop-blur-md bg-red-500/15 border-l-4 border-red-500 p-3.5 rounded-r-xl flex items-start gap-3 text-red-150 shadow-lg shrink-0 relative z-20">
-              <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5 animate-pulse" />
-              <div className="text-xs flex-1">
-                <span className="font-extrabold uppercase tracking-wider block text-[11px] text-red-400 mb-0.5">Giới hạn yêu cầu của Meta</span>
-                <p className="font-medium text-[12px]">Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.</p>
-                {rateLimitUnlockTime && (
-                  <span className="text-[10px] text-red-400 font-mono mt-1 block">
-                    Khóa tạm thời đến: {new Date(rateLimitUnlockTime).toLocaleTimeString("vi-VN")} ( Còn khoảng {Math.ceil((rateLimitUnlockTime - Date.now()) / 1000)} giây)
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* MAIN CONTAINER */}
           <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3.5 items-stretch overflow-hidden">
         
             {/* SUB-SIDEBAR: PAGES LIST */}
             {activeTab === "posts" && (
-              <aside className="w-full xl:w-[260px] 2xl:w-[280px] bg-card rounded-[20px] p-4 flex flex-col shadow-sm border border-border overflow-hidden min-h-0 xl:h-full shrink-0">
-          <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-border">
+              <aside className="w-full xl:w-[260px] 2xl:w-[280px] glass-card rounded-2xl p-3.5 flex flex-col shadow-xl overflow-hidden min-h-0 xl:h-full shrink-0">
+          <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-white/10">
             <div className="flex justify-between items-center">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground font-mono font-bold flex items-center gap-1.5">
-                <CheckSquare className="w-4 h-4 text-accent" />
+              <span className="text-xs uppercase tracking-wider text-white/70 font-extrabold flex items-center gap-1.5">
+                <CheckSquare className="w-4 h-4 text-emerald-400" />
                 Danh sách Pages ({pages.length})
               </span>
               {userToken && (
@@ -1621,7 +1177,7 @@ export default function App() {
                   id="btn-refresh-pages"
                   onClick={() => fetchPages()} 
                   title="Tải lại danh sách Fanpage" 
-                  className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/70"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                 </button>
@@ -1638,14 +1194,14 @@ export default function App() {
                     setSelectedPageIds(allPageIds);
                     addLog("system", `Đã chọn tất cả ${pages.length} Fanpage. Đang chuẩn bị tải bài viết...`, "success");
                   }}
-                  className={`flex-1 py-2 px-2 rounded-xl text-[10px] uppercase font-bold border transition-all flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] uppercase font-bold border transition-all flex items-center justify-center gap-1 ${
                     selectedPageIds.length === pages.length
-                      ? "btn-primary shadow-accent"
-                      : "bg-muted text-muted-foreground border-transparent hover:bg-border"
+                      ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-500/20"
+                      : "bg-white/5 text-white/80 border-white/10 hover:bg-white/10"
                   }`}
                 >
-                  <Check className={`w-3 h-3 stroke-[3px] ${selectedPageIds.length === pages.length ? "text-white" : ""}`} />
-                  <span className={selectedPageIds.length === pages.length ? "text-white" : ""}>Chọn tất cả</span>
+                  <Check className="w-3 h-3 stroke-[3px]" />
+                  Chọn tất cả
                 </button>
                 <button
                   id="btn-deselect-all-pages"
@@ -1653,7 +1209,7 @@ export default function App() {
                     setSelectedPageIds([]);
                     addLog("system", "Đã hủy chọn toàn bộ các Fanpage.", "success");
                   }}
-                  className="flex-1 py-1.5 px-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] uppercase font-bold transition-all text-center cursor-pointer"
+                  className="flex-1 py-1.5 px-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/10 hover:border-rose-500/20 rounded-xl text-[10px] uppercase font-bold transition-all text-center"
                 >
                   Bỏ chọn hết
                 </button>
@@ -1669,14 +1225,14 @@ export default function App() {
                     placeholder="Tìm nhanh fanpage..."
                     value={pageSearchQuery}
                     onChange={(e) => setPageSearchQuery(e.target.value)}
-                    className="w-full bg-background hover:bg-background/80 border border-border hover:border-accent rounded-xl pl-8 pr-8 py-2 text-[11px] text-foreground placeholder-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all outline-none shadow-sm"
+                    className="w-full bg-[#05111d]/50 hover:bg-[#071728]/70 border border-white/15 hover:border-emerald-500/50 rounded-xl pl-8 pr-8 py-1.5 text-[11px] text-white placeholder-white/40 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30 transition-all outline-none"
                   />
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
                   {pageSearchQuery && (
                     <button 
                       type="button" 
                       onClick={() => setPageSearchQuery("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-white/10 rounded-md text-white/50 hover:text-white transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1685,8 +1241,8 @@ export default function App() {
                 
                 {/* Count of selected pages under the search bar */}
                 <div className="flex items-center justify-between text-[11px] px-1 select-none">
-                  <span className="text-muted-foreground font-medium">Đã chọn:</span>
-                  <span className="bg-accent/10 text-accent font-bold px-2.5 py-0.5 rounded-full border border-accent/20 shadow-sm font-mono text-[10px]">
+                  <span className="text-white/50 font-medium">Đã chọn:</span>
+                  <span className="bg-emerald-500/15 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/20 shadow-sm font-mono text-[10px]">
                     {selectedPageIds.length} / {pages.length} Fanpages
                   </span>
                 </div>
@@ -1695,28 +1251,28 @@ export default function App() {
           </div>
 
           {!userToken ? (
-            <div className="flex-1 flex flex-col justify-center items-center text-center p-6 bg-muted/50 rounded-2xl border border-dashed border-border">
-              <Facebook className="w-12 h-12 text-muted-foreground/30 mb-3" />
-              <p className="text-xs text-muted-foreground leading-relaxed">
+            <div className="flex-1 flex flex-col justify-center items-center text-center p-6 bg-black/10 rounded-2xl border border-dashed border-white/15">
+              <Facebook className="w-12 h-12 text-white/20 mb-3" />
+              <p className="text-xs text-white/70 leading-relaxed">
                 Vui lòng kết nối tài khoản Facebook để quét Fanpage quản lý.
               </p>
               <button
                 id="btn-sidebar-login"
                 onClick={handleOAuthLogin}
-                className="mt-4 w-full py-2.5 bg-card hover:bg-muted text-foreground border border-border rounded-xl text-xs font-bold transition-all shadow-sm"
+                className="mt-4 w-full py-2 bg-white/10 hover:bg-white/20 text-white border border-white/25 rounded-xl text-xs font-bold transition-all"
               >
                 Nhấn Thử Đăng nhập
               </button>
             </div>
           ) : loadingPages ? (
             <div className="flex-1 flex flex-col justify-center items-center py-12">
-              <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs text-muted-foreground mt-3">Đang kết nối Facebook...</p>
+              <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs text-white/50 mt-3">Đang kết nối Facebook...</p>
             </div>
           ) : pages.length === 0 ? (
             <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
-              <Info className="w-8 h-8 text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">Không tìm thấy Account Fanpage nào trong mã thông báo này.</p>
+              <Info className="w-8 h-8 text-white/30 mb-2" />
+              <p className="text-xs text-white/60">Không tìm thấy Account Fanpage nào trong mã thông báo này.</p>
             </div>
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar min-h-0">
@@ -1728,7 +1284,7 @@ export default function App() {
 
                 if (filteredList.length === 0) {
                   return (
-                    <div className="text-center py-8 text-muted-foreground text-xs">
+                    <div className="text-center py-8 text-white/40 text-xs">
                       Không tìm thấy Fanpage nào phù hợp
                     </div>
                   );
@@ -1744,10 +1300,10 @@ export default function App() {
                       id={`page-card-${page.id}`}
                       key={page.id}
                       onClick={() => togglePageSelection(page.id)}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-[14px] border transition-all cursor-pointer select-none group ${
+                      className={`flex items-center gap-2.5 p-2 rounded-2xl border transition-all cursor-pointer select-none ${
                         isSelected 
-                          ? "bg-muted border-accent/40 shadow-sm" 
-                          : "bg-transparent border-transparent hover:bg-muted"
+                          ? "bg-white/15 border-white/30 shadow-md" 
+                          : "bg-white/5 border-white/10 hover:bg-white/10"
                       }`}
                     >
                       <img 
@@ -1756,19 +1312,19 @@ export default function App() {
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${page.id}`;
                         }}
-                        className="w-9 h-9 rounded-full shadow-sm flex-shrink-0 object-cover bg-white"
+                        className="w-8.5 h-8.5 rounded-full bg-indigo-500 shadow-inner flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate text-foreground leading-tight group-hover:text-accent transition-colors">{page.name}</p>
-                        <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">ID: {page.id}</p>
+                        <p className="text-xs font-bold truncate text-white leading-tight">{page.name}</p>
+                        <p className="text-[9px] text-white/40 truncate font-mono mt-0.5">ID: {page.id}</p>
                       </div>
                       <div className="shrink-0">
                         {isSelected ? (
-                          <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent transition-all">
-                            <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
+                          <div className="w-4.5 h-4.5 bg-emerald-500 rounded-lg flex items-center justify-center border border-emerald-400 shadow-md shadow-emerald-500/20 scale-105 transition-all">
+                            <Check className="w-3 h-3 text-white stroke-[3px]" />
                           </div>
                         ) : (
-                          <div className="w-5 h-5 rounded-lg border-2 border-border group-hover:border-accent/50 transition-colors"></div>
+                          <div className="w-4.5 h-4.5 rounded-lg border border-white/30 hover:border-white/50 transition-colors"></div>
                         )}
                       </div>
                     </div>
@@ -1789,23 +1345,23 @@ export default function App() {
             <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
               <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 bg-card rounded-[18px] p-4 text-foreground shadow-sm border border-border shrink-0">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 relative z-40">
+              <section className="relative z-30 glass-card rounded-2xl p-3 text-slate-100 shadow-2xl shrink-0">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-40">
                   {/* Left: Filter Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
                     <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
-                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 w-full shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
-                          thời gian
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 w-full">
+                        <span className="text-[11px] font-bold text-slate-100 uppercase tracking-wide select-none shrink-0 border-r border-slate-700 pr-2">
+                          Thời gian
                         </span>
                         
                         <div 
-                          className="relative h-7 pl-1.5 pr-1 flex items-center justify-between gap-2 cursor-pointer min-w-[110px] hover:text-accent transition-colors flex-1"
+                          className="relative neu-input rounded-lg h-7 px-3 flex items-center justify-between gap-2 cursor-pointer min-w-[120px]"
                           onClick={() => setShowTimeDropdown(!showTimeDropdown)}
                         >
-                          <span className="text-xs font-bold text-foreground truncate group-hover:text-accent transition-colors">
+                          <span className="text-[11px] font-bold text-slate-200 truncate">
                             {filters.timeRangePreset === "today" && "Hôm nay"}
                             {filters.timeRangePreset === "week" && "Tuần này"}
                             {filters.timeRangePreset === "month" && "Tháng này"}
@@ -1813,7 +1369,7 @@ export default function App() {
                             {filters.timeRangePreset === "all" && "Tất cả"}
                             {filters.timeRangePreset === "custom" && "Tuỳ chỉnh..."}
                           </span>
-                          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${showTimeDropdown ? "rotate-90 text-accent" : ""}`} />
+                          <span className="text-slate-400 text-[10px]">▼</span>
                         </div>
                         
                         {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
@@ -1823,7 +1379,7 @@ export default function App() {
                                setTempDateTo(filters.dateTo);
                                setShowCustomDateModal(true);
                              }}
-                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
+                             className="text-[10px] text-blue-400 font-bold bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded cursor-pointer transition-colors border border-blue-500/20 whitespace-nowrap"
                              title="Sửa ngày tuỳ chỉnh"
                            >
                              {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
@@ -1834,7 +1390,7 @@ export default function App() {
                       {/* Dropdown Menu */}
                       {showTimeDropdown && (
                         <>
-                          <div className="absolute top-[115%] left-0 right-0 z-[100] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 min-w-[200px] ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
+                          <div className="absolute top-[110%] left-0 right-0 z-[100] glass-card border border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in duration-200">
                             {[
                               { id: "today", label: "Hôm nay" },
                               { id: "week", label: "Tuần này" },
@@ -1845,10 +1401,10 @@ export default function App() {
                             ].map((preset) => (
                               <button
                                 key={preset.id}
-                                className={`text-left px-3.5 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
+                                className={`text-left px-3 py-2 text-xs font-bold rounded-lg transition-all ${
                                   filters.timeRangePreset === preset.id 
-                                    ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold" 
-                                    : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                                    ? "neu-button-primary text-white" 
+                                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                                 }`}
                                 onClick={() => {
                                   const val = preset.id;
@@ -1900,20 +1456,21 @@ export default function App() {
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 shrink-0 shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group text-foreground">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
-                        tải
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-slate-950/40 hover:bg-slate-950/80 border border-slate-700/60 rounded-xl transition-all h-10 shrink-0">
+                      <span className="text-[11px] font-bold text-slate-100 flex items-center gap-1.5 select-none shrink-0 border-r border-slate-700 pr-2">
+                        Tải
                       </span>
                       <div className="flex items-center gap-1">
                         <CustomSelect
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
                           options={[
+                            { value: 10, label: "10" },
                             { value: 50, label: "50" },
                             { value: 100, label: "100" },
-                            { value: 150, label: "150 (Tải thêm)" },
-                            { value: 200, label: "200 (Tải thêm)" },
-                            { value: 300, label: "300 (Tối đa)" }
+                            { value: 250, label: "250" },
+                            { value: 500, label: "500" },
+                            { value: 1000, label: "1000" }
                           ]}
                         />
                       </div>
@@ -1922,36 +1479,36 @@ export default function App() {
                   </div>
 
                   {/* Right: Stats Badges */}
-                  <div className="flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-xl border border-border select-none font-medium text-foreground shadow-sm shrink-0 overflow-x-auto custom-scrollbar h-10">
+                  <div className="flex items-center gap-1.5 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 select-none font-medium text-slate-200 shadow-inner shrink-0 overflow-x-auto custom-scrollbar h-10">
                     {/* Stat 1: Selection */}
                     <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Chọn:</span>
-                      <span className="font-mono font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
-                      <span className="text-muted-foreground font-mono">/ {displayedPosts.length}</span>
+                      <span className="font-extrabold uppercase tracking-wider text-emerald-400">Chọn:</span>
+                      <span className="font-mono font-black text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/25">{selectedPostIds.length}</span>
+                      <span className="text-slate-400">/ {displayedPosts.length}</span>
                     </div>
 
-                    <span className="w-px h-3.5 bg-border mx-1" />
+                    <span className="w-px h-3.5 bg-slate-700" />
 
                     {/* Stat 2: Total dynamic matches */}
                     <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Lọc:</span>
-                      <span className="font-mono font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">{filteredPosts.length}</span>
+                      <span className="font-extrabold uppercase tracking-wider text-blue-400 font-sans">Lọc:</span>
+                      <span className="font-mono font-black text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/25">{filteredPosts.length}</span>
                     </div>
 
-                    <span className="w-px h-3.5 bg-border mx-1" />
+                    <span className="w-px h-3.5 bg-slate-700" />
 
                     {/* Stat 3: Total cached posts in session */}
                     <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Nạp:</span>
-                      <span className="font-mono font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">{posts.length}</span>
+                      <span className="font-extrabold uppercase tracking-wider text-purple-400 font-sans">Nạp:</span>
+                      <span className="font-mono font-black text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/25">{posts.length}</span>
                     </div>
 
-                    <span className="w-px h-3.5 bg-border mx-1" />
+                    <span className="w-px h-3.5 bg-slate-700" />
 
                     {/* Stat 4: Deleted Count */}
                     <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Xóa:</span>
-                      <span className="font-mono font-black text-rose-600 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                      <span className="font-extrabold uppercase tracking-wider text-rose-400 font-sans">Xóa:</span>
+                      <span className="font-mono font-black text-rose-300 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
                     </div>
                   </div>
                 </div>
@@ -1959,13 +1516,13 @@ export default function App() {
               </section>
 
           {/* POSTS SCREEN CONTAINER */}
-          <section className="relative z-10 flex-1 bg-card border border-border rounded-[20px] overflow-hidden flex flex-col shadow-sm min-h-0">
+          <section className="relative z-10 flex-1 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden flex flex-col shadow-xl min-h-0">
             {/* Table/List Header */}
-            <div className="px-4 py-3 border-b border-border bg-card flex justify-between items-center shrink-0 shadow-sm z-10">
+            <div className="px-4 py-2.5 border-b border-white/10 bg-white/5 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></span>
-                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-accent" />
+                <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_#4ade80]"></span>
+                <span className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-blue-300" />
                   Danh sách bài viết từ các Page đã chọn
                 </span>
               </div>
@@ -1974,13 +1531,13 @@ export default function App() {
                 <div 
                   id="btn-toggle-select-all"
                   onClick={selectAllFiltered}
-                  className="flex items-center gap-2 text-xs text-foreground hover:text-accent bg-muted hover:bg-muted/80 px-3 py-1.5 rounded-xl border border-border cursor-pointer select-none transition-all font-medium"
+                  className="flex items-center gap-2 text-xs text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-xl border border-white/15 cursor-pointer select-none transition-all"
                 >
                   <div 
                     className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
                       displayedPosts.length > 0 && displayedPosts.every(p => selectedPostIds.includes(p.id))
-                        ? "bg-accent border-accent text-white shadow-sm" 
-                        : "border-border hover:border-accent/40 bg-card"
+                        ? "bg-emerald-500 border-emerald-400 text-white shadow-md shadow-emerald-500/20" 
+                        : "border-white/30 hover:border-white/50"
                     }`}
                   >
                     {displayedPosts.length > 0 && displayedPosts.every(p => selectedPostIds.includes(p.id)) && (
@@ -1993,46 +1550,36 @@ export default function App() {
             </div>
 
             {/* List Body */}
-            <div 
-              ref={postListScrollRef}
-              onScroll={(e) => {
-                const target = e.currentTarget;
-                setPostListScrollTop(target.scrollTop);
-                if (target.clientHeight !== postListContainerHeight) {
-                  setPostListContainerHeight(target.clientHeight);
-                }
-              }}
-              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-white/20 rounded-b-[24px] shadow-sm"
-            >
+            <div className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar">
               {loadingPosts ? (
-                <div className="flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[300px] py-6 max-w-md mx-auto">
+                <div className="flex flex-col justify-center items-center gap-4 text-white h-full min-h-[300px] py-6 max-w-md mx-auto">
                   {/* Circular Spinner & Big Icon */}
                   <div className="relative flex items-center justify-center">
-                    <div className="w-14 h-14 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
-                    <Facebook className="w-6 h-6 text-accent absolute fill-current animate-pulse" />
+                    <div className="w-14 h-14 border-4 border-emerald-500/10 border-t-emerald-400 rounded-full animate-spin"></div>
+                    <Facebook className="w-6 h-6 text-emerald-400 absolute fill-current animate-pulse" />
                   </div>
 
                   {/* Progress Info Header */}
-                  <div className="text-center space-y-0.5 mt-2">
-                    <h3 className="font-bold text-xs tracking-wider text-muted-foreground uppercase opacity-80">Đang quét Fanpage hàng loạt</h3>
-                    <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-                      Tiến trình: <span className="text-accent font-mono font-bold text-xs">{scanProgress.current}/{scanProgress.total}</span> Page hoàn thành
+                  <div className="text-center space-y-0.5">
+                    <h3 className="font-bold text-xs tracking-wide text-white/95 uppercase">ĐANG QUÉT FANPAGE HÀNG LOẠT</h3>
+                    <p className="text-[11px] text-white/65">
+                      Tiến trình: <span className="text-emerald-400 font-mono font-bold">{scanProgress.current}/{scanProgress.total}</span> Fanpage hoàn thành
                     </p>
                   </div>
 
                   {/* Progress Bar Container */}
-                  <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
+                  <div className="w-full bg-white/5 border border-white/10 rounded-full h-3 p-0.5 overflow-hidden shadow-inner">
                     <div 
-                      className="pretty-progress-bar"
+                      className="bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-md shadow-emerald-500/20"
                       style={{ width: `${scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0}%` }}
                     />
                   </div>
 
                   {/* Current Active Page Name & Detail badge */}
-                  <div className="flex flex-col items-center gap-1.5 w-full animate-pulse mt-2">
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">Đang kiểm tra & tải bài viết:</span>
-                    <div className="bg-accent/10 border border-accent/20 rounded-[10px] px-3 py-1 text-[11px] text-accent font-bold max-w-full truncate shadow-sm flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping shrink-0" />
+                  <div className="flex flex-col items-center gap-1 w-full animate-pulse">
+                    <span className="text-[9px] uppercase font-semibold text-white/40 tracking-wider">Đang kiểm tra & đọc bài viết:</span>
+                    <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl px-3 py-1 text-[11px] text-emerald-300 font-bold max-w-full truncate shadow-sm flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping shrink-0" />
                       {scanProgress.currentPageName || "Đang khởi tạo..."}
                     </div>
                   </div>
@@ -2044,184 +1591,156 @@ export default function App() {
                       scanCancelledRef.current = true;
                       addLog("system", "Đang gửi yêu cầu dừng quét...", "pending");
                     }}
-                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 text-[10px] font-bold transition-all shadow-sm cursor-pointer select-none"
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/20 hover:border-rose-500/35 text-rose-300 hover:text-rose-200 text-[10px] font-semibold transition-all shadow-sm cursor-pointer select-none"
                   >
-                    <XOctagon className="w-3.5 h-3.5 shrink-0" />
+                    <XOctagon className="w-3 h-3 shrink-0" />
                     Dừng quét ngay
                   </button>
 
                   {/* Secondary info label */}
-                  <p className="text-[10px] text-muted-foreground/80 text-center leading-relaxed mt-4 max-w-[80%]">
-                    Hệ thống đang thu thập dữ liệu bài viết (lượt thích, bình luận, chia sẻ) từ API chính thức của Meta.
+                  <p className="text-[10px] text-white/35 text-center italic leading-normal">
+                    Hệ thống thu thập dữ liệu về bài viết, tổng hợp lượt thích, bình luận và chia sẻ từ API chính thức của Meta.
                   </p>
                 </div>
               ) : posts.length === 0 ? (
                 <div className="flex flex-col justify-center items-center text-center gap-3 h-full min-h-[300px] py-8">
-                  <div className="w-12 h-12 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30">
                     <Facebook className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-[13px] text-foreground">Chưa có bài viết nào</h3>
-                    <p className="text-[11px] text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
-                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage. Hệ thống sẽ tự động tải tối đa <br/><span className="font-mono text-accent font-bold">{filters.maxPostsToFetch}</span> bài viết gốc.
+                    <h3 className="font-semibold text-xs">Chưa có bài viết nào</h3>
+                    <p className="text-[11px] text-white/50 mt-0.5 max-w-xs mx-auto leading-relaxed">
+                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage bên trái. Sau đó hệ thống sẽ tự động quét tối đa {filters.maxPostsToFetch} bài viết gần nhất.
                     </p>
                   </div>
                 </div>
+              ) : filteredPosts.length === 0 ? (
+                <div className="flex flex-col justify-center items-center text-center gap-2 h-full min-h-[300px] py-8">
+                  <ListFilter className="w-9 h-9 text-white/20" />
+                  <p className="text-xs text-white/60 font-semibold">Tất cả {posts.length} bài viết hiện có đều bị bộ lọc ẩn đi.</p>
+                  <p className="text-[10px] text-white/40">Vui lòng tắt bớt các điều kiện lọc (Khoảng ngày, Từ khóa, Số ngày) để kiểm tra.</p>
+                </div>
               ) : (
-                <div className="w-full flex flex-col gap-1.5">
-                  {(() => {
-                    const ROW_HEIGHT = 70; // safe row budget in px
-                    const buffer = 10; // safety viewport buffer
-                    const headerOffset = 36; // Table Header height + padding offset
+                <div className="min-w-[700px] flex flex-col gap-1.5">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center px-1.5 pb-1 border-b border-white/10 text-[9px] font-bold uppercase tracking-wider text-white/45 select-none">
+                    <div className="text-center">Chọn</div>
+                    <div className="text-center">Ảnh</div>
+                    <div>Nội dung bài viết</div>
+                    <div className="text-center">Thời gian đăng</div>
+                    <div className="text-center">Link</div>
+                  </div>
 
-                    const adjustedScrollTop = Math.max(0, postListScrollTop - headerOffset);
-                    const startIndex = Math.max(0, Math.floor(adjustedScrollTop / ROW_HEIGHT) - buffer);
-                    const endIndex = Math.min(displayedPosts.length, Math.ceil((adjustedScrollTop + postListContainerHeight) / ROW_HEIGHT) + buffer);
+                  {/* Table Rows */}
+                  <div className="space-y-1 pt-1">
+                    {displayedPosts.map((post) => {
+                      const isChecked = selectedPostIds.includes(post.id);
+                      const formattedDate = new Date(post.created_time).toLocaleString("vi-VN", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      });
 
-                    const visiblePosts = displayedPosts.slice(startIndex, endIndex);
-                    const totalHeight = displayedPosts.length * ROW_HEIGHT;
-                    const offsetY = startIndex * ROW_HEIGHT;
+                      // Calculate how old in days
+                      const diffTime = Math.abs(new Date().getTime() - new Date(post.created_time).getTime());
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                    return (
-                      <div 
-                        className="relative w-full overflow-hidden" 
-                        style={{ height: `${totalHeight}px` }}
-                      >
+                      return (
                         <div 
-                          className="absolute top-0 left-0 right-0"
-                          style={{ 
-                            transform: `translateY(${offsetY}px)`,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "6px" // replaces space-y-1.5
-                          }}
+                          id={`post-row-${post.id}`}
+                          key={post.id}
+                          onClick={() => togglePostSelection(post.id)}
+                          className={`group grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center p-1.5 rounded-xl transition-all cursor-pointer border border-white/5 shadow-sm ${
+                            isChecked 
+                              ? "bg-white/15 border-white/30 translate-x-0.5" 
+                              : "bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10"
+                          }`}
                         >
-                          {visiblePosts.map((post) => {
-                            const isChecked = selectedPostIds.includes(post.id);
-                            const formattedDate = new Date(post.created_time).toLocaleString("vi-VN", {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            });
+                          {/* Checkbox */}
+                          <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                            <div 
+                              onClick={() => togglePostSelection(post.id)}
+                              className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center border transition-all cursor-pointer ${
+                                isChecked 
+                                  ? "bg-emerald-500 border-emerald-400 text-white shadow shadow-emerald-500/20 scale-105" 
+                                  : "border-white/30 hover:border-white/50"
+                              }`}
+                            >
+                              {isChecked && <Check className="w-2.5 h-2.5 stroke-[3px]" />}
+                            </div>
+                          </div>
 
-                            // Calculate how old in days
-                            const diffTime = Math.abs(new Date().getTime() - new Date(post.created_time).getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                            return (
-                              <div 
-                                id={`post-row-${post.id}`}
-                                key={post.id}
-                                onClick={() => currentlyDeletingId !== post.id && togglePostSelection(post.id)}
-                                style={{ height: `${ROW_HEIGHT - 6}px` }}
-                                className={`group grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center px-2 py-1.5 rounded-[16px] transition-all duration-200 border ${
-                                  currentlyDeletingId === post.id
-                                    ? "bg-rose-500/10 border-rose-500/40 shadow-[0_4px_12px_rgba(239,68,68,0.15)] animate-pulse cursor-wait"
-                                    : isChecked 
-                                      ? "bg-accent/15 border-accent/40 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md cursor-pointer" 
-                                      : "bg-background/20 backdrop-blur-md border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 hover:border-white/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer"
-                                }`}
-                              >
-                                {/* Checkbox / Loading Spinner */}
-                                <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                                  {currentlyDeletingId === post.id ? (
-                                    <Loader2 className="w-4 h-4 text-rose-500 animate-spin stroke-[2.5]" />
-                                  ) : (
-                                    <div 
-                                      onClick={() => togglePostSelection(post.id)}
-                                      className={`w-4 h-4 rounded flex items-center justify-center transition-all cursor-pointer ${
-                                        isChecked 
-                                          ? "bg-accent text-white shadow-sm" 
-                                          : "border-2 border-border group-hover:border-accent/40"
-                                      }`}
-                                    >
-                                      {isChecked && <Check className="w-3 h-3 stroke-[3px]" />}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Thumbnail Column */}
-                                <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                                  {post.full_picture ? (
-                                    <div className="relative rounded overflow-hidden border border-border w-[38px] h-[38px] bg-muted shadow-sm">
-                                      <img 
-                                        src={post.full_picture} 
-                                        alt="Preview" 
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full object-cover rounded group-hover:brightness-110 transition-all duration-300"
-                                      />
-                                      {/* Video Play icon attachment overlay */}
-                                      {post.status_type === "added_video" && (
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                          <Play className="w-3.5 h-3.5 fill-current text-white drop-shadow-sm animate-pulse" />
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="rounded border border-border bg-muted w-[38px] h-[38px] flex items-center justify-center text-muted-foreground/30 shadow-sm">
-                                      <Facebook className="w-4 h-4" />
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Content Column */}
-                                <div className="flex flex-col gap-1 min-w-0 pr-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="bg-accent/10 text-accent text-[8px] px-1.5 py-0.5 rounded leading-none font-bold border border-accent/20 truncate max-w-[120px] shadow-sm" title={post.pageName}>
-                                      {post.pageName}
-                                    </span>
-                                    <span className="text-[9px] text-muted-foreground/60 font-mono select-all">
-                                      ID: {post.id}
-                                    </span>
-                                    {currentlyDeletingId === post.id && (
-                                      <span className="bg-rose-500/15 text-rose-500 text-[8px] px-2 py-0.5 rounded flex items-center gap-1.5 font-extrabold uppercase tracking-widest border border-rose-500/25 shadow-sm shadow-rose-500/5 select-none">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shrink-0" />
-                                        ĐANG XÓA...
-                                      </span>
-                                    )}
+                          {/* Thumbnail Column */}
+                          <div className="relative shrink-0 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                            {post.full_picture ? (
+                              <div className="relative rounded overflow-hidden border border-white/15 w-[36px] h-[36px] bg-black/40">
+                                <img 
+                                  src={post.full_picture} 
+                                  alt="Preview" 
+                                  referrerPolicy="no-referrer"
+                                  className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform duration-300"
+                                />
+                                {/* Video Play icon attachment overlay */}
+                                {post.status_type === "added_video" && (
+                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <Play className="w-3 h-3 fill-current text-white animate-pulse" />
                                   </div>
-                                  
-                                  <p className={`text-[11px] font-medium leading-tight line-clamp-2 break-all ${currentlyDeletingId === post.id ? "text-rose-200/95" : "text-foreground"}`} title={post.message || ""}>
-                                    {post.message ? (
-                                      post.message
-                                    ) : (
-                                      <span className="italic text-muted-foreground/60 font-normal">[Đa phương tiện - Không có văn bản]</span>
-                                    )}
-                                  </p>
-                                </div>
-
-                                {/* Time */}
-                                <div className={`text-center flex flex-col gap-0.5 shrink-0 select-none ${currentlyDeletingId === post.id ? "opacity-60" : ""}`}>
-                                  <span className="text-[10px] font-mono font-medium text-foreground/80">{formattedDate}</span>
-                                  <span className="text-[9px] text-muted-foreground/70 font-mono">({diffDays} ngày trước)</span>
-                                </div>
-
-                                {/* Action Button Link to Facebook */}
-                                <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                                  {currentlyDeletingId === post.id ? (
-                                    <span className="text-rose-500 text-[10px] uppercase font-mono animate-pulse">Wait</span>
-                                  ) : post.permalink_url ? (
-                                    <a 
-                                      href={post.permalink_url} 
-                                      target="_blank" 
-                                      rel="noreferrer" 
-                                      className="text-[10px] text-blue-400 font-bold hover:text-blue-300 flex items-center justify-center p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/15 transition-colors"
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5" />
-                                    </a>
-                                  ) : (
-                                    <span className="text-muted-foreground/40 text-[10px] italic">-</span>
-                                  )}
-                                </div>
+                                )}
                               </div>
-                            );
-                          })}
+                            ) : (
+                              <div className="rounded border border-white/10 bg-white/5 w-[36px] h-[36px] flex items-center justify-center text-white/30">
+                                <Facebook className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content Column */}
+                          <div className="flex flex-col gap-0.5 min-w-0 pr-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="bg-emerald-500/20 text-emerald-300 text-[8px] px-1 py-0.5 rounded leading-none font-bold border border-emerald-400/20 truncate max-w-[120px]" title={post.pageName}>
+                                {post.pageName}
+                              </span>
+                              <span className="text-[8px] text-white/30 font-mono select-all">
+                                ID: {post.id}
+                              </span>
+                            </div>
+                            
+                            <p className="text-white/95 text-[10px] leading-snug line-clamp-2 break-all" title={post.message || ""}>
+                              {post.message ? (
+                                post.message
+                              ) : (
+                                <span className="italic text-white/30">[Đa phương tiện - Không có văn bản]</span>
+                              )}
+                            </p>
+                          </div>
+
+                          {/* Time */}
+                          <div className="text-center flex flex-col gap-0 shrink-0 select-none">
+                            <span className="text-[10px] font-mono text-white/85">{formattedDate}</span>
+                            <span className="text-[8px] text-white/40 font-mono">({diffDays} ngày trước)</span>
+                          </div>
+
+                          {/* Action Button Link to Facebook */}
+                          <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                            {post.permalink_url ? (
+                              <a 
+                                href={post.permalink_url} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="text-[9px] text-indigo-300 font-bold hover:text-indigo-200 hover:underline flex items-center justify-center py-1 px-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            ) : (
+                              <span className="text-white/20 text-[10px] italic">-</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -2229,13 +1748,13 @@ export default function App() {
           </div>
 
           {/* RIGHT SIDEBAR: PROGRESS AND LOGS */}
-          <aside className="w-full xl:w-[260px] 2xl:w-[300px] bg-card rounded-[18px] p-4 shrink-0 flex flex-col gap-4 shadow-sm border border-border h-[auto] xl:h-full overflow-y-auto">
+          <aside className="w-full xl:w-[260px] 2xl:w-[300px] glass-card rounded-2xl p-3 shrink-0 flex flex-col gap-4 shadow-xl h-[auto] xl:h-full overflow-y-auto">
             {/* PROGRESS BAR PANEL */}
             <div className="flex flex-col gap-3 min-h-0 shrink-0">
               <div className="space-y-2">
-                <div className="flex justify-between items-center text-[10.5px] uppercase font-bold tracking-widest text-muted-foreground">
+                <div className="flex justify-between items-center text-[10px] uppercase font-extrabold text-slate-300">
                   <span>{loadingPosts ? "Tải bài viết" : "Xoá bài viết"}</span>
-                  <span className="font-mono text-accent text-[10px] bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded shadow-sm">
+                  <span className="font-mono text-blue-400 text-[10px] bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded">
                     {loadingPosts 
                       ? (scanProgress.total > 0 ? `${Math.round((scanProgress.current / scanProgress.total) * 100)}%` : "0%")
                       : (progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%")
@@ -2243,9 +1762,9 @@ export default function App() {
                   </span>
                 </div>
                 
-                <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
+                <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner">
                   <div 
-                    className="pretty-progress-bar"
+                    className="bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(96,165,250,0.5)]"
                     style={{ width: `${loadingPosts 
                       ? (scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0)
                       : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%` 
@@ -2254,11 +1773,11 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-[10px] font-bold text-muted-foreground">
+                  <span className="text-[10px] font-bold text-slate-200">
                     {loadingPosts ? (
-                      <><span className="text-accent font-black">{scanProgress.current}</span> / <span>{scanProgress.total}</span> trang</>
+                      <><span className="text-indigo-300 font-black">{scanProgress.current}</span> / <span>{scanProgress.total}</span> trang</>
                     ) : (
-                      <><span className="text-accent font-black">{progress.current}</span> / <span>{progress.total}</span> bài</>
+                      <><span className="text-indigo-300 font-black">{progress.current}</span> / <span>{progress.total}</span> bài</>
                     )}
                   </span>
                 </div>
@@ -2267,11 +1786,11 @@ export default function App() {
                   <button
                     id="btn-load-posts"
                     type="button"
-                    onClick={() => fetchPostsFromSelectedPages(true)}
-                    disabled={selectedPageIds.length === 0 || loadingPosts || isMetaRateLimited}
-                    className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow"
+                    onClick={fetchPostsFromSelectedPages}
+                    disabled={selectedPageIds.length === 0 || loadingPosts}
+                    className="flex-1 py-2 neu-button text-white rounded-lg font-black text-[9px] xl:text-[10px] tracking-wide uppercase transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow-md"
                   >
-                    <RotateCw className={`w-3.5 h-3.5 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
+                    <RotateCw className={`w-3.5 h-3.5 text-blue-300 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
                     Tải bài viết
                   </button>
 
@@ -2280,19 +1799,19 @@ export default function App() {
                     type="button"
                     onClick={() => setShowConfirmModal(true)}
                     disabled={selectedPostIds.length === 0 || isDeleting}
-                    className={`flex-1 py-2.5 rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 border ${
+                    className={`flex-1 py-2 text-white rounded-lg font-black text-[9px] xl:text-[10px] tracking-wide uppercase transition-all flex items-center justify-center gap-1 disabled:pointer-events-none cursor-pointer select-none active:scale-95 shadow-md border ${
                       selectedPostIds.length > 0 
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white border-transparent cursor-pointer shadow-md shadow-rose-950/25' 
-                        : 'bg-muted/40 text-muted-foreground/40 border-transparent opacity-40 cursor-not-allowed'
+                        ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-900/30 border-rose-500/50' 
+                        : 'bg-white/5 text-white/30 border-white/10 opacity-60'
                     }`}
                   >
                     <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                    {selectedPostIds.length > 0 ? `Xóa bài viết (${selectedPostIds.length})` : "Xóa bài viết"}
+                    Xóa bài viết
                   </button>
                 </div>
 
                 {(isDeleting || loadingPosts) && (
-                  <div className="flex gap-2 w-full mt-1.5">
+                  <div className="flex gap-2 w-full mt-1">
                     {isDeleting && (
                       <button
                         id="btn-stop-deletion"
@@ -2301,7 +1820,7 @@ export default function App() {
                           deleteCancelledRef.current = true;
                           addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
                         }}
-                        className="w-full py-2.5 rounded-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600/50 text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-sm"
+                        className="w-full py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white border border-rose-500/30 text-[9px] font-black tracking-wider uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-rose-900/30"
                       >
                         Dừng xóa
                       </button>
@@ -2313,7 +1832,7 @@ export default function App() {
                           scanCancelledRef.current = true;
                           addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
                         }}
-                        className="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600/50 text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-sm"
+                        className="w-full py-1.5 rounded-md bg-orange-600 hover:bg-orange-700 text-white border border-orange-500/30 text-[9px] font-black tracking-wider uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-900/30"
                       >
                         Dừng nạp
                       </button>
@@ -2322,127 +1841,64 @@ export default function App() {
                 )}
               </div>
 
-              <div className="bg-rose-950/10 border border-rose-500/20 p-2.5 rounded-xl flex items-start gap-2 text-rose-400">
-                <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <div className="text-[10px] font-medium leading-relaxed">
-                  <span className="font-bold text-rose-500 uppercase block mb-0.5">Lưu ý:</span>
+              <div className="bg-rose-950/40 border border-rose-500/30 p-2 rounded-lg flex items-start gap-1.5 text-rose-200">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="text-[9px] font-semibold leading-relaxed">
+                  <span className="font-black text-rose-100 uppercase block mb-0.5">Lưu ý:</span>
                   Xóa bài viết là VĨNH VIỄN.
                 </div>
               </div>
             </div>
 
             {/* LIVE LOG CONSOLE TERMINAL */}
-            <div className="flex-1 flex flex-col bg-muted/30 rounded-xl p-3 shadow-inner min-h-[150px] overflow-hidden border border-border">
-              <div className="flex items-center justify-between border-b border-border pb-2 mb-2 shrink-0">
-                <span className="text-[10px] uppercase tracking-widest text-accent font-extrabold font-mono flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping" />
-                  Terminal Logs
+            <div className="flex-1 flex flex-col neu-panel rounded-xl p-2.5 shadow-inner min-h-[150px] overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 shrink-0">
+                <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-extrabold font-mono flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                  Logs
                 </span>
                 <button 
                   type="button"
                   onClick={() => setLogs([])}
-                  className="text-[10px] hover:underline text-muted-foreground hover:text-foreground font-bold"
+                  className="text-[9px] hover:underline text-slate-400 hover:text-white font-bold"
                 >
-                  Xóa tất cả
-                </button>
-              </div>
-
-              {/* Log Tabs */}
-              <div className="flex gap-1 border-b border-border/40 pb-2 mb-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setActiveLogTab("all")}
-                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
-                    activeLogTab === "all"
-                      ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-300 dark:border-slate-750"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent"
-                  }`}
-                >
-                  Tất cả
-                  <span className="bg-slate-300/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
-                    {logs.length}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveLogTab("success")}
-                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
-                    activeLogTab === "success"
-                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-500/30"
-                      : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 border border-transparent"
-                  }`}
-                >
-                  Thành công
-                  <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
-                    {logs.filter(log => log.status === "success").length}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveLogTab("error")}
-                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
-                    activeLogTab === "error"
-                      ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-500/30"
-                      : "text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 border border-transparent"
-                  }`}
-                >
-                  Lỗi
-                  <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
-                    {logs.filter(log => log.status === "failed").length}
-                  </span>
+                  Xóa
                 </button>
               </div>
 
               <div 
                 ref={logContainerRef}
-                className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] text-accent p-1 custom-scrollbar pr-1.5"
+                className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[9px] text-emerald-300 custom-scrollbar pr-1"
               >
-                {(() => {
-                  const filtered = logs.filter((log) => {
-                    if (activeLogTab === "error") return log.status === "failed";
-                    if (activeLogTab === "success") return log.status === "success";
-                    return true;
-                  });
-
-                  if (filtered.length === 0) {
-                    return (
-                      <p className="text-muted-foreground/50 italic py-1">
-                        {activeLogTab === "error" 
-                          ? "Không có nhật ký lỗi..." 
-                          : activeLogTab === "success" 
-                          ? "Không có nhật ký thành công..." 
-                          : "Chưa có nhật ký..."}
-                      </p>
-                    );
-                  }
-
-                  return filtered.map((log) => {
-                    let colorClass = "text-muted-foreground";
+                {logs.length === 0 ? (
+                  <p className="text-white/30 italic">Chưa có nhật ký...</p>
+                ) : (
+                  logs.map((log) => {
+                    let colorClass = "text-white/60";
                     let prefix = "•";
 
                     if (log.status === "success") {
-                      colorClass = "text-emerald-600 font-semibold";
+                      colorClass = "text-emerald-400 font-medium";
                       prefix = "✔";
                     } else if (log.status === "failed") {
-                       colorClass = "text-rose-600 font-bold";
+                       colorClass = "text-rose-400 font-bold";
                        prefix = "✘ LỖI";
                     } else if (log.status === "processing") {
-                       colorClass = "text-amber-500 font-medium animate-pulse";
+                       colorClass = "text-yellow-300 animate-pulse";
                        prefix = "➜";
                     } else if (log.status === "pending") {
-                       colorClass = "text-blue-500 font-medium";
+                       colorClass = "text-blue-300";
                        prefix = "⏱";
                     }
 
                     return (
-                      <div key={log.id} className={`${colorClass} flex gap-1.5 leading-relaxed break-words`}>
-                        <span className="shrink-0 text-muted-foreground">[{log.timestamp.split(" ")[1]}]</span>
-                        <span className="shrink-0 font-bold">{prefix}</span>
+                      <div key={log.id} className={`${colorClass} flex gap-1.5 leading-snug break-words`}>
+                        <span className="shrink-0">[{log.timestamp.split(" ")[1]}] {prefix}</span>
                         <span>{log.postMessageSnippet}</span>
                       </div>
                     );
-                  });
-                })()}
+                  })
+                )}
               </div>
             </div>
           </aside>
@@ -2458,12 +1914,6 @@ export default function App() {
           {activeTab === "admins" && (
             <div className="flex-1 overflow-hidden flex flex-col min-h-0">
               <PageAdminsTab pages={pages} userToken={userToken} />
-            </div>
-          )}
-
-          {activeTab === "theme" && (
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} />
             </div>
           )}
 
@@ -2497,53 +1947,53 @@ export default function App() {
 
       {/* MODAL 1: APP SETTINGS PANEL MODAL (Interactive Configuration override) */}
       {showConfig && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card p-6 md:p-8 rounded-[32px] shadow-2xl w-full max-w-[500px] border border-border">
-            <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
-              <h2 className="text-xl font-bold text-foreground flex items-center gap-2.5">
-                <Settings className="w-5 h-5 text-accent" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card p-6 rounded-[32px] shadow-2xl w-full max-w-[500px]">
+            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
+              <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-indigo-400" />
                 Cài đặt Meta API & Credentials
               </h2>
               <button 
                 id="btn-close-settings"
                 onClick={() => setShowConfig(false)}
-                className="text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                className="text-white/50 hover:text-white bg-white/10 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-[13px] text-muted-foreground leading-relaxed mb-6 p-4 bg-muted/50 border border-border rounded-2xl shadow-sm">
+            <p className="text-xs text-white/70 leading-relaxed mb-4 p-3 bg-indigo-950/40 border border-indigo-500/25 rounded-2xl">
               Hệ thống sử dụng Meta Graph API để phân tích. Bạn có thể tự mình cấu hình Meta App ID / Secret do bạn tạo để dùng riêng tư hoặc điền trực tiếp User Access Token.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wide">Mốt tự bảo mật: Meta App ID</label>
+                <label className="block text-xs font-bold text-white/80 mb-1.5">Mốt tự bảo mật: Meta App ID</label>
                 <input 
                   type="text" 
                   id="config-app-id"
                   value={appId}
                   onChange={(e) => setAppId(e.target.value)}
                   placeholder="Điền Meta App ID (ví dụ: 89431872124...)"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-sm transition-all text-foreground"
+                  className="w-full neu-input rounded-xl px-3 bg-slate-950/50 text-white font-mono py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1.5 uppercase tracking-wide">Meta App Secret</label>
+                <label className="block text-xs font-bold text-white/80 mb-1.5">Meta App Secret</label>
                 <input 
                   type="password" 
                   id="config-app-secret"
                   value={appSecret}
                   onChange={(e) => setAppSecret(e.target.value)}
                   placeholder="Điền Meta App Secret"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-sm transition-all text-foreground"
+                  className="w-full neu-input rounded-xl px-3 bg-slate-950/50 text-white font-mono py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
-              <div className="pt-2">
-                <label className="block text-xs font-bold text-accent mb-1.5 uppercase tracking-wide">
+              <div>
+                <label className="block text-xs font-bold text-white/80 mb-1.5">
                   Nhập trực tiếp Facebook User Token (GHI ĐÈ)
                 </label>
                 <textarea 
@@ -2552,19 +2002,19 @@ export default function App() {
                   value={userToken}
                   onChange={(e) => setUserToken(e.target.value)}
                   placeholder="Mã Access Token EAAB... (Lấy nhanh từ Trình rà lỗi Meta Graph API Explorer)"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-mono focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none shadow-sm transition-all resize-none custom-scrollbar text-foreground"
+                  className="w-full neu-input rounded-xl px-3 py-2 text-xs font-mono text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
-                <span className="text-[11px] text-muted-foreground font-medium block mt-2">
-                  Cách này giúp bạn chạy trực tiếp hệ thống mà không qua cổng server trung gian.
+                <span className="text-[10px] text-white/40 block mt-1">
+                  Cách này giúp bạn chạy trực tiếp mà không cần cấu hình nút OAuth qua cổng máy chủ trung gian.
                 </span>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8 pt-4 border-t border-border">
+            <div className="flex gap-3 mt-6 pt-3 border-t border-white/10">
               <button 
                 id="btn-save-settings"
                 onClick={saveCredentials}
-                className="flex-1 py-3 btn-primary rounded-xl font-bold text-[13px] tracking-wide transition-all shadow-md"
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-lg transition-all"
               >
                 Lưu cấu hình
               </button>
@@ -2575,31 +2025,31 @@ export default function App() {
 
       {/* CONFIRMATION DIALOG MODAL (Surgical Confirmation Overlays) */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border p-6 md:p-8 rounded-[40px] shadow-2xl w-full max-w-[480px] text-center">
-            <div className="w-16 h-16 bg-rose-950/20 border border-rose-500/25 text-rose-400 rounded-[20px] flex items-center justify-center mx-auto mb-5 shadow-inner transform -rotate-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card !border-rose-500/50 !shadow-[0_0_30px_rgba(244,63,94,0.3)] p-6 md:p-8 rounded-[40px] shadow-2xl w-full max-w-[480px] text-center">
+            <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-rose-950/50">
               <Trash2 className="w-8 h-8" />
             </div>
 
-            <h2 className="text-xl font-bold text-foreground mb-3">
+            <h2 className="text-xl font-extrabold text-white mb-2">
               Xác nhận hủy hoại vĩnh viễn?
             </h2>
-            <p className="text-[13px] text-muted-foreground leading-relaxed mb-6">
-              Bạn đang chuẩn bị tiến hành xóa hàng loạt <b className="text-rose-400 font-mono text-sm bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-500/15">{selectedPostIds.length} bài đăng</b> khỏi các Fanpage. Hành động này sẽ triệt tiêu vĩnh viễn toàn bộ lượt Thích, Bình luận, và Chia sẻ đi kèm.
+            <p className="text-sm text-white/70 leading-relaxed mb-6">
+              Bạn đang chuẩn bị tiến hành xóa hàng loạt <b className="text-rose-400 font-mono text-base">{selectedPostIds.length} bài đăng</b> khỏi các Facebook Fanpages quản trị tương ứng. Hành động này sẽ triệt tiêu vĩnh viễn toàn bộ lượt Thích, Bình luận, và Chia sẻ đi kèm.
             </p>
 
             {/* Checkbox safety safeguard constraint (confirm=true requirement) */}
-            <div className="bg-rose-950/10 border border-rose-500/20 p-4 rounded-[20px] text-left mb-6 shadow-sm">
+            <div className="bg-rose-500/10 border border-rose-500/25 p-4 rounded-2xl text-left mb-6">
               <label className="flex items-start gap-3 cursor-pointer select-none">
                 <div 
                   onClick={() => setDoubleConfirm(!doubleConfirm)}
-                  className={`mt-0.5 w-5 h-5 rounded-[6px] flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
+                  className={`mt-0.5 w-[18px] h-[18px] rounded-md flex items-center justify-center border transition-all cursor-pointer shrink-0 ${
                     doubleConfirm 
-                      ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-950/45" 
-                      : "border-border hover:border-rose-550 bg-background"
+                      ? "bg-rose-500 border-rose-400 text-white shadow shadow-rose-500/20 scale-105" 
+                      : "border-white/30 hover:border-white/50 bg-black/20"
                   }`}
                 >
-                  {doubleConfirm && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
+                  {doubleConfirm && <Check className="w-3 h-3 stroke-[3px]" />}
                 </div>
                 <input 
                   type="checkbox" 
@@ -2608,8 +2058,8 @@ export default function App() {
                   onChange={(e) => setDoubleConfirm(e.target.checked)}
                   className="sr-only"
                 />
-                <div className="text-[12px] text-rose-400 leading-relaxed font-semibold">
-                  <span>Tôi hiểu đây là quyết định một chiều, không thể khôi phục và đồng ý xóa các bài viết đã chọn.</span>
+                <div className="text-xs text-rose-200 leading-normal font-semibold">
+                  <span>Tôi hiểu đây là lựa chọn một chiều, vĩnh viễn và đồng ý xóa các bài viết đã tích.</span>
                 </div>
               </label>
             </div>
@@ -2621,7 +2071,7 @@ export default function App() {
                   setShowConfirmModal(false);
                   setDoubleConfirm(false);
                 }}
-                className="flex-1 py-3.5 bg-muted hover:bg-muted/80 text-foreground rounded-full font-bold text-[13px] transition-all border border-border shadow-sm cursor-pointer"
+                className="flex-1 py-3 bg-white/10 hover:bg-white/15 text-white/80 hover:text-white rounded-2xl font-bold text-xs transition-all border border-white/10"
               >
                 Hủy bỏ
               </button>
@@ -2630,9 +2080,9 @@ export default function App() {
                 id="btn-confirm-delete"
                 onClick={executeBatchDeletion}
                 disabled={!doubleConfirm}
-                className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold text-[13px] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-rose-950/15"
+                className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold text-xs shadow-lg shadow-rose-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Xác nhận xóa
+                Xác nhận bắt đầu xóa
               </button>
             </div>
           </div>

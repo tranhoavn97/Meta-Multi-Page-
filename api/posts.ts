@@ -3,20 +3,11 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
-  const rateLimitInfo = {
-    appUsage: response.headers.get("x-app-usage"),
-    pageUsage: response.headers.get("x-page-usage"),
-    businessUsage: response.headers.get("x-business-use-case-usage"),
-  };
-
   if (contentType.includes("application/json")) {
     try {
       const data = JSON.parse(text);
       if (!response.ok && !data.error) {
          data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
-      }
-      if (data && typeof data === "object") {
-        data._rateLimitInfo = rateLimitInfo;
       }
       return data;
     } catch (e) {
@@ -78,7 +69,6 @@ export default async function handler(req: any, res: any) {
           const endpointLog = nextUrl.replace(activeToken, "[HIDDEN_TOKEN]");
           return res.status(500).json({ 
              error: data.error.message || "Meta API Error when fetching posts",
-             errorCode: data.error.code,
              pageName: pageName,
              pageId: pageId,
              endpoint: endpointLog,
@@ -97,17 +87,10 @@ export default async function handler(req: any, res: any) {
       }
 
       nextUrl = (data.paging && data.paging.next) || null;
-      if (nextUrl) {
-        const delayMs = Math.floor(Math.random() * 501) + 500; // 500 - 1000 ms
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
     }
 
     const finalPosts = allPosts.slice(0, requestedLimit);
-    return res.status(200).json({ 
-      data: finalPosts,
-      rateLimitInfo: allPagesData?._rateLimitInfo || { appUsage: null, pageUsage: null, businessUsage: null }
-    });
+    return res.status(200).json({ data: finalPosts });
   } catch (error: any) {
     console.error(`Lỗi khi lấy danh sách bài viết cho page ${pageId}:`, error);
     return res.status(500).json({ error: error.message || "Lỗi máy chủ khi lấy danh sách bài viết" });

@@ -106,28 +106,28 @@ function ToastItemComponent({ toast, onClose }: { toast: ToastItem; onClose: (id
     switch (type) {
       case "success":
         return {
-          bg: "bg-background border-border text-foreground",
+          bg: "bg-emerald-950/85 border-emerald-500/30 text-emerald-100",
           progressBg: "bg-emerald-500",
-          icon: <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
         };
       case "error":
         return {
-          bg: "bg-background border-border text-foreground",
+          bg: "bg-rose-950/85 border-rose-500/30 text-rose-100",
           progressBg: "bg-rose-500",
-          icon: <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          icon: <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
         };
       case "warning":
         return {
-          bg: "bg-background border-border text-foreground",
+          bg: "bg-amber-950/85 border-amber-500/30 text-amber-100",
           progressBg: "bg-amber-500",
-          icon: <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          icon: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
         };
       case "info":
       default:
         return {
-          bg: "bg-background border-border text-foreground",
-          progressBg: "bg-accent",
-          icon: <Info className="w-5 h-5 text-accent shrink-0" />
+          bg: "bg-slate-900/90 border-indigo-500/30 text-slate-100",
+          progressBg: "bg-indigo-500",
+          icon: <Info className="w-5 h-5 text-indigo-400 shrink-0" />
         };
     }
   }, [type]);
@@ -140,20 +140,20 @@ function ToastItemComponent({ toast, onClose }: { toast: ToastItem; onClose: (id
       exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
       style={{ originX: 1, originY: 1 }}
-      className={`pointer-events-auto relative overflow-hidden flex flex-col w-full border ${styles.bg} rounded-[20px] p-4 shadow-sm`}
+      className={`pointer-events-auto relative overflow-hidden flex flex-col w-full border ${styles.bg} backdrop-blur-md rounded-xl p-4 shadow-[0_10px_35px_-5px_rgba(0,0,0,0.5)]`}
     >
       <div className="flex gap-3 items-start pr-4">
         {styles.icon}
         <div className="flex flex-col gap-1 leading-normal">
-          {title && <span className="font-bold text-[13px] tracking-wide">{title}</span>}
-          <p className="text-[12px] font-medium text-muted-foreground">{message}</p>
+          {title && <span className="font-semibold text-sm tracking-wide">{title}</span>}
+          <p className="text-xs font-light text-slate-200/95">{message}</p>
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => onClose(id)}
-        className="absolute top-2 right-2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
+        className="absolute top-2 right-2 p-1 rounded-lg text-slate-400 hover:text-slate-100 transition-colors pointer-events-auto"
       >
         <X className="w-3.5 h-3.5" />
       </button>

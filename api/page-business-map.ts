@@ -30,17 +30,17 @@ export default async function handler(req: any, res: any) {
 
   const method = req.method;
   if (method !== "POST") {
-    return res.status(405).json({ success: false, error: "Phương thức không được phép" });
+    return res.status(405).json({ success: false, error: "Method Not Allowed" });
   }
 
   const userToken = (req.body?.userToken || req.body?.user_token) as string;
   const businessId = req.body?.businessId as string;
 
   if (!businessId) {
-    return res.status(400).json({ success: false, error: "Thiếu businessId" });
+    return res.status(400).json({ success: false, error: "Missing businessId" });
   }
   if (!userToken) {
-    return res.status(400).json({ success: false, error: "Thiếu USER_ACCESS_TOKEN" });
+    return res.status(400).json({ success: false, error: "Missing USER_ACCESS_TOKEN" });
   }
 
   try {
@@ -56,23 +56,23 @@ export default async function handler(req: any, res: any) {
     try {
       const ownedData = await backendFetchJson(ownedUrl);
       if (ownedData.error) {
-        ownedError = ownedData.error.message || "Lỗi khi lấy trang sở hữu";
+        ownedError = ownedData.error.message || "Error fetching owned pages";
       } else {
         ownedPages = ownedData.data || [];
       }
     } catch (e: any) {
-      ownedError = e.message || "Lỗi khi tải trang sở hữu";
+      ownedError = e.message || "Failed to fetch owned pages";
     }
 
     try {
       const clientData = await backendFetchJson(clientUrl);
       if (clientData.error) {
-        clientError = clientData.error.message || "Lỗi khi lấy trang khách hàng";
+        clientError = clientData.error.message || "Error fetching client pages";
       } else {
         clientPages = clientData.data || [];
       }
     } catch (e: any) {
-      clientError = e.message || "Lỗi khi tải trang khách hàng";
+      clientError = e.message || "Failed to fetch client pages";
     }
 
     return res.status(200).json({
@@ -91,7 +91,7 @@ export default async function handler(req: any, res: any) {
   } catch (error: any) {
     return res.status(500).json({
       success: false,
-      error: error.message || "Lỗi máy chủ nội bộ khi lấy dữ liệu Page-Business map"
+      error: error.message || "Internal server error fetching page-business mapping"
     });
   }
 }

@@ -48,37 +48,38 @@ export default function DateRangePickerModal({
   const toInputValue = dateRange?.to ? format(dateRange.to, "dd/MM/yyyy") : "";
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="glass-card border border-border shadow-2xl rounded-[32px] w-full max-w-[650px] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* Light Theme matching the screenshot slightly but with app colors */}
+      <div className="glass-card rounded-2xl w-full max-w-[650px] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         
         {/* Header Inputs */}
-        <div className="p-4 border-b border-border flex items-center gap-4 glass-panel/30">
-          <div className="flex-1 flex items-center bg-background border border-border rounded-xl px-3 h-10 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 shadow-sm">
+        <div className="p-4 border-b border-white/10 flex items-center gap-4 bg-slate-950/40">
+          <div className="flex-1 flex items-center neu-input rounded-lg px-3 h-10 transition-colors focus-within:border-blue-500">
             <input 
               type="text" 
               readOnly 
               value={fromInputValue} 
               placeholder="dd/mm/yyyy"
-              className="bg-transparent text-sm text-foreground outline-none w-full"
+              className="bg-transparent text-sm text-slate-100 outline-none w-full"
             />
           </div>
           
-          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
           
-          <div className="flex-1 flex items-center bg-background border border-border rounded-xl px-3 h-10 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 shadow-sm">
+          <div className="flex-1 flex items-center neu-input rounded-lg px-3 h-10 transition-colors focus-within:border-blue-500">
             <input 
               type="text" 
               readOnly 
               value={toInputValue} 
               placeholder="dd/mm/yyyy"
-              className="bg-transparent text-sm text-foreground outline-none w-full"
+              className="bg-transparent text-sm text-slate-100 outline-none w-full"
             />
-            <CalendarIcon className="w-4 h-4 text-muted-foreground ml-2" />
+            <CalendarIcon className="w-4 h-4 text-slate-400 ml-2" />
           </div>
         </div>
 
         {/* Calendar Grid */}
-        <div className="p-4 py-6 flex justify-center bg-card">
+        <div className="p-4 flex justify-center bg-transparent">
           <DayPicker
             mode="range"
             defaultMonth={month}
@@ -87,27 +88,27 @@ export default function DateRangePickerModal({
             onSelect={handleSelect}
             locale={vi}
             showOutsideDays={true}
-            className="text-foreground select-none"
+            className="text-slate-200 select-none"
             classNames={{
               months: "flex flex-col sm:flex-row space-y-4 sm:space-x-8 sm:space-y-0",
               month: "space-y-4",
-              caption: "flex justify-center pt-1 relative items-center text-foreground",
-              caption_label: "text-[15px] font-bold capitalize",
+              caption: "flex justify-center pt-1 relative items-center text-slate-100",
+              caption_label: "text-sm font-bold capitalize",
               nav: "space-x-1 flex items-center",
-              nav_button: "h-8 w-8 bg-transparent p-0 flex justify-center items-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+              nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity flex justify-center items-center rounded-md hover:bg-slate-800",
               nav_button_previous: "absolute left-1",
               nav_button_next: "absolute right-1",
               table: "w-full border-collapse space-y-1",
               head_row: "flex",
-              head_cell: "text-muted-foreground rounded-lg w-10 font-bold text-[13px] uppercase tracking-wider",
+              head_cell: "text-slate-400 rounded-md w-9 font-bold text-[12px] uppercase",
               row: "flex w-full mt-2",
-              cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20 transition-all",
-              day: "h-10 w-10 p-0 font-medium hover:bg-muted rounded-xl transition-colors aria-selected:opacity-100",
-              day_selected: "bg-accent text-white hover:bg-accent focus:bg-accent font-bold shadow-md",
-              day_today: "text-accent bg-accent/10 font-bold rounded-xl",
-              day_outside: "text-muted-foreground/30",
-              day_disabled: "text-muted-foreground/30",
-              day_range_middle: "aria-selected:bg-muted aria-selected:text-foreground aria-selected:rounded-none !bg-transparent outline-none",
+              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:neu-button-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 transition-all",
+              day: "h-9 w-9 p-0 font-medium hover:bg-slate-800 rounded-md transition-colors aria-selected:opacity-100",
+              day_selected: "neu-button-primary text-white hover:bg-blue-500 focus:neu-button-primary font-bold",
+              day_today: "text-blue-400 bg-blue-500/10 font-bold",
+              day_outside: "text-slate-600 opacity-50",
+              day_disabled: "text-slate-600 opacity-50",
+              day_range_middle: "aria-selected:bg-slate-800 aria-selected:text-blue-100 aria-selected:rounded-none !bg-transparent",
               day_hidden: "invisible",
             }}
             components={{
@@ -118,11 +119,11 @@ export default function DateRangePickerModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-border bg-muted/30 flex justify-end gap-3">
+        <div className="p-4 border-t border-white/10 bg-slate-950/40 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 bg-background border border-border hover:bg-muted text-muted-foreground hover:text-foreground rounded-xl text-[13px] font-bold transition-all shadow-sm"
+            className="px-5 py-2 neu-button text-slate-300 rounded-lg text-sm font-bold transition-all"
           >
             Đóng
           </button>
@@ -130,7 +131,7 @@ export default function DateRangePickerModal({
             type="button"
             onClick={handleApply}
             disabled={!dateRange?.from}
-            className="px-6 py-2.5 btn-primary disabled:opacity-50 text-white rounded-xl text-[13px] font-bold transition-all shadow-md"
+            className="px-5 py-2 neu-button-primary disabled:opacity-50 disabled:hover:neu-button-primary text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20"
           >
             Áp dụng
           </button>

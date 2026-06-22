@@ -73,10 +73,7 @@ export default async function handler(req: any, res: any) {
     });
 
     if (result && result.error) {
-      return res.status(400).json({ 
-        error: result.error.message || "Không thể xoá bài viết thông qua Meta Graph API.",
-        errorCode: result.error.code 
-      });
+      return res.status(400).json({ error: result.error.message || "Không thể xoá bài viết thông qua Meta Graph API." });
     }
 
     return res.status(200).json({ success: true, response: result });
