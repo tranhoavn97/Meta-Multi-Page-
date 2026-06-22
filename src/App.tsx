@@ -460,6 +460,7 @@ export default function App() {
     localStorage.removeItem("meta_app_id");
     localStorage.removeItem("meta_app_secret");
     localStorage.removeItem("meta_user_token");
+    sessionStorage.clear();
     setAppId("");
     setAppSecret("");
     setUserToken("");
@@ -477,6 +478,7 @@ export default function App() {
     if (msg.includes("Session has expired") || msg.includes("Error validating access token") || msg.includes("OAuthException")) {
       toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Facebook.", "Hết hạn phiên");
       localStorage.removeItem("meta_user_token");
+      sessionStorage.clear();
       setUserToken("");
       setPages([]);
       setPosts([]);
