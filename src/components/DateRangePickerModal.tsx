@@ -52,7 +52,7 @@ export default function DateRangePickerModal({
       <div className="glass-card border border-border shadow-2xl rounded-[32px] w-full max-w-[650px] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         
         {/* Header Inputs */}
-        <div className="p-4 border-b border-border flex items-center gap-4 glass/30">
+        <div className="p-4 border-b border-border flex items-center gap-4 glass-panel/30">
           <div className="flex-1 flex items-center bg-background border border-border rounded-xl px-3 h-10 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/10 shadow-sm">
             <input 
               type="text" 

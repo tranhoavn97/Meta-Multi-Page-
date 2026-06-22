@@ -1,22 +1,8 @@
-import { checkRequiredEnvVars } from "../_lib/meta-config";
-import { sanitizeSensitiveText } from "../_lib/sanitize";
-
 export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
   try {
-    const envCheck = checkRequiredEnvVars();
-    if (!envCheck.valid) {
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: "MISSING_SERVER_CONFIG",
-          message: "Máy chủ đang thiếu cấu hình cần thiết."
-        }
-      });
-    }
-
     const customAppId = req.query.app_id as string;
     const customAppSecret = req.query.app_secret as string;
     
@@ -24,13 +10,7 @@ export default async function handler(req: any, res: any) {
     const appSecret = customAppSecret || process.env.META_APP_SECRET;
 
     if (!appId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Chưa cấu hình Meta App ID. Vui lòng cấu hình biến môi trường."
-        }
-      });
+      return res.status(400).json({ error: "Chưa cấu hình Meta App ID. Vui lòng cấu hình biến môi trường." });
     }
 
     const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
@@ -48,13 +28,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ url: authUrl });
   } catch (error: any) {
-    console.error("Lỗi khi tạo Auth URL:", sanitizeSensitiveText(error.stack || error.message));
-    return res.status(500).json({
-      success: false,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Lỗi máy chủ khi tạo URL đăng nhập: " + error.message
-      }
-    });
+    console.error("Lỗi khi tạo Auth URL:", error);
+    return res.status(500).json({ error: "Lỗi máy chủ khi tạo URL đăng nhập: " + error.message });
   }
 }

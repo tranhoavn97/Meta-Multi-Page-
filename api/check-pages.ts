@@ -1,99 +1,56 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
-import { metaFetchJson } from "./_lib/meta-client";
-import { sanitizeSensitiveText } from "./_lib/sanitize";
+async function backendFetchJson(url: string, options: any = {}): Promise<any> {
+  const response = await fetch(url, options);
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (contentType.includes("application/json")) {
+    try {
+      const data = JSON.parse(text);
+      if (!response.ok && !data.error) {
+         data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
+      }
+      return data;
+    } catch (e) {
+      // JSON parse failed
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
+  }
+
+  throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
+}
+
+export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || (req.body?.user_token || req.body?.userToken || req.query?.user_token || req.query?.userToken) as string;
+  if (!META_ACCESS_TOKEN) {
+    return res.status(400).json({ error: "Missing META_ACCESS_TOKEN" });
+  }
+
   try {
-    const envCheck = checkRequiredEnvVars();
-    if (!envCheck.valid) {
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: "MISSING_SERVER_CONFIG",
-          message: "Máy chủ đang thiếu cấu hình cần thiết."
-        }
+    const meUrl = `https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${META_ACCESS_TOKEN}`;
+    const meData = await backendFetchJson(meUrl);
+
+    if (meData && meData.error) {
+      return res.status(400).json({ 
+        success: false, 
+        status: "disconnected", 
+        error: meData.error.message || "Meta API Auth Token expired or invalid" 
       });
     }
 
-    if (req.method !== "POST") {
-      return res.status(405).json({
-        success: false,
-        error: {
-          code: "METHOD_NOT_ALLOWED",
-          message: "Chỉ hỗ trợ phương thức POST để kiểm tra trạng thái."
-        }
-      });
-    }
-
-    const userToken = getMetaAccessToken(req);
-    if (!userToken) {
-      return res.status(401).json({
-        success: false,
-        status: "disconnected",
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Phiên làm việc Facebook đã hết hạn. Vui lòng kết nối lại tài khoản.",
-          reconnectRequired: true
-        }
-      });
-    }
-
-    const meUrl = `${GRAPH_API_BASE}/me?fields=id,name&access_token=${encodeURIComponent(userToken)}`;
-    let meData: any;
-    try {
-      const result = await metaFetchJson(meUrl);
-      meData = result.data;
-    } catch (err: any) {
-      if (err.code === "TOKEN_EXPIRED") {
-        return res.status(401).json({
-          success: false,
-          status: "disconnected",
-          error: {
-            code: "TOKEN_EXPIRED",
-            message: "Mã xác thực Facebook đã hết hạn hoặc bị huỷ bỏ, vui lòng tái liên kết tài khoản.",
-            reconnectRequired: true
-          }
-        });
-      }
-      if (err.code === "PERMISSION_DENIED") {
-        return res.status(200).json({
-          success: false,
-          status: "missing_permission",
-          error: {
-            code: "PERMISSION_DENIED",
-            message: `Truy vấn tài khoản bị từ chối: ${err.message}`
-          }
-        });
-      }
-      throw err;
-    }
-
-    let pagesCount = 0;
-    try {
-      const accountsUrl = `${GRAPH_API_BASE}/me/accounts?fields=id&access_token=${encodeURIComponent(userToken)}&limit=100`;
-      const result = await metaFetchJson(accountsUrl);
-      const accountsData = result.data;
-      pagesCount = (accountsData && accountsData.data) ? accountsData.data.length : 0;
-    } catch (err: any) {
-      console.warn("[Check-Pages] Failed tracking page scope counts", err);
-      if (err.code === "PERMISSION_DENIED") {
-        return res.status(200).json({
-          success: true,
-          status: "missing_permission",
-          user: meData,
-          pagesCount: 0,
-          error: {
-            code: "PERMISSION_DENIED",
-            message: "Chưa được cấp quyền truy vấn danh sách Fanpage (pages_show_list)."
-          }
-        });
-      }
-    }
+    // Try fetching count of pages briefly
+    const accountsUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id&access_token=${META_ACCESS_TOKEN}&limit=100`;
+    const accountsData = await backendFetchJson(accountsUrl);
+    const pagesCount = (accountsData && accountsData.data) ? accountsData.data.length : 0;
 
     return res.status(200).json({
       success: true,
@@ -103,14 +60,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    const errorMsg = error.message || "Không thể kết nối hoặc phân tích trạng thái từ Facebook.";
-    console.error("Lỗi khi kết nối kiểm tra Fanpages:", sanitizeSensitiveText(error.stack || error.message));
-    return res.status(500).json({
-      success: false,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: errorMsg
-      }
+    console.error("Lỗi khi kết nối kiểm tra Fanpages:", error);
+    return res.status(500).json({ 
+      success: false, 
+      status: "error", 
+      error: error.message || "Không thể xác thực kiểm tra kết nối với Meta Server" 
     });
   }
 }

@@ -1,61 +1,52 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
-import { metaFetchJson } from "./_lib/meta-client";
-import { sanitizeSensitiveText } from "./_lib/sanitize";
+import { Request, Response } from "express";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function backendFetchJson(url: string, options: any = {}): Promise<any> {
+  const response = await fetch(url, options);
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (contentType.includes("application/json")) {
+    try {
+      const data = JSON.parse(text);
+      if (!response.ok && !data.error) {
+        data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
+      }
+      return data;
+    } catch (e) {
+      // JSON parse failed
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
+  }
+
+  throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
+}
+
+export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  try {
-    const envCheck = checkRequiredEnvVars();
-    if (!envCheck.valid) {
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: "MISSING_SERVER_CONFIG",
-          message: "Máy chủ đang thiếu cấu hình cần thiết."
-        }
-      });
-    }
+  const method = req.method;
+  if (method !== "POST") {
+    return res.status(405).json({ success: false, error: "Phương thức không được phép" });
+  }
 
-    if (req.method !== "POST") {
-      return res.status(405).json({
-        success: false,
-        error: {
-          code: "METHOD_NOT_ALLOWED",
-          message: "Chỉ hỗ trợ phương thức POST để tra cứu ánh xạ trang."
-        }
-      });
-    }
+  const userToken = (req.body?.userToken || req.body?.user_token) as string;
+  const businessId = req.body?.businessId as string;
 
-  const { businessId } = req.body || {};
   if (!businessId) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        code: "BAD_REQUEST",
-        message: "Yêu cầu thiếu businessId nhận diện doanh nghiệp."
-      }
-    });
+    return res.status(400).json({ success: false, error: "Thiếu businessId" });
   }
-
-  const userToken = getMetaAccessToken(req);
   if (!userToken) {
-    return res.status(401).json({
-      success: false,
-      error: {
-        code: "UNAUTHORIZED",
-        message: "Phiên làm việc Facebook đã hết hạn. Vui lòng kết nối lại tài khoản.",
-        reconnectRequired: true
-      }
-    });
+    return res.status(400).json({ success: false, error: "Thiếu USER_ACCESS_TOKEN" });
   }
 
   try {
-    const ownedUrl = `${GRAPH_API_BASE}/${businessId}/owned_pages?fields=id,name&access_token=${userToken}&limit=100`;
-    const clientUrl = `${GRAPH_API_BASE}/${businessId}/client_pages?fields=id,name&access_token=${userToken}&limit=100`;
+    // Limit Graph API to 100 as per instructions
+    const ownedUrl = `https://graph.facebook.com/v19.0/${businessId}/owned_pages?fields=id,name&access_token=${userToken}&limit=100`;
+    const clientUrl = `https://graph.facebook.com/v19.0/${businessId}/client_pages?fields=id,name&access_token=${userToken}&limit=100`;
 
     let ownedPages: any[] = [];
     let clientPages: any[] = [];
@@ -63,17 +54,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let clientError: string | null = null;
 
     try {
-      const ownedResult = await metaFetchJson(ownedUrl);
-      ownedPages = ownedResult.data.data || [];
+      const ownedData = await backendFetchJson(ownedUrl);
+      if (ownedData.error) {
+        ownedError = ownedData.error.message || "Lỗi khi lấy trang sở hữu";
+      } else {
+        ownedPages = ownedData.data || [];
+      }
     } catch (e: any) {
       ownedError = e.message || "Lỗi khi tải trang sở hữu";
     }
 
     try {
-      const clientResult = await metaFetchJson(clientUrl);
-      clientPages = clientResult.data.data || [];
+      const clientData = await backendFetchJson(clientUrl);
+      if (clientData.error) {
+        clientError = clientData.error.message || "Lỗi khi lấy trang khách hàng";
+      } else {
+        clientPages = clientData.data || [];
+      }
     } catch (e: any) {
-      clientError = e.message || "Lỗi khi tải trang đối tác/khách hàng";
+      clientError = e.message || "Lỗi khi tải trang khách hàng";
     }
 
     return res.status(200).json({
@@ -88,24 +87,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
     });
+
   } catch (error: any) {
-    console.error("Lỗi Page Business Map API:", sanitizeSensitiveText(error.stack || error.message));
     return res.status(500).json({
       success: false,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: error.message || "Lỗi máy chủ khi thiết lập ánh xạ Trang-Doanh nghiệp"
-      }
+      error: error.message || "Lỗi máy chủ nội bộ khi lấy dữ liệu Page-Business map"
     });
   }
-} catch (globalError: any) {
-  console.error("Lỗi toàn cục trong page-business-map:", sanitizeSensitiveText(globalError.stack || globalError.message));
-  return res.status(500).json({
-    success: false,
-    error: {
-      code: "INTERNAL_SERVER_ERROR",
-      message: globalError.message || "Đã xảy ra lỗi không phân loại trên hệ thống."
-    }
-  });
-}
 }

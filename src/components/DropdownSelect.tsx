@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronRight, Check } from "lucide-react";
 
 interface Option {
   value: string;
@@ -22,62 +22,46 @@ export default function DropdownSelect({ value, onChange, options }: DropdownSel
         setIsOpen(false);
       }
     }
-    
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
 
   const selectedOption = options.find((o) => o.value === value) || options[0];
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center justify-between gap-2 bg-background border rounded-xl px-3 h-9 text-[12px] font-bold tracking-wide outline-none text-foreground cursor-pointer transition-all select-none min-w-fit shadow-sm ${
+        className={`flex items-center justify-between gap-2.5 bg-background border rounded-xl px-3.5 h-10 text-[12px] font-bold tracking-wide outline-none text-foreground cursor-pointer transition-all select-none min-w-[160px] shadow-sm ${
           isOpen ? "border-accent ring-1 ring-accent/20" : "border-border hover:border-border/80"
         }`}
       >
-        <span className="truncate">{selectedOption?.label}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`} />
+        <span>{selectedOption?.label}</span>
+        <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90 text-accent" : "rotate-0"}`} />
       </button>
 
       {isOpen && (
-        <div 
-          className="absolute right-0 top-full mt-1.5 z-[999] min-w-full w-max max-w-[260px] max-h-[280px] overflow-y-auto overscroll-contain bg-card border border-border rounded-xl shadow-xl p-1 animate-in fade-in slide-in-from-top-1 zoom-in-[0.98] duration-150"
-          role="listbox"
-        >
+        <div className="absolute right-0 top-full mt-1.5 z-[99] min-w-full w-max glass-card border border-border rounded-xl shadow-lg p-1.5 overflow-hidden transition-all">
           {options.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              role="option"
-              aria-selected={value === opt.value}
               onClick={() => {
                 onChange(opt.value, opt.label);
                 setIsOpen(false);
               }}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-[12px] font-bold tracking-wide transition-all flex items-center justify-between gap-3 cursor-pointer ${
                 value === opt.value
                   ? "bg-accent/10 text-accent"
-                  : "text-foreground hover:bg-muted/50"
+                  : "text-foreground hover:glass-panel"
               }`}
             >
-              <span className="truncate">{opt.label}</span>
+              <span className="whitespace-nowrap">{opt.label}</span>
               {value === opt.value && <Check className="w-3.5 h-3.5 text-accent stroke-[3.5px] shrink-0" />}
             </button>
           ))}

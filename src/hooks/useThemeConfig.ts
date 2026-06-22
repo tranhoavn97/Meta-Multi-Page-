@@ -48,70 +48,34 @@ export interface ThemeConfig {
   bgImageUrl?: string;
   blurAmount?: number;
   borderRadius?: number;
-  savedBgImages?: string[];
 }
 
 const defaultThemeConfig: ThemeConfig = {
   bgTheme: "ocean",
   primaryColorName: "Cyan Neon",
-  glassOpacity: 25,
-  bgOverlay: 25,
+  glassOpacity: 45,
+  bgOverlay: 85,
   blurSize: "24px",
   fontSize: "base",
   fontFamily: "Inter",
   bgType: "gradient",
   bgImageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1920&q=80",
   blurAmount: 24,
-  borderRadius: 20,
-  savedBgImages: []
+  borderRadius: 20
 };
 
 export function useThemeConfig() {
   const [config, setConfigState] = useState<ThemeConfig>(() => {
     const saved = localStorage.getItem("app_theme_config");
-    let savedConfig = saved ? JSON.parse(saved) : {};
-    
-    const effectiveGlassOpacity = savedConfig.glassOpacity !== undefined 
-      ? (savedConfig.glassOpacity > 60 ? 25 : savedConfig.glassOpacity) 
-      : 25;
-    const effectiveBgOverlay = savedConfig.bgOverlay !== undefined 
-      ? (savedConfig.bgOverlay > 50 ? 25 : savedConfig.bgOverlay) 
-      : 25;
-
-    const normalizedConfig = {
-      ...defaultThemeConfig,
-      ...savedConfig,
-      glassOpacity: effectiveGlassOpacity,
-      bgOverlay: effectiveBgOverlay
-    };
-    
-    // Auto-save the normalized configuration directly (but do not erase images)
-    try {
-        localStorage.setItem("app_theme_config", JSON.stringify(normalizedConfig));
-    } catch(e) {}
-    
-    return normalizedConfig;
+    return saved ? { ...defaultThemeConfig, ...JSON.parse(saved) } : defaultThemeConfig;
   });
 
   const setConfig = (newConfig: ThemeConfig) => {
     setConfigState(newConfig);
     try {
-      const configString = JSON.stringify(newConfig);
-      const size = new Blob([configString]).size;
-      const MAX_SIZE = 4 * 1024 * 1024; // 4MB
-
-      if (size > MAX_SIZE) {
-        alert("Cảnh báo: Ảnh quá lớn (vượt quá 4MB). Ảnh sẽ tự động được xoá khỏi bộ nhớ lưu trữ để tránh lỗi dung lượng bộ nhớ trên trình duyệt (bạn vẫn có thể dùng ảnh này hiện tại nhưng sẽ bị mất sau khi tải lại trang).");
-        // Don't save base64 to localStorage if > 4MB
-        const fallbackConfig = { ...newConfig, bgType: "gradient", bgImageUrl: "", savedBgImages: [] };
-        localStorage.setItem("app_theme_config", JSON.stringify(fallbackConfig));
-        return;
-      }
-
-      localStorage.setItem("app_theme_config", configString);
+      localStorage.setItem("app_theme_config", JSON.stringify(newConfig));
     } catch (e) {
-      alert("Cảnh báo: Không thể lưu cài đặt theme. Bộ nhớ trình duyệt LocalStorage đã quá giới hạn khả dụng.");
-      console.warn("Storage quota exceeded", e);
+      console.warn("Storage quota exceeded of localStorage, only applying theme in state", e);
     }
   };
 
@@ -154,19 +118,19 @@ export function useThemeConfig() {
     const alphaGlass = config.glassOpacity / 100;
     const alphaBorder = Math.min(alphaGlass + 0.15, 1);
     if (isDark) {
-      root.style.setProperty("--glass", `rgba(6, 18, 31, ${alphaGlass})`);
-      root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${Math.max(0.02, alphaGlass * 0.15)})`);
-      root.style.setProperty("--card", `rgba(8, 23, 38, ${Math.min(1, alphaGlass + 0.06)})`);
+      root.style.setProperty("--glass", `rgba(4, 12, 38, ${alphaGlass})`);
+      root.style.setProperty("--glass-border", `rgba(0, 243, 255, ${alphaBorder * 0.18})`);
+      root.style.setProperty("--card", `rgba(3, 9, 32, ${Math.max(alphaGlass - 0.12, 0.22)})`);
     } else {
       root.style.setProperty("--glass", `rgba(255, 255, 255, ${alphaGlass})`);
-      root.style.setProperty("--glass-border", `rgba(15, 23, 42, ${Math.max(0.02, alphaGlass * 0.1)})`);
-      root.style.setProperty("--card", `rgba(255, 255, 255, ${Math.min(1, alphaGlass + 0.07)})`);
+      root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${alphaBorder * 0.8})`);
+      root.style.setProperty("--card", `rgba(255, 255, 255, ${Math.max(alphaGlass - 0.15, 0.4)})`);
     }
 
     // Apply bg overlay
     const overlayAlpha = config.bgOverlay / 100;
     if (isDark) {
-      root.style.setProperty("--bg", `rgba(2, 10, 20, ${overlayAlpha})`);
+      root.style.setProperty("--bg", `rgba(2, 6, 22, ${overlayAlpha})`);
     } else {
       root.style.setProperty("--bg", `rgba(248, 250, 252, ${overlayAlpha})`);
     }
@@ -199,7 +163,7 @@ export function useThemeConfig() {
       }
       
       /* GLASS & BLUR ACCENTS */
-      .neu-panel, .glass, .neu-input, .neu-button, aside, main {
+      .neu-panel, .glass-panel, .neu-input, .neu-button, aside, main, .mac-dropdown {
         backdrop-filter: blur(${finalBlurAmount}px) !important;
         -webkit-backdrop-filter: blur(${finalBlurAmount}px) !important;
       }
@@ -209,7 +173,7 @@ export function useThemeConfig() {
         border-radius: ${finalBorderRadius}px !important;
       }
       
-      .glass, .mac-dropdown {
+      .glass-panel, .mac-dropdown {
         border-radius: ${Math.max(finalBorderRadius - 6, 10)}px !important;
       }
       
@@ -217,34 +181,25 @@ export function useThemeConfig() {
         border-radius: ${Math.max(finalBorderRadius - 8, 8)}px !important;
       }
       
-      /* PREMIUM GRAPHITE CLASS GLASS EFFECTS */
+      /* FUTURISTIC NEON GLASS UI EFFECTS */
       .glass-card {
-        border: 1px solid ${isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.08)"} !important;
-        box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.18), inset 0 1px 1px ${isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.6)"} !important;
+        border: 1px solid rgba(${rgbVal}, 0.22) !important;
+        box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.25), 0 0 15px rgba(${rgbVal}, 0.08) !important;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
       .glass-card:hover {
-        border-color: ${isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(15, 23, 42, 0.12)"} !important;
-        box-shadow: 0 15px 40px 0 rgba(0, 0, 0, 0.24), inset 0 1px 1px ${isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.8)"} !important;
+        border-color: rgba(${rgbVal}, 0.4) !important;
+        box-shadow: 0 15px 45px 0 rgba(0, 0, 0, 0.35), 0 0 25px rgba(${rgbVal}, 0.2) !important;
       }
       
-      .glass {
-        border: 1px solid ${isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(15, 23, 42, 0.06)"} !important;
-        box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.1), inset 0 1px 1px ${isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.4)"} !important;
+      .glass-panel {
+        border: 1px solid rgba(${rgbVal}, 0.15) !important;
+        box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.15), 0 0 10px rgba(${rgbVal}, 0.06) !important;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
-      .glass:hover {
-        border-color: ${isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(15, 23, 42, 0.10)"} !important;
-        box-shadow: 0 12px 30px 0 rgba(0, 0, 0, 0.15) !important;
-      }
-      
-      /* PRETTY MAC DROPDOWNS - EXTRA LOW TRANSPARENCY DEPLOYED */
-      .mac-dropdown {
-        background-color: ${isDark ? "rgba(10, 15, 30, 0.995)" : "rgba(255, 255, 255, 0.995)"} !important;
-        border: 1px solid ${isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.08)"} !important;
-        backdrop-filter: blur(30px) !important;
-        -webkit-backdrop-filter: blur(30px) !important;
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4) !important;
+      .glass-panel:hover {
+        border-color: rgba(${rgbVal}, 0.3) !important;
+        box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.2), 0 0 18px rgba(${rgbVal}, 0.15) !important;
       }
       
       /* IOS / MACOS PREMIUM BUTTONS */

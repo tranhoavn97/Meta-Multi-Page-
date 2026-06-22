@@ -1,70 +1,54 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
-import { metaFetchJson } from "./_lib/meta-client";
-import { getPageAccessToken } from "./_lib/page-token-store";
-import { sanitizeSensitiveText } from "./_lib/sanitize";
+import { Request, Response } from "express";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function backendFetchJson(url: string, options: any = {}): Promise<any> {
+  const response = await fetch(url, options);
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  if (contentType.includes("application/json")) {
+    try {
+      const data = JSON.parse(text);
+      if (!response.ok && !data.error) {
+        data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
+      }
+      return data;
+    } catch (e) {
+      // ignore JSON parse fail, fall back
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
+  }
+
+  throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
+}
+
+export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  try {
-    const envCheck = checkRequiredEnvVars();
-    if (!envCheck.valid) {
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: "MISSING_SERVER_CONFIG",
-          message: "Máy chủ đang thiếu cấu hình cần thiết."
-        }
-      });
-    }
+  const method = req.method;
+  if (method !== "POST") {
+    return res.status(405).json({ success: false, error: "Phương thức không được phép" });
+  }
 
-    if (req.method !== "POST") {
-      return res.status(405).json({
-        success: false,
-        error: {
-          code: "METHOD_NOT_ALLOWED",
-          message: "Chỉ hỗ trợ phương thức POST để kiểm tra chi tiết trạng thái trang."
-        }
-      });
-    }
+  const userToken = (req.body?.userToken || req.body?.user_token) as string;
+  const pageId = req.body?.pageId as string;
+  const pageAccessToken = req.body?.pageAccessToken as string;
 
-  const { pageId, pageAccessToken } = req.body || {};
   if (!pageId) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        code: "BAD_REQUEST",
-        message: "Thiếu thông tin pageId nhận dạng trang kiểm tra."
-      }
-    });
+    return res.status(400).json({ success: false, error: "Thiếu pageId" });
   }
 
-  const userToken = getMetaAccessToken(req);
-  if (!userToken) {
-    return res.status(401).json({
-      success: false,
-      error: {
-        code: "UNAUTHORIZED",
-        message: "Mã truy cập Facebook của bạn đã hết hạn hoặc chưa được tạo.",
-        reconnectRequired: true
-      }
-    });
-  }
-
-  let activeToken = pageAccessToken ;
+  const activeToken = pageAccessToken || userToken;
   if (!activeToken) {
-    try {
-      activeToken = await getPageAccessToken(pageId, userToken);
-    } catch {
-      activeToken = userToken;
-    }
+    return res.status(400).json({ success: false, error: "Thiếu facebook access token" });
   }
 
   try {
-    const infoUrl = `${GRAPH_API_BASE}/${pageId}?fields=id,name,category,tasks&access_token=${activeToken}`;
+    // 1. Check Page Info and Basic Access
+    const infoUrl = `https://graph.facebook.com/v19.0/${pageId}?fields=id,name,category,tasks&access_token=${activeToken}`;
     let pageInfo: any = null;
     let infoError: string | null = null;
     let isOAuthError = false;
@@ -72,63 +56,82 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let tasks: string[] = [];
 
     try {
-      const result = await metaFetchJson(infoUrl);
-      pageInfo = result.data;
-      tasks = pageInfo.tasks || [];
-    } catch (err: any) {
-      infoError = err.message || "Lỗi API truy xuất thông tin";
-      if (err.code === "TOKEN_EXPIRED") {
-        isOAuthError = true;
-      } else if (err.code === "PERMISSION_DENIED") {
-        isPermissionError = true;
+      const data = await backendFetchJson(infoUrl);
+      if (data.error) {
+        // Safe access token extraction
+        const errMsg = data.error.message || "Lỗi không xác định";
+        infoError = errMsg;
+        if (errMsg.includes("OAuthException") || errMsg.includes("expired") || errMsg.includes("session")) {
+          isOAuthError = true;
+        }
+        if (errMsg.includes("permission") || errMsg.includes("privilege") || errMsg.includes("tasks")) {
+          isPermissionError = true;
+        }
+      } else {
+        pageInfo = data;
+        tasks = data.tasks || [];
       }
+    } catch (e: any) {
+      infoError = e.message || "Lỗi khi lấy thông tin trang";
     }
 
+    // 2. Check Post Retrieval
     let postsSuccess = false;
     let postsError: string | null = null;
     let postSample: any = null;
 
-    if (!isOAuthError) {
-      const postsUrl = `${GRAPH_API_BASE}/${pageId}/posts?fields=id,message,created_time,permalink_url&limit=1&access_token=${activeToken}`;
+    if (!infoError || infoError.indexOf("OAuth") === -1) {
+      const postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,created_time,permalink_url&limit=1&access_token=${activeToken}`;
       try {
-        const result = await metaFetchJson(postsUrl);
-        postsSuccess = true;
-        const postsData = result.data;
-        if (postsData && Array.isArray(postsData.data) && postsData.data.length > 0) {
-          postSample = postsData.data[0];
+        const postsData = await backendFetchJson(postsUrl);
+        if (postsData.error) {
+          postsError = postsData.error.message || "Không thể tải bài viết";
+          if (postsError.includes("permission") || postsError.includes("tasks") || postsError.includes("privilege")) {
+            isPermissionError = true;
+          }
+        } else {
+          postsSuccess = true;
+          if (postsData.data && postsData.data.length > 0) {
+            postSample = postsData.data[0];
+          }
         }
-      } catch (err: any) {
-        postsError = err.message || "Lỗi API lấy bài viết";
-        if (err.code === "PERMISSION_DENIED") {
-          isPermissionError = true;
-        }
+      } catch (e: any) {
+        postsError = e.message || "Lỗi tải bài viết";
       }
     }
 
+    // 3. Evaluate Permissions
     const hasManage = tasks.includes("MANAGE") || tasks.includes("pages_manage_posts") || tasks.includes("pages_read_engagement");
     const hasCreateContent = tasks.includes("CREATE_CONTENT") || tasks.includes("CREATE") || tasks.includes("MANAGE") || tasks.includes("pages_manage_posts");
 
+    // Formulate final status
     let status = "Bình thường";
     let detail = "";
 
-    if (isOAuthError) {
+    if (isOAuthError || (infoError && (infoError.includes("OAuth") || infoError.includes("session") || infoError.includes("expired")))) {
       status = "Token lỗi / hết hạn";
-      detail = infoError || "Mã truy cập fanpage hết hạn hoặc không có giá trị.";
-    } else if (isPermissionError) {
+      detail = infoError || "Mã truy cập fanpage đã hết hạn hoặc không hợp lệ.";
+    } else if (isPermissionError || (infoError && (infoError.includes("permission") || infoError.includes("tasks")))) {
       status = "Thiếu quyền";
-      detail = infoError || "Bạn không đủ quyền hạn truy vấn hoặc quản lý trang này.";
+      detail = infoError || "Tài khoản không đủ quyền truy cập API Fanpage.";
     } else if (tasks.length > 0 && !hasManage) {
       status = "Thiếu quyền MANAGE";
-      detail = "Tài khoản cần có bổ sung vai trò MANAGE để thực thi các thay đổi.";
+      detail = "Tài khoản thiếu quyền quản trị cấp độ MANAGE trên trang.";
     } else if (tasks.length > 0 && !hasCreateContent) {
       status = "Thiếu quyền CREATE_CONTENT";
-      detail = "Tài khoản cần thêm quyền CREATE_CONTENT để đăng và xoá bài.";
+      detail = "Tài khoản thiếu quyền đăng hoặc xóa bài viết (CREATE_CONTENT).";
     } else if (postsError) {
       status = "Không lấy được bài";
       detail = `Tìm bài viết lỗi: ${postsError}`;
     } else if (!pageInfo) {
       status = "Cần kiểm tra thủ công";
-      detail = infoError || "Lỗi không xác định khi liên lạc với Meta.";
+      detail = infoError || "Không lấy được thông tin chi tiết qua API.";
+    }
+
+    // Detect restriction check block
+    if (infoError && (infoError.includes("restricted") || infoError.includes("disabled") || infoError.includes("status"))) {
+      status = "Nghi bị hạn chế";
+      detail = infoError;
     }
 
     return res.status(200).json({
@@ -149,23 +152,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error: any) {
-    console.error("Lỗi kiểm tra trạng thái trang:", sanitizeSensitiveText(error.stack || error.message));
     return res.status(500).json({
       success: false,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: error.message || "Lỗi hệ thống khi tải kiểm tra trang."
-      }
+      error: error.message || "Lỗi hệ thống khi kiểm tra trạng thái trang"
     });
   }
-} catch (globalError: any) {
-  console.error("Lỗi toàn cục trong page-status API:", sanitizeSensitiveText(globalError.stack || globalError.message));
-  return res.status(500).json({
-    success: false,
-    error: {
-      code: "INTERNAL_SERVER_ERROR",
-      message: globalError.message || "Đã xảy ra lỗi không phân loại trên hệ thống."
-    }
-  });
-}
 }

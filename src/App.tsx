@@ -23,7 +23,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
-  ChevronDown,
   FileText,
   SlidersHorizontal,
   Image as ImageIcon,
@@ -39,20 +38,16 @@ import {
   Briefcase,
   Sun,
   Moon,
-  Loader2,
-  Palette,
-  KeyRound
+  Loader2
 } from "lucide-react";
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 import { safeFetchJson } from "./utils/safeFetchJson";
 import { useToast } from "./components/Toast";
-import Tooltip from "./components/Tooltip";
 import PageStatusTab from "./components/PageStatusTab";
 import PageAdminsTab from "./components/PageAdminsTab";
 import ThemeSettingsTab from "./components/ThemeSettingsTab";
 import { useThemeConfig } from "./hooks/useThemeConfig";
 import DateRangePickerModal from "./components/DateRangePickerModal";
-import { CustomDropdown } from "./components/ui/CustomDropdown";
 
 // ==========================================
 // CUSTOM UI COMPONENTS (UNIFIED DESIGN)
@@ -181,7 +176,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative flex items-center justify-between w-full h-9 bg-background border border-border focus:border-accent rounded-xl px-3 text-xs text-left cursor-pointer font-bold select-none transition-all shadow-sm ${disabled ? 'bg-slate-700/45 text-slate-400 border-white/5 cursor-not-allowed' : 'text-foreground hover:glass'}`}
+        className="relative flex items-center justify-between w-full h-9 bg-background border border-border hover:glass-panel disabled:border-muted focus:border-accent rounded-xl px-3 text-xs text-left text-foreground disabled:opacity-35 cursor-pointer font-bold select-none transition-all shadow-sm"
       >
         <span className={`${value ? "text-foreground" : "text-muted-foreground"} font-semibold font-mono`}>
           {displayValue()}
@@ -231,7 +226,7 @@ function CustomDatePicker({ value, onChange, disabled }: { value: string; onChan
                   onClick={() => handleSelectDay(dateStr)}
                   className={`py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-accent text-white shadow-md border border-accent/20"
+                      ? "bg-accent text-white shadow-md border border-white/10"
                       : isToday
                       ? "bg-accent/10 text-accent ring-1 ring-accent/30 font-extrabold"
                       : isCurrentMonth
@@ -285,59 +280,45 @@ function CustomSelect({
         setIsOpen(false);
       }
     }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
 
   const selectedOption = options.find(o => o.value === value) || options[0];
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center justify-between gap-2 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-[11px] outline-none text-white font-bold cursor-pointer transition-all select-none min-w-fit"
+        className="flex items-center justify-between gap-1.5 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-xs outline-none text-foreground font-bold cursor-pointer transition-all select-none min-w-[50px]"
       >
-        <span className="truncate">{selectedOption?.label}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`} />
+        <span>{selectedOption?.label}</span>
+        <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${isOpen ? "rotate-90 text-accent" : ""}`} />
       </button>
 
       {isOpen && (
-        <div 
-          className="absolute right-0 top-full mt-1.5 z-[999] min-w-full w-max max-w-[260px] max-h-[280px] overflow-y-auto overscroll-contain bg-slate-800/95 backdrop-blur-3xl border border-slate-700/50 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-[0.98] duration-150 ring-1 ring-white/5"
-          role="listbox"
-        >
+        <div className="absolute right-0 top-[115%] z-[99] w-[160px] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
           {options.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              role="option"
-              aria-selected={value === opt.value}
               onClick={() => {
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
                 value === opt.value
-                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)]"
-                  : "text-slate-300 hover:text-white hover:bg-white/10"
+                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold"
+                  : "text-foreground hover:bg-white/10"
               }`}
             >
-              <span className="truncate">{opt.label}</span>
-              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px] shrink-0" />}
+              <span>{opt.label}</span>
+              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px]" />}
             </button>
           ))}
         </div>
@@ -348,7 +329,7 @@ function CustomSelect({
 
 export default function App() {
   const toast = useToast();
-  const { config, setConfig } = useThemeConfig(); // Instantiate global theme styles
+  const { config } = useThemeConfig(); // Instantiate global theme styles
 
   const isDark = true;
   const setIsDark = () => {};
@@ -362,11 +343,12 @@ export default function App() {
   const [appId, setAppId] = useState<string>(() => {
     return localStorage.getItem("meta_app_id") || "";
   });
-  
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
-  const [appSecret, setAppSecret] = useState<string>("");
-  const [userToken, setUserToken] = useState<string>("");
-  const [showReconnectModal, setShowReconnectModal] = useState<boolean>(false);
+  const [appSecret, setAppSecret] = useState<string>(() => {
+    return localStorage.getItem("meta_app_secret") || "";
+  });
+  const [userToken, setUserToken] = useState<string>(() => {
+    return localStorage.getItem("meta_user_token") || "";
+  });
 
   // Pages & Posts state
   const [pages, setPages] = useState<FacebookPage[]>([]);
@@ -399,8 +381,8 @@ export default function App() {
     enableDateRange: false,
     keyword: "",
     enableKeyword: false,
-    maxPostsToFetch: 500,
-    maxPostsToShow: 500,
+    maxPostsToFetch: 100,
+    maxPostsToShow: 300,
     timeRangePreset: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
@@ -466,24 +448,19 @@ export default function App() {
   // Save Config to LocalStorage
   const saveCredentials = () => {
     localStorage.setItem("meta_app_id", appId);
-    addLog("system", "Đã lưu cài đặt Meta App ID vào thiết bị.", "success");
-    toast.success("Cài đặt Meta App ID đã được lưu cục bộ an toàn.", "Lưu cài đặt");
+    localStorage.setItem("meta_app_secret", appSecret);
+    localStorage.setItem("meta_user_token", userToken);
+    addLog("system", "Đã lưu cài đặt Meta Credentials vào thiết bị.", "success");
+    toast.success("Cài đặt Meta Credentials đã được lưu cục bộ cực kỳ an toàn.", "Lưu cài đặt");
     setShowConfig(false);
   };
 
   // Reset Credentials
-  const clearCredentials = async () => {
+  const clearCredentials = () => {
     if (confirm("Bạn có muốn đăng xuất và xóa toàn bộ thông tin tài khoản đang lưu?")) {
-      try {
-        await safeFetchJson("/api/auth/logout");
-      } catch (e) {
-        console.warn("Failed sending logout request to backend:", e);
-      }
       localStorage.removeItem("meta_app_id");
       localStorage.removeItem("meta_app_secret");
       localStorage.removeItem("meta_user_token");
-      localStorage.removeItem("facebook_access_token");
-      sessionStorage.removeItem("meta_cached_pages");
       setAppId("");
       setAppSecret("");
       setUserToken("");
@@ -492,33 +469,20 @@ export default function App() {
       setSelectedPageIds([]);
       setSelectedPostIds([]);
       setLogs([]);
-      addLog("system", "Đã xóa sạch bộ nhớ tài khoản Facebook và phiên cookie.", "success");
+      addLog("system", "Đã xóa sạch bộ nhớ tài khoản Facebook.", "success");
       toast.info("Đã đăng xuất và xóa sạch cấu hình khỏi trình duyệt của bạn.", "Đăng xuất thành công");
     }
   };
 
   const handleAuthError = (errMsg: string) => {
     const msg = typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg);
-    if (
-      msg.includes("Session has expired") || 
-      msg.includes("Error validating access token") || 
-      msg.includes("OAuthException") ||
-      msg.includes("UNAUTHORIZED") ||
-      msg.includes("TOKEN_EXPIRED") ||
-      msg.includes("hết hạn") ||
-      msg.includes("hủy bỏ")
-    ) {
-      scanCancelledRef.current = true;
-      deleteCancelledRef.current = true;
-      setLoadingPosts(false);
-      setIsDeleting(false);
+    if (msg.includes("Session has expired") || msg.includes("Error validating access token") || msg.includes("OAuthException")) {
+      toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại Facebook.", "Hết hạn phiên");
+      localStorage.removeItem("meta_user_token");
       setUserToken("");
       setPages([]);
       setPosts([]);
       setSelectedPageIds([]);
-      setSelectedPostIds([]);
-      setShowReconnectModal(true);
-      addLog("system", "Phát hiện phiên Facebook đã hết hạn hoặc chưa đăng nhập.", "failed");
       return true;
     }
     return false;
@@ -679,56 +643,13 @@ export default function App() {
     } catch (err: any) {
       const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
       const errMsg = err.message || "";
-      const isVercelInvocationFailed = 
-        errMsg.toUpperCase().includes("FUNCTION_INVOCATION_FAILED") || 
-        JSON.stringify(err.responseJson || "").toUpperCase().includes("FUNCTION_INVOCATION_FAILED");
 
       if (errCode === 4 || errMsg.toLowerCase().includes("application request limit reached")) {
         triggerMetaRateLimit();
         throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
       }
 
-      // Requirement 15: "Không retry FUNCTION_INVOCATION_FAILED 3 lần trong 60 giây. Không tiếp tục quét hoặc xoá bài."
-      if (isVercelInvocationFailed) {
-        const message = "Máy chủ đang gặp lỗi. Vui lòng kiểm tra Runtime Logs trên Vercel.";
-        addLog("system", `Lỗi nghiêm trọng: ${message}`, "failed");
-        toast.error(message, "Lỗi Runtime Vercel");
-        
-        // Stop scanning and deletions immediately!
-        scanCancelledRef.current = true;
-        deleteCancelledRef.current = true;
-        setLoadingPosts(false);
-        setIsDeleting(false);
-
-        const fatalErr = new Error(message) as any;
-        fatalErr.fatal = true;
-        throw fatalErr;
-      }
-
-      // Requirement 15: "Với HTTP 500 chỉ retry tối đa 1 lần sau 2 giây. Sau đó hiển thị: ‘Máy chủ đang gặp lỗi. Vui lòng kiểm tra Runtime Logs trên Vercel.’ Không tiếp tục quét Page hoặc xoá bài."
-      if (err.status === 500) {
-        if (retryCount >= 1) {
-          const message = "Máy chủ đang gặp lỗi. Vui lòng kiểm tra Runtime Logs trên Vercel.";
-          addLog("system", `Lỗi 500 sau khi thử lại: ${message}`, "failed");
-          toast.error(message, "Lỗi máy chủ máy chủ");
-
-          // Stop scanning and deletions immediately!
-          scanCancelledRef.current = true;
-          deleteCancelledRef.current = true;
-          setLoadingPosts(false);
-          setIsDeleting(false);
-
-          const fatalErr = new Error(message) as any;
-          fatalErr.fatal = true;
-          throw fatalErr;
-        }
-
-        addLog("system", `Máy chủ trả về HTTP 500. Đang thử lại duy nhất một lần sau 2 giây...`, "processing");
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        return fetchWithBackoff(url, options, retryCount + 1);
-      }
-
-      // Max 3 retries for other non-500, non-Vercel-failed actions
+      // Max 3 retries
       if (retryCount >= 3) {
         throw err;
       }
@@ -767,46 +688,53 @@ export default function App() {
 
   // Initial load
   useEffect(() => {
-    // Clear out sensitive client side cache for maximum security as requested
-    localStorage.removeItem("meta_app_secret");
-    localStorage.removeItem("meta_user_token");
-    localStorage.removeItem("facebook_access_token");
-
     const checkSetupAndFetch = async () => {
-      // Check if redirect has returned with success indicator
+      // Check if redirect has returned with token
       const urlParams = new URLSearchParams(window.location.search);
-      const oauthParam = urlParams.get("oauth");
-
-      if (oauthParam === "success" || urlParams.has("token")) {
-        addLog("system", "Phát hiện đăng nhập tài khoản Facebook thành công via OAuth.", "success");
-        toast.success("Liên kết tài khoản Facebook thành công!", "Đăng nhập Facebook");
+      const tokenFromUrl = urlParams.get("token");
+      let activeToken = userToken;
+      if (tokenFromUrl) {
+        setUserToken(tokenFromUrl);
+        activeToken = tokenFromUrl;
+        localStorage.setItem("meta_user_token", tokenFromUrl);
+        addLog("system", "Phát hiện mã thông báo đăng nhập Facebook mới từ OAuth.", "success");
+        toast.success("Đăng nhập bằng tài khoản Facebook thành công via OAuth!", "Đăng nhập");
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      addLog("system", "Khởi tạo Meta Page Manager thành công. Đang kết nối bảo mật...", "pending");
+      addLog("system", "Khởi tạo Meta Page Manager thành công. Đang tải trang tự động...", "pending");
       
       try {
         const checkUrl = "/api/check-pages";
-        const checkData = await safeFetchJson(checkUrl, { method: "POST" });
-        if (checkData.success && checkData.status === "connected") {
+        const options: any = { method: "POST" };
+        if (activeToken) {
+          options.headers = { "Content-Type": "application/json" };
+          options.body = JSON.stringify({ user_token: activeToken });
+        }
+        
+        const checkData = await safeFetchJson(checkUrl, options);
+        if (checkData.success) {
           const userName = checkData.user?.name || "Meta Account";
-          addLog("system", `Kết nối Vercel API & Facebook thành công (Tài khoản: ${userName}).`, "success");
+          addLog("system", `Kết nối Vercel API & Facebook thành công (Khoản: ${userName}).`, "success");
           toast.success(`Kết nối API thành công với tài khoản "${userName}"`, "Hệ thống");
-          setUserToken("connected_by_session_cookie");
-          fetchPages();
+          fetchPages(activeToken);
         } else {
-          addLog("system", `Chưa đăng nhập Facebook: ${checkData.error?.message || "Yêu cầu liên kết tài khoản Facebook"}`, "skipped");
-          toast.info("Vui lòng click vào nút Đăng nhập Facebook để bắt đầu.", "Chào mừng");
-          setUserToken("");
-          fetchPages();
+          addLog("system", `Lưu ý kết nối: ${checkData.error || "Chưa cấu hình Token"}`, "skipped");
+          if (activeToken) {
+            if (!handleAuthError(checkData.error || "")) {
+              toast.error(`Cách kết nối API thất bại: ${checkData.error || "Token không hợp lệ"}`, "Lỗi kết nối");
+            }
+          } else {
+            toast.info("Vui lòng click vào nút Đăng nhập Facebook hoặc cấu hình Token để bắt đầu.", "Chào mừng");
+          }
+          fetchPages(activeToken);
         }
       } catch (err: any) {
         addLog("system", `Thông báo hệ thống: ${err.message}`, "skipped");
-        setUserToken("");
         if (!handleAuthError(err.message)) {
-          toast.error(`Kết nối API Facebook lỗi: ${err.message}`, "Lỗi hệ thống");
+          toast.error(`Kết nối API và Facebook thất bại: ${err.message}`, "Lỗi hệ thống");
         }
-        fetchPages();
+        fetchPages(activeToken);
       }
     };
 
@@ -815,24 +743,15 @@ export default function App() {
 
   // Set up Message Listener for OAuth Popup
   useEffect(() => {
-    const handleOAuthMessage = async (event: MessageEvent) => {
+    const handleOAuthMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === "OAUTH_AUTH_SUCCESS") {
-        addLog("system", "Xác thực tài khoản Facebook hoàn thành. Đang kiểm tra phiên kết nối...", "success");
-        try {
-          const checkData = await safeFetchJson("/api/check-pages", { method: "POST" });
-          if (checkData.success && checkData.status === "connected") {
-            const userName = checkData.user?.name || "Meta Account";
-            addLog("system", `Kết nối Vercel API & Facebook thành công (Tài khoản: ${userName}).`, "success");
-            toast.success(`Đăng nhập thành công với tài khoản "${userName}"`, "Hệ thống");
-            setUserToken("connected_by_session_cookie");
-            fetchPages(undefined, true);
-          } else {
-            addLog("system", "Không thể liên kết tài khoản Facebook: Xác thực thất bại.", "failed");
-            toast.error("Không thể lấy thông tin đăng nhập Facebook.", "Lỗi");
-          }
-        } catch (err: any) {
-          addLog("system", `Xác thực đăng nhập lỗi: ${err.message}`, "failed");
-          toast.error(`Xác thực đăng nhập lỗi: ${err.message}`, "Lỗi hệ thống");
+        const receivedToken = event.data.token;
+        if (receivedToken) {
+          setUserToken(receivedToken);
+          localStorage.setItem("meta_user_token", receivedToken);
+          addLog("system", "Nhận Access Token thành công từ Meta Popup Window.", "success");
+          toast.success("Nhận mã Access Token thành công từ Facebook Popup!", "OAuth Thành công");
+          fetchPages(receivedToken);
         }
       }
     };
@@ -841,7 +760,7 @@ export default function App() {
     return () => {
       window.removeEventListener("message", handleOAuthMessage);
     };
-  }, []);
+  }, [appId, appSecret]);
 
   // Scroll to bottom of logs on change
   useEffect(() => {
@@ -900,6 +819,8 @@ export default function App() {
 
   // Fetch listed Pages with cache tracking (Requirement 7)
   const fetchPages = async (tokenToUse?: string, forceRefresh = false) => {
+    const activeToken = tokenToUse || userToken;
+
     // Check Cache first if not forcing refresh
     if (!forceRefresh) {
       const cachedPagesStr = sessionStorage.getItem("meta_cached_pages");
@@ -922,8 +843,13 @@ export default function App() {
     addLog("system", "Đang tải danh sách các Facebook Fanpages quản lý từ /api/pages...", "pending");
     
     try {
+      const urlParams = new URLSearchParams();
+      if (activeToken) {
+        urlParams.append("user_token", activeToken);
+      }
+      
       // Use our fetchWithBackoff for pages loading (Requirement 2 & 10)
-      const data = await fetchWithBackoff(`/api/pages`);
+      const data = await fetchWithBackoff(`/api/pages?${urlParams.toString()}`);
 
       if (data && data.rateLimitInfo) {
         checkAndWarnUsage(data.rateLimitInfo, "Danh sách Trang");
@@ -1014,75 +940,75 @@ export default function App() {
       const currentIdx = index++;
       setScanProgress(p => ({ ...p, current: currentIdx, currentPageName: pageInfo.name }));
 
-          // Implement frontend caching handling
-          const cacheKey = `meta_posts_cache_${pageId}_${filters.maxPostsToFetch}`;
-          if (!forceRefresh) {
-            const cachedPostsStr = sessionStorage.getItem(cacheKey);
-            if (cachedPostsStr) {
-              try {
-                const cachedData = JSON.parse(cachedPostsStr);
-                if (cachedData && cachedData.savedAt && (Date.now() - cachedData.savedAt < 5 * 60 * 1000)) {
-                  allFetchedPosts = [...allFetchedPosts, ...cachedData.posts];
-                  addLog("system", `[Cache] Tải thành công ${cachedData.posts.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
-                  return;
-                }
-              } catch (e) {
-                // cache invalid
-              }
-            }
-          }
-
-          addLog("system", `[Meta API] Đang tải trực tiếp bài viết từ Page: "${pageInfo.name}"...`, "processing");
-
+      // Check Cache first if not forcing refresh (Requirement 7)
+      if (!forceRefresh) {
+        const cachedPostsStr = sessionStorage.getItem(`meta_posts_cache_${pageId}`);
+        if (cachedPostsStr) {
           try {
-            const urlParams = new URLSearchParams();
-            pageId && urlParams.append("pageId", pageId);
-            urlParams.append("limit", filters.maxPostsToFetch.toString());
-            urlParams.append("forceRefresh", forceRefresh ? "true" : "false");
-
-            const data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
-
-            if (data && data.rateLimitInfo) {
-              checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
-            }
-
-            if (data.error || data.status === 429) {
-              if (data.errorCode === 4 || data.errorCode === 17 || data.status === 429) {
-                triggerMetaRateLimit();
-                return;
-              }
-              addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
+            const cachedPostsList = JSON.parse(cachedPostsStr);
+            if (Array.isArray(cachedPostsList) && cachedPostsList.length > 0) {
+              allFetchedPosts = [...allFetchedPosts, ...cachedPostsList];
+              addLog("system", `[Cache] Tải thành công ${cachedPostsList.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
               return;
             }
+          } catch (e) {
+            // cache invalid, fetch fresh
+          }
+        }
+      }
 
-            if (data.data && data.data.length > 0) {
-              const fetchedPosts = data.data;
-              allFetchedPosts = [...allFetchedPosts, ...fetchedPosts];
-              
-              // Deduplicate in real-time before updating state to avoid keys conflict
-              const seenIds = new Set<string>();
-              const uniqueRealtimePosts: FacebookPost[] = [];
-              for (const p of allFetchedPosts) {
-                if (p && p.id && !seenIds.has(p.id)) {
-                  seenIds.add(p.id);
-                  uniqueRealtimePosts.push(p);
-                }
-              }
-              setPosts(uniqueRealtimePosts); // Update posts state to reflect real-time count
-              
-              if (data.fromCache) {
-                 addLog("system", `Hoàn thành tải ${fetchedPosts.length} bài viết từ "${pageInfo.name}" (Cache).`, "success");
-              } else {
-                 addLog("system", `Hoàn thành tải ${fetchedPosts.length} bài viết từ "${pageInfo.name}".`, "success");
-                 
-                 // Also cache in frontend for extra safety according to requirement
-                 const cacheObj = { savedAt: Date.now(), posts: fetchedPosts };
-                 sessionStorage.setItem(cacheKey, JSON.stringify(cacheObj));
-              }
-            } else {
-              addLog("system", `Hoàn thành: Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
-            }
-          } catch (err: any) {
+      // Fresh fetch (Requirement 9)
+      addLog("system", `[Meta API] Đang tải trực tiếp bài viết từ Page: "${pageInfo.name}"...`, "processing");
+
+      try {
+        const urlParams = new URLSearchParams();
+        urlParams.append("pageId", pageId);
+        urlParams.append("limit", filters.maxPostsToFetch.toString());
+        if (pageInfo.access_token) {
+          urlParams.append("user_token", pageInfo.access_token);
+        }
+
+        const data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
+
+        if (data && data.rateLimitInfo) {
+          checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
+        }
+
+        if (data.error) {
+          if (data.errorCode === 4) {
+            triggerMetaRateLimit();
+            return;
+          }
+          addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
+          return;
+        }
+
+        if (data.data && data.data.length > 0) {
+          const mapped: FacebookPost[] = data.data.map((item: any) => ({
+            id: item.id,
+            message: item.message,
+            created_time: item.created_time,
+            permalink_url: item.permalink_url,
+            full_picture: item.full_picture,
+            status_type: item.status_type,
+            attachments: item.attachments,
+            pageId: pageInfo.id,
+            pageName: pageInfo.name,
+            pageAccessToken: pageInfo.access_token,
+            likes: item.likes,
+            comments: item.comments,
+            shares: item.shares
+          }));
+
+          allFetchedPosts = [...allFetchedPosts, ...mapped];
+          
+          // Cache posts list (Requirement 7)
+          sessionStorage.setItem(`meta_posts_cache_${pageId}`, JSON.stringify(mapped));
+          addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}" và lưu vào bộ nhớ đệm.`, "success");
+        } else {
+          addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
+        }
+      } catch (err: any) {
         const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
         if (errCode === 4 || err.message?.includes("giới hạn request")) {
           triggerMetaRateLimit();
@@ -1171,13 +1097,7 @@ export default function App() {
     const fromTime = (enableDateRange && filters.dateFrom) ? new Date(filters.dateFrom).getTime() : null;
     const toTime = (enableDateRange && filters.dateTo) ? new Date(filters.dateTo).getTime() + 86399999 : null; // add 1 day minus 1ms
 
-    const seenIds = new Set<string>();
-
     return posts.filter(post => {
-      if (!post || !post.id) return false;
-      if (seenIds.has(post.id)) return false;
-      seenIds.add(post.id);
-
       let postTime: number | null = null;
 
       // 1. Check keyword
@@ -1380,7 +1300,7 @@ export default function App() {
         {/* Transparent dark cover layer corresponding to dynamically customizable bgOverlay slider */}
         <div 
           className="absolute inset-0 z-[2] transition-colors duration-500"
-          style={{ backgroundColor: `rgba(2, 6, 22, ${(config?.bgOverlay ?? 25) / 100})` }}
+          style={{ backgroundColor: `rgba(2, 6, 22, ${(config?.bgOverlay ?? 85) / 100})` }}
         />
 
         {/* Dot pattern matching the background */}
@@ -1394,40 +1314,32 @@ export default function App() {
       <div className="relative z-10 w-full h-full flex flex-col md:flex-row p-3 md:gap-4 overflow-hidden min-h-0 flex-1">
       
         {/* LEFT COMPACT/MAIN NAVIGATION SIDEBAR */}
-        <aside className={`w-full transition-all duration-300 glass p-4 shrink-0 flex flex-col gap-5 relative z-30 h-auto md:h-full overflow-y-auto ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
+        <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-5 shadow-lg relative z-30 h-auto md:h-full overflow-y-auto rounded-[24px] border border-white/[0.08] ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
           {/* Logo & Branding */}
           <div className="flex items-center gap-3 w-full justify-between select-none px-1">
-            <Tooltip 
-              content={isSidebarCollapsed ? "Mở rộng Sidebar" : "Thu gọn Sidebar"} 
-              side="right" 
-              description="Bật / Tắt Menu"
+            <div 
+              className="flex items-center gap-3 overflow-hidden cursor-pointer group"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title="Mở rộng / Thu gọn Sidebar"
             >
-              <div 
-                className="flex items-center gap-3 overflow-hidden cursor-pointer group w-full"
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              >
-                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-500 to-[#1877F2] flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(24,119,242,0.4)] border border-blue-400/30 overflow-hidden transform group-hover:scale-[1.03] transition-all duration-300">
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                  <Facebook className="w-5 h-5 text-white fill-current drop-shadow-md z-10" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="hidden sm:flex flex-col min-w-0 justify-center">
-                    <h1 className="text-[17px] font-black tracking-tight truncate pb-0.5 leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400 dark:from-white dark:to-slate-300">
-                      Meta Sync
-                    </h1>
-                    <span className="text-[9px] font-black text-blue-500/80 dark:text-blue-400 tracking-[0.2em] uppercase font-mono truncate leading-none mt-1 transition-colors drop-shadow-sm">
-                      Workspace
-                    </span>
-                  </div>
-                )}
+              <div className="w-10 h-10 bg-[#1877F2]/10 border border-[#1877F2]/25 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:bg-[#1877F2]/20 shrink-0">
+                <Facebook className="w-5 h-5 text-[#1877F2] fill-current" />
               </div>
-            </Tooltip>
+              {!isSidebarCollapsed && (
+                <div className="hidden sm:block whitespace-nowrap">
+                  <h1 className="text-[16px] font-sans font-semibold tracking-tight text-foreground transition-colors">
+                    Meta Page
+                  </h1>
+                  <p className="text-[9px] text-slate-400 mt-0.5 font-mono tracking-wider">MANAGER</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
 
           {/* Group 1: Navigation Links */}
-          <div className="flex flex-col gap-3 flex-1 w-full">
+          <div className="flex flex-col gap-3">
             {!isSidebarCollapsed && (
               <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
                 Menu chính
@@ -1436,103 +1348,100 @@ export default function App() {
             
             <nav className="flex flex-row md:flex-col gap-1.5 w-full justify-between md:justify-start">
               {/* Tab: Bài viết */}
-              <Tooltip disabled={!isSidebarCollapsed} content="Bài viết" description="Quản lý và xoá nội dung" side="right">
-                <button
-                   id="tab-posts"
-                   type="button"
-                   onClick={() => {
-                     setActiveTab("posts");
-                     addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
-                   }}
-                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                     activeTab === "posts"
-                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                   }`}
-                >
-                  {activeTab === "posts" && (
-                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                  )}
-                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                    activeTab === "posts"
-                      ? "bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
-                      : "bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                  }`}>
-                    <FileText className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "posts" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                      Bài viết
-                    </span>
-                  )}
-                </button>
-              </Tooltip>
+              <button
+                 id="tab-posts"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("posts");
+                   addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Bài viết" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "posts"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "posts" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "posts"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                    : "bg-emerald-500/10 text-emerald-400/80 border-emerald-500/10 group-hover:bg-emerald-500/20 group-hover:text-emerald-400"
+                }`}>
+                  <FileText className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "posts" ? "text-emerald-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Bài viết
+                  </span>
+                )}
+              </button>
 
               {/* Tab: Trạng thái API */}
-              <Tooltip disabled={!isSidebarCollapsed} content="Trạng thái API" description="Kiểm tra quyền và kết nối" side="right">
-                <button
-                   id="tab-status"
-                   type="button"
-                   onClick={() => {
-                     setActiveTab("status");
-                     addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
-                   }}
-                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                     activeTab === "status"
-                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                   }`}
-                >
-                  {activeTab === "status" && (
-                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                  )}
-                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                    activeTab === "status"
-                      ? "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
-                      : "bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                  }`}>
-                    <Activity className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "status" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                      Trạng thái API
-                    </span>
-                  )}
-                </button>
-              </Tooltip>
+              <button
+                 id="tab-status"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("status");
+                   addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Trạng thái API" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "status"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "status" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "status"
+                    ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                    : "bg-blue-500/10 text-blue-400/80 border-blue-500/10 group-hover:bg-blue-500/20 group-hover:text-blue-400"
+                }`}>
+                  <Activity className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "status" ? "text-blue-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Trạng thái API
+                  </span>
+                )}
+              </button>
 
               {/* Tab: Quản trị viên */}
-              <Tooltip disabled={!isSidebarCollapsed} content="Quản trị viên" description="Xem thành viên quản lý Page" side="right">
-                <button
-                   id="tab-admins"
-                   type="button"
-                   onClick={() => {
-                     setActiveTab("admins");
-                     addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
-                   }}
-                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                     activeTab === "admins"
-                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                   }`}
-                >
-                  {activeTab === "admins" && (
-                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                  )}
-                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                    activeTab === "admins"
-                      ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]"
-                      : "bg-purple-500/15 text-purple-400 group-hover:bg-purple-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
-                  }`}>
-                    <Users className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "admins" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                      Quản trị viên
-                    </span>
-                  )}
-                </button>
-              </Tooltip>
+              <button
+                 id="tab-admins"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("admins");
+                   addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Quản trị viên" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "admins"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "admins" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "admins"
+                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                    : "bg-purple-500/10 text-purple-400/80 border-purple-500/10 group-hover:bg-purple-500/20 group-hover:text-purple-400"
+                }`}>
+                  <Users className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "admins" ? "text-purple-400 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Quản trị viên
+                  </span>
+                )}
+              </button>
             </nav>
           </div>
 
@@ -1541,107 +1450,127 @@ export default function App() {
           {/* Group 2: System Settings / Utilities */}
           <div className="flex flex-col gap-3">
             {!isSidebarCollapsed && (
-              <span className="hidden sm:block px-2 text-[10px] font-extrabold tracking-widest text-slate-500 uppercase select-none font-sans">
+              <span className="hidden sm:block px-2 text-[9.5px] font-black tracking-widest text-slate-500 uppercase select-none">
                 Hệ thống
               </span>
             )}
 
             <nav className="flex flex-col gap-1.5 w-full">
               {/* Tab: Tuỳ biến */}
-              <Tooltip disabled={!isSidebarCollapsed} content="Tuỳ biến" description="Thay đổi giao diện ứng dụng" side="right">
-                <button
-                   id="tab-theme"
-                   type="button"
-                   onClick={() => {
-                     setActiveTab("theme");
-                     addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
-                   }}
-                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                     activeTab === "theme"
-                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                   }`}
-                >
-                  {activeTab === "theme" && (
-                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                  )}
-                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                    activeTab === "theme"
-                      ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]"
-                      : "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
-                  }`}>
-                    <Palette className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "theme" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                      Tuỳ biến
-                    </span>
-                  )}
-                </button>
-              </Tooltip>
+              <button
+                 id="tab-theme"
+                 type="button"
+                 onClick={() => {
+                   setActiveTab("theme");
+                   addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
+                 }}
+                 title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
+                 className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                   activeTab === "theme"
+                     ? "bg-[#1877F2]/10 border-[#1877F2]/20 text-white shadow-sm"
+                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                 }`}
+              >
+                {activeTab === "theme" && (
+                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[#1877F2] shadow-[0_0_8px_#1877F2]" />
+                )}
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  activeTab === "theme"
+                    ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                    : "bg-amber-500/10 text-amber-500/10 border-amber-500/10 group-hover:bg-amber-500/20 group-hover:text-amber-450"
+                }`}>
+                  <Settings className="w-4 h-4" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className={`hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap transition-colors ${activeTab === "theme" ? "text-amber-450 font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                    Tuỳ biến
+                  </span>
+                )}
+              </button>
 
-              {/* Nút cài đặt API */}
-              <Tooltip disabled={!isSidebarCollapsed} content="Cài đặt API" description="Cấu hình Meta App và Token" side="right">
-                <button 
-                  id="btn-settings"
-                  type="button"
-                  onClick={() => setShowConfig(!showConfig)}
-                  className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                    showConfig 
-                      ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm" 
-                      : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                  }`}
-                >
-                  {showConfig && (
-                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                  )}
-                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                    showConfig 
-                      ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                      : "bg-cyan-500/15 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                  }`}>
-                    <Settings className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${showConfig ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                      Cài đặt API
-                    </span>
-                  )}
-                </button>
-              </Tooltip>
+              {/* Nút cài đặt API (Bỏ gradient, tạo viên thuốc mờ tinh tế) */}
+              <button 
+                id="btn-settings"
+                type="button"
+                onClick={() => setShowConfig(!showConfig)}
+                className={`flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all cursor-pointer outline-none relative w-full border ${
+                  showConfig 
+                    ? "bg-[#1877F2]/15 border-[#1877F2]/30 text-white" 
+                    : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                }`}
+                title={isSidebarCollapsed ? "Cài đặt API" : undefined}
+              >
+                <div className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all shrink-0 border ${
+                  showConfig 
+                    ? "bg-slate-400/20 border-slate-400/30 text-white" 
+                    : "bg-white/[0.03] border-white/[0.06] text-slate-400 group-hover:text-white"
+                }`}>
+                  <Settings className="w-4 h-4 text-slate-300" />
+                </div>
+                {!isSidebarCollapsed && (
+                  <span className="hidden sm:block text-[13.5px] font-bold tracking-wide whitespace-nowrap text-slate-300 group-hover:text-white">
+                    Cài đặt API
+                  </span>
+                )}
+              </button>
             </nav>
           </div>
 
           {/* Footer User Profile & Connection Status */}
-          <div className="flex flex-col gap-3 w-full shrink-0">
-            {/* User credentials & Logout */}
-            <Tooltip 
-              disabled={!isSidebarCollapsed} 
-              content={userToken ? "Đăng xuất" : "Đăng nhập Facebook"} 
-              description={userToken ? "Xoá phiên đăng nhập hiện tại" : "Cấu hình liên kết OAuth"} 
-              side="right"
-            >
-              <button 
-                type="button"
-                onClick={() => {
-                  if (userToken) {
-                    clearCredentials();
-                  } else {
-                    handleOAuthLogin();
-                  }
-                }}
-                className={`flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl border transition-all duration-300 font-bold text-[13px] ${
-                  userToken 
-                    ? "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/30 shadow-sm" 
-                    : "bg-blue-500/10 text-[#1877F2] border-[#1877F2]/20 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/30 shadow-sm"
-                }`}
-              >
-                <LogOut className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && (
-                  <span>{userToken ? "Đăng xuất" : "Đăng nhập Facebook"}</span>
-                )}
-              </button>
-            </Tooltip>
+          <div className="mt-auto flex flex-col gap-3 w-full shrink-0">
+            {/* Connection status indicator (Đèn nhấp nháy) */}
+            {userToken ? (
+              <div className={`flex bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Đã kết nối" : undefined}>
+                <span className="w-2 h-2 shrink-0 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)] border-2 border-white/50"></span>
+                {!isSidebarCollapsed && <span className="font-mono">Đã kết nối</span>}
+              </div>
+            ) : (
+              <div className={`flex bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] px-3 py-2 rounded-xl font-bold items-center justify-center gap-2 shadow-sm ${isSidebarCollapsed ? 'px-0' : ''}`} title={isSidebarCollapsed ? "Cần đăng nhập" : undefined}>
+                <span className="w-2   h-2 shrink-0 bg-amber-500 rounded-full animate-ping border border-white/50"></span>
+                {!isSidebarCollapsed && <span className="font-mono text-[11px]">Cần đăng nhập</span>}
+              </div>
+            )}
+
+            {/* User credentials & Sync status */}
+            <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] transition-all duration-300 overflow-hidden">
+              <div className="relative shrink-0 select-none">
+                <img 
+                  src={userToken ? "https://graph.facebook.com/v19.0/me/picture?access_token=" + userToken : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"} 
+                  alt="Avatar" 
+                  className="w-8.5 h-8.5 rounded-full object-cover ring-2 ring-[#1877F2]/30"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${userToken ? "User" : "Hoa Tran"}&background=1877F2&color=fff&size=80`;
+                  }}
+                />
+                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#090D16] ${userToken ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="min-w-0 flex-1 flex items-center justify-between">
+                  <div className="text-left">
+                    <h4 className="text-[12px] font-bold text-slate-200 truncate max-w-[85px] leading-tight select-all">
+                      Hòa Trần
+                    </h4>
+                    <p className="text-[9px] text-slate-500 font-mono tracking-tight leading-none mt-0.5 whitespace-nowrap">
+                      {userToken ? "Hệ thống đồng bộ" : "Chưa kết nối FB"}
+                    </p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (userToken) {
+                        clearCredentials();
+                      } else {
+                        handleOAuthLogin();
+                      }
+                    }}
+                    title={userToken ? "Đăng xuất tài khoản" : "Cấu hình liên kết OAuth"}
+                    className="p-1 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </aside>
 
@@ -1679,265 +1608,213 @@ export default function App() {
           <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3.5 items-stretch overflow-hidden">
         
             {/* SUB-SIDEBAR: PAGES LIST */}
-            <aside className={`w-full xl:w-[250px] 2xl:w-[290px] glass rounded-r-none border-r-0 flex flex-col overflow-hidden min-h-0 xl:h-full shrink-0 ${activeTab === 'posts' ? '' : 'hidden'}`}>
-              <div className="flex flex-col gap-3 p-4 pb-3 border-b border-border/5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-[12px] font-bold text-foreground">DANH SÁCH FANPAGE</h2>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{pages.length} Page</p>
-                  </div>
-                  {userToken && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="bg-accent/10 text-accent font-bold px-2 py-0.5 rounded-full text-[10px]">
-                        {selectedPageIds.length} / {pages.length}
-                      </span>
-                      <button 
-                        id="btn-refresh-pages"
-                        onClick={() => fetchPages()} 
-                        title="Tải lại danh sách Fanpage" 
-                        className="p-1 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                      >
-                        <RotateCw className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+            {activeTab === "posts" && (
+              <aside className="w-full xl:w-[260px] 2xl:w-[280px] bg-card rounded-[20px] p-4 flex flex-col shadow-sm border border-border overflow-hidden min-h-0 xl:h-full shrink-0">
+          <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-border">
+            <div className="flex justify-between items-center">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground font-mono font-bold flex items-center gap-1.5">
+                <CheckSquare className="w-4 h-4 text-accent" />
+                Danh sách Pages ({pages.length})
+              </span>
+              {userToken && (
+                <button 
+                  id="btn-refresh-pages"
+                  onClick={() => fetchPages()} 
+                  title="Tải lại danh sách Fanpage" 
+                  className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Select / Deselect All Fanpages Control */}
+            {userToken && pages.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  id="btn-select-all-pages"
+                  onClick={() => {
+                    const allPageIds = pages.map(p => p.id);
+                    setSelectedPageIds(allPageIds);
+                    addLog("system", `Đã chọn tất cả ${pages.length} Fanpage. Đang chuẩn bị tải bài viết...`, "success");
+                  }}
+                  className={`flex-1 py-2 px-2 rounded-xl text-[10px] uppercase font-bold border transition-all flex items-center justify-center gap-1 ${
+                    selectedPageIds.length === pages.length
+                      ? "btn-primary shadow-accent"
+                      : "bg-muted text-muted-foreground border-transparent hover:bg-border"
+                  }`}
+                >
+                  <Check className={`w-3 h-3 stroke-[3px] ${selectedPageIds.length === pages.length ? "text-white" : ""}`} />
+                  <span className={selectedPageIds.length === pages.length ? "text-white" : ""}>Chọn tất cả</span>
+                </button>
+                <button
+                  id="btn-deselect-all-pages"
+                  onClick={() => {
+                    setSelectedPageIds([]);
+                    addLog("system", "Đã hủy chọn toàn bộ các Fanpage.", "success");
+                  }}
+                  className="flex-1 py-1.5 px-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] uppercase font-bold transition-all text-center cursor-pointer"
+                >
+                  Bỏ chọn hết
+                </button>
+              </div>
+            )}
+
+            {/* Search Fanpage Input */}
+            {userToken && pages.length > 0 && (
+              <div className="mt-2 space-y-2">
+                <div className="relative">
+                  <input 
+                    type="text"
+                    placeholder="Tìm nhanh fanpage..."
+                    value={pageSearchQuery}
+                    onChange={(e) => setPageSearchQuery(e.target.value)}
+                    className="w-full bg-background hover:bg-background/80 border border-border hover:border-accent rounded-xl pl-8 pr-8 py-2 text-[11px] text-foreground placeholder-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all outline-none shadow-sm"
+                  />
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  {pageSearchQuery && (
+                    <button 
+                      type="button" 
+                      onClick={() => setPageSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
+                
+                {/* Count of selected pages under the search bar */}
+                <div className="flex items-center justify-between text-[11px] px-1 select-none">
+                  <span className="text-muted-foreground font-medium">Đã chọn:</span>
+                  <span className="bg-accent/10 text-accent font-bold px-2.5 py-0.5 rounded-full border border-accent/20 shadow-sm font-mono text-[10px]">
+                    {selectedPageIds.length} / {pages.length} Fanpages
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
 
-                {/* Select / Deselect All Fanpages Control */}
-                {userToken && pages.length > 0 && (
-                  <div className="flex gap-2">
-                    <button
-                      id="btn-select-all-pages"
-                      onClick={() => {
-                        const allPageIds = pages.map(p => p.id);
-                        setSelectedPageIds(allPageIds);
-                        addLog("system", `Đã chọn tất cả ${pages.length} Fanpage. Đang chuẩn bị tải bài viết...`, "success");
-                      }}
-                      className={`flex-1 py-1.5 px-2 rounded-xl text-[10px] uppercase font-bold transition-all flex items-center justify-center gap-1 ${
-                        selectedPageIds.length === pages.length
-                          ? "bg-accent text-white shadow-sm"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+          {!userToken ? (
+            <div className="flex-1 flex flex-col justify-center items-center text-center p-6 bg-muted/50 rounded-2xl border border-dashed border-border">
+              <Facebook className="w-12 h-12 text-muted-foreground/30 mb-3" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Vui lòng kết nối tài khoản Facebook để quét Fanpage quản lý.
+              </p>
+              <button
+                id="btn-sidebar-login"
+                onClick={handleOAuthLogin}
+                className="mt-4 w-full py-2.5 bg-card hover:bg-muted text-foreground border border-border rounded-xl text-xs font-bold transition-all shadow-sm"
+              >
+                Nhấn Thử Đăng nhập
+              </button>
+            </div>
+          ) : loadingPages ? (
+            <div className="flex-1 flex flex-col justify-center items-center py-12">
+              <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs text-muted-foreground mt-3">Đang kết nối Facebook...</p>
+            </div>
+          ) : pages.length === 0 ? (
+            <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
+              <Info className="w-8 h-8 text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground">Không tìm thấy Account Fanpage nào trong mã thông báo này.</p>
+            </div>
+          ) : (
+            <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar min-h-0">
+              {(() => {
+                const query = pageSearchQuery.trim().toLowerCase();
+                const filteredList = pages.filter(
+                  page => page.name.toLowerCase().includes(query) || page.id.includes(query)
+                );
+
+                if (filteredList.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground text-xs">
+                      Không tìm thấy Fanpage nào phù hợp
+                    </div>
+                  );
+                }
+
+                return filteredList.map((page) => {
+                  const isSelected = selectedPageIds.includes(page.id);
+                  // Extract photo URL if possible
+                  const picUrl = page.picture?.data?.url || `https://graph.facebook.com/${page.id}/picture?type=small`;
+                  
+                  return (
+                    <div 
+                      id={`page-card-${page.id}`}
+                      key={page.id}
+                      onClick={() => togglePageSelection(page.id)}
+                      className={`flex items-center gap-2.5 p-2.5 rounded-[14px] border transition-all cursor-pointer select-none group ${
+                        isSelected 
+                          ? "bg-muted border-accent/40 shadow-sm" 
+                          : "bg-transparent border-transparent hover:bg-muted"
                       }`}
                     >
-                      <Check className={`w-3 h-3 stroke-[3px] ${selectedPageIds.length === pages.length ? "text-white" : ""}`} />
-                      Chọn tất cả
-                    </button>
-                    <button
-                      id="btn-deselect-all-pages"
-                      onClick={() => {
-                        setSelectedPageIds([]);
-                        addLog("system", "Đã hủy chọn toàn bộ các Fanpage.", "success");
-                      }}
-                      className="flex-1 py-1.5 px-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl text-[10px] uppercase font-bold transition-all text-center cursor-pointer"
-                    >
-                      Bỏ chọn hết
-                    </button>
-                  </div>
-                )}
-
-                {/* Search Fanpage Input */}
-                {userToken && pages.length > 0 && (
-                  <div className="relative mt-1">
-                    <input 
-                      type="text"
-                      placeholder="Tìm tên hoặc ID Fanpage..."
-                      value={pageSearchQuery}
-                      onChange={(e) => setPageSearchQuery(e.target.value)}
-                      className="w-full bg-muted/30 hover:bg-muted/50 border border-transparent hover:border-border rounded-xl pl-8 pr-8 h-[34px] text-[11px] text-foreground placeholder-muted-foreground focus:bg-background focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all outline-none"
-                    />
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    {pageSearchQuery && (
-                      <button 
-                        type="button" 
-                        onClick={() => setPageSearchQuery("")}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {!userToken ? (
-                <div className="flex-1 flex flex-col justify-center items-center text-center p-6 bg-muted/10">
-                  <Facebook className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Vui lòng kết nối tài khoản Facebook để quét Fanpage quản lý.
-                  </p>
-                  <button
-                    id="btn-sidebar-login"
-                    onClick={handleOAuthLogin}
-                    className="mt-4 w-full py-2 bg-background/50 backdrop-blur-md hover:bg-white/5 text-foreground border border-border/50 rounded-xl text-[11px] font-bold transition-all shadow-sm"
-                  >
-                    Nhấn Thử Đăng nhập
-                  </button>
-                </div>
-              ) : loadingPages ? (
-                <div className="flex-1 flex flex-col justify-center items-center py-12">
-                  <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-[11px] text-muted-foreground mt-3">Đang kết nối Facebook...</p>
-                </div>
-              ) : pages.length === 0 ? (
-                <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
-                  <Info className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                  <p className="text-[11px] text-muted-foreground">Không tìm thấy Account Fanpage nào trong mã thông báo này.</p>
-                </div>
-              ) : (
-                <div className="flex-1 space-y-1.5 overflow-y-auto p-3 pt-2 custom-scrollbar min-h-0">
-                  {(() => {
-                    const query = pageSearchQuery.trim().toLowerCase();
-                    const seenPageIds = new Set<string>();
-                    const filteredList = pages.filter(
-                      page => {
-                        if (!page || !page.id) return false;
-                        if (seenPageIds.has(page.id)) return false;
-                        seenPageIds.add(page.id);
-                        return page.name.toLowerCase().includes(query) || page.id.includes(query);
-                      }
-                    );
-
-                    if (filteredList.length === 0) {
-                      return (
-                        <div className="text-center py-8 text-muted-foreground text-[11px]">
-                          Không tìm thấy Fanpage nào phù hợp
-                        </div>
-                      );
-                    }
-
-                    return filteredList.map((page) => {
-                      const isSelected = selectedPageIds.includes(page.id);
-                      const isFetching = loadingPosts && scanProgress.currentPageName === page.name;
-                      const picUrl = page.picture?.data?.url || `https://graph.facebook.com/${page.id}/picture?type=small`;
-                      
-                      let cardClass = "bg-[#081926]/45 border-white/5 hover:bg-white/5 border";
-                      let indicator = <div className="w-[18px] h-[18px] rounded-[6px] border border-white/10 group-hover:border-white/20 transition-colors"></div>;
-                      
-                      if (isFetching) {
-                         cardClass = "border border-orange-500/50 shadow-[0_0_15px_-3px_rgba(249,115,22,0.15)] bg-transparent";
-                         indicator = <div className="w-[18px] h-[18px] rounded-full border-2 border-orange-500/20 border-t-orange-500 animate-spin"></div>;
-                      } else if (isSelected) {
-                         cardClass = "bg-[#22D3EE]/10 border border-[#22D3EE]/30 shadow-sm";
-                         indicator = (
-                           <div className="w-[18px] h-[18px] bg-[#22D3EE] rounded-[6px] flex items-center justify-center transition-all shadow-[0_0_10px_rgba(34,211,238,0.3)]">
-                             <Check className="w-3 h-3 text-[#06202A] stroke-[4px]" />
-                           </div>
-                         );
-                      }
-
-                      return (
-                        <div 
-                          id={`page-card-${page.id}`}
-                          key={page.id}
-                          onClick={() => togglePageSelection(page.id)}
-                          className={`flex items-center gap-2.5 p-[8px_10px] rounded-[16px] transition-all cursor-pointer select-none group relative ${cardClass}`}
-                        >
-                          <img 
-                            src={picUrl} 
-                            alt="" 
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${page.id}`;
-                            }}
-                            className="w-[34px] h-[34px] rounded-full min-w-[34px] shadow-sm object-cover bg-background"
-                          />
-                          <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <p className={`text-[11.5px] font-semibold truncate leading-tight ${isSelected ? 'text-foreground' : 'text-foreground/90'}`}>{page.name}</p>
-                            <div className="flex items-center gap-1 mt-0.5 group/id">
-                              <p className="text-[9.5px] text-slate-400 md:opacity-100 truncate font-mono">ID: {page.id}</p>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigator.clipboard.writeText(page.id);
-                                  addLog("system", "Đã sao chép ID trang", "success");
-                                }}
-                                className="opacity-0 group-hover/id:opacity-100 p-0.5 hover:bg-muted rounded transition-opacity"
-                                title="Sao chép Page ID"
-                              >
-                                <ExternalLink className="w-2.5 h-2.5 text-muted-foreground" />
-                              </button>
-                            </div>
+                      <img 
+                        src={picUrl} 
+                        alt="" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/identicon/svg?seed=${page.id}`;
+                        }}
+                        className="w-9 h-9 rounded-full shadow-sm flex-shrink-0 object-cover bg-white"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate text-foreground leading-tight group-hover:text-accent transition-colors">{page.name}</p>
+                        <p className="text-[9.5px] text-muted-foreground truncate font-mono mt-0.5">ID: {page.id}</p>
+                      </div>
+                      <div className="shrink-0">
+                        {isSelected ? (
+                          <div className="w-5 h-5 bg-accent rounded-lg flex items-center justify-center shadow-accent transition-all">
+                            <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />
                           </div>
-                          <div className="shrink-0 flex items-center justify-center">
-                             {indicator}
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              )}
-            </aside>
+                        ) : (
+                          <div className="w-5 h-5 rounded-lg border-2 border-border group-hover:border-accent/50 transition-colors"></div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
+
+
+        </aside>
+        )}
 
         {/* MAIN POST AREA & FILTERS */}
         <main className="flex-1 w-full flex flex-col gap-3 relative z-10 overflow-hidden min-h-0 h-full">
           
-            <div className={`flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full ${activeTab === 'posts' ? '' : 'hidden'}`}>
-              <div className="flex-1 flex flex-col gap-3 min-w-0 h-full glass rounded-l-none border-l-0 px-2 py-1">
+          {activeTab === "posts" && (
+            <div className="flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full">
+              <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 p-2 text-foreground shrink-0 border-b border-border/5">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 relative z-40">
+              <section className="relative z-30 bg-card rounded-[18px] p-4 text-foreground shadow-sm border border-border shrink-0">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 relative z-40">
                   {/* Left: Filter Controls */}
-                  <div className="flex flex-wrap items-center gap-2 pb-1 sm:pb-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
-                    <div className="relative flex items-center gap-1 shrink-0">
-                      <CustomDropdown
-                        value={filters.timeRangePreset}
-                        label="Thời gian"
-                        options={[
-                          { value: "today", label: "Hôm nay" },
-                          { value: "week", label: "Tuần này" },
-                          { value: "month", label: "Tháng này" },
-                          { value: "year", label: "Năm nay" },
-                          { value: "all", label: "Từ trước đến nay" },
-                          { value: "custom", label: "Tuỳ chỉnh..." }
-                        ]}
-                        width={180}
-                        onChange={(val: string) => {
-                          if (val === "custom") {
-                            setTempDateFrom(filters.dateFrom);
-                            setTempDateTo(filters.dateTo);
-                            setShowCustomDateModal(true);
-                          } else {
-                            const today = new Date();
-                            let dFrom = "";
-                            let dTo = "";
-                            if (val === "today") {
-                              dFrom = today.toISOString().split('T')[0];
-                              dTo = dFrom;
-                            } else if (val === "week") {
-                              const day = today.getDay();
-                              const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-                              const monday = new Date(today.setDate(diff));
-                              dFrom = monday.toISOString().split('T')[0];
-                              dTo = new Date().toISOString().split('T')[0];
-                            } else if (val === "month") {
-                              const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                              dFrom = startOfMonth.toISOString().split('T')[0];
-                              dTo = new Date().toISOString().split('T')[0];
-                            } else if (val === "year") {
-                              const startOfYear = new Date(today.getFullYear(), 0, 1);
-                              dFrom = startOfYear.toISOString().split('T')[0];
-                              dTo = new Date().toISOString().split('T')[0];
-                            }
-                            
-                            setFilters(f => ({ 
-                              ...f, 
-                              timeRangePreset: val as any,
-                              dateFrom: dFrom,
-                              dateTo: dTo,
-                              enableDateRange: val !== "all"
-                            }));
-                            
-                            const presetLabels: Record<string, string> = {
-                              today: "Hôm nay", week: "Tuần này", month: "Tháng này", year: "Năm nay", all: "Từ trước đến nay"
-                            };
-                            if (presetLabels[val]) {
-                              addLog("system", `Đã đổi bộ lọc thời gian thành: ${presetLabels[val]}`, "success");
-                            }
-                          }
-                        }}
-                      />
+                    <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 w-full shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                          thời gian
+                        </span>
+                        
+                        <div 
+                          className="relative h-7 pl-1.5 pr-1 flex items-center justify-between gap-2 cursor-pointer min-w-[110px] hover:text-accent transition-colors flex-1"
+                          onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                        >
+                          <span className="text-xs font-bold text-foreground truncate group-hover:text-accent transition-colors">
+                            {filters.timeRangePreset === "today" && "Hôm nay"}
+                            {filters.timeRangePreset === "week" && "Tuần này"}
+                            {filters.timeRangePreset === "month" && "Tháng này"}
+                            {filters.timeRangePreset === "year" && "Năm nay"}
+                            {filters.timeRangePreset === "all" && "Tất cả"}
+                            {filters.timeRangePreset === "custom" && "Tuỳ chỉnh..."}
+                          </span>
+                          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${showTimeDropdown ? "rotate-90 text-accent" : ""}`} />
+                        </div>
                         
                         {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
                            <div 
@@ -1946,83 +1823,150 @@ export default function App() {
                                setTempDateTo(filters.dateTo);
                                setShowCustomDateModal(true);
                              }}
-                             className="ml-1 text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-full cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
+                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
                              title="Sửa ngày tuỳ chỉnh"
                            >
                              {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
                            </div>
                         )}
+                      </div>
+
+                      {/* Dropdown Menu */}
+                      {showTimeDropdown && (
+                        <>
+                          <div className="absolute top-[115%] left-0 right-0 z-[100] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 min-w-[200px] ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
+                            {[
+                              { id: "today", label: "Hôm nay" },
+                              { id: "week", label: "Tuần này" },
+                              { id: "month", label: "Tháng này" },
+                              { id: "year", label: "Năm nay" },
+                              { id: "all", label: "Từ trước đến nay" },
+                              { id: "custom", label: "Tuỳ chỉnh..." }
+                            ].map((preset) => (
+                              <button
+                                key={preset.id}
+                                className={`text-left px-3.5 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
+                                  filters.timeRangePreset === preset.id 
+                                    ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold" 
+                                    : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                                }`}
+                                onClick={() => {
+                                  const val = preset.id;
+                                  if (val === "custom") {
+                                    setTempDateFrom(filters.dateFrom);
+                                    setTempDateTo(filters.dateTo);
+                                    setShowCustomDateModal(true);
+                                  } else {
+                                    const today = new Date();
+                                    let dFrom = "";
+                                    let dTo = "";
+                                    if (val === "today") {
+                                      dFrom = today.toISOString().split('T')[0];
+                                      dTo = dFrom;
+                                    } else if (val === "week") {
+                                      const day = today.getDay();
+                                      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                                      const monday = new Date(today.setDate(diff));
+                                      dFrom = monday.toISOString().split('T')[0];
+                                      dTo = new Date().toISOString().split('T')[0];
+                                    } else if (val === "month") {
+                                      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                                      dFrom = startOfMonth.toISOString().split('T')[0];
+                                      dTo = new Date().toISOString().split('T')[0];
+                                    } else if (val === "year") {
+                                      const startOfYear = new Date(today.getFullYear(), 0, 1);
+                                      dFrom = startOfYear.toISOString().split('T')[0];
+                                      dTo = new Date().toISOString().split('T')[0];
+                                    }
+                                    
+                                    setFilters(f => ({ 
+                                      ...f, 
+                                      timeRangePreset: val as any,
+                                      dateFrom: dFrom,
+                                      dateTo: dTo,
+                                      enableDateRange: val !== "all"
+                                    }));
+                                    addLog("system", `Đã đổi bộ lọc thời gian thành: ${preset.label}`, "success");
+                                  }
+                                  setShowTimeDropdown(false);
+                                }}
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="relative shrink-0">
-                      <CustomDropdown
-                        value={filters.maxPostsToFetch}
-                        label="Giới hạn"
-                        disabled={loadingPosts || isDeleting}
-                        options={[
-                          { value: 100, label: "100 bài" },
-                          { value: 200, label: "200 bài" },
-                          { value: 300, label: "300 bài" },
-                          { value: 400, label: "400 bài" },
-                          { value: 500, label: "Tối đa (500)" }
-                        ]}
-                        width={160}
-                        onChange={(val: number) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
-                      />
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 shrink-0 shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group text-foreground">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                        tải
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <CustomSelect
+                          value={filters.maxPostsToFetch}
+                          onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
+                          options={[
+                            { value: 50, label: "50" },
+                            { value: 100, label: "100" },
+                            { value: 150, label: "150 (Tải thêm)" },
+                            { value: 200, label: "200 (Tải thêm)" },
+                            { value: 300, label: "300 (Tối đa)" }
+                          ]}
+                        />
+                      </div>
                     </div>
 
                   </div>
 
                   {/* Right: Stats Badges */}
-                  <div className="flex flex-wrap items-center gap-1.5 select-none shrink-0">
-                    {/* Stat 1: Selection (Blue) */}
-                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20">
-                      <span className="font-medium text-blue-500/80">Đã chọn</span>
-                      <span className="font-bold text-blue-500 pl-1 border-l border-blue-500/20">{selectedPostIds.length}</span>
+                  <div className="flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-xl border border-border select-none font-medium text-foreground shadow-sm shrink-0 overflow-x-auto custom-scrollbar h-10">
+                    {/* Stat 1: Selection */}
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Chọn:</span>
+                      <span className="font-mono font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
+                      <span className="text-muted-foreground font-mono">/ {displayedPosts.length}</span>
                     </div>
 
-                    {/* Stat 2: Filtered (Purple) */}
-                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
-                      <span className="font-medium text-purple-500/80">Đã lọc</span>
-                      <span className="font-bold text-purple-500 pl-1 border-l border-purple-500/20">{filteredPosts.length}</span>
+                    <span className="w-px h-3.5 bg-border mx-1" />
+
+                    {/* Stat 2: Total dynamic matches */}
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Lọc:</span>
+                      <span className="font-mono font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">{filteredPosts.length}</span>
                     </div>
 
-                    {/* Stat 3: Fetched (Green) */}
-                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                      <span className="font-medium text-emerald-500/80">Đã tải</span>
-                      <span className="font-bold text-emerald-500 pl-1 border-l border-emerald-500/20">{posts.length}</span>
+                    <span className="w-px h-3.5 bg-border mx-1" />
+
+                    {/* Stat 3: Total cached posts in session */}
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Nạp:</span>
+                      <span className="font-mono font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">{posts.length}</span>
                     </div>
 
-                    {/* Stat 4: Deleted (Red) */}
-                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
-                      <span className="font-medium text-rose-500/80">Đã xoá</span>
-                      <span className="font-bold text-rose-500 pl-1 border-l border-rose-500/20">{deletedCountSession}</span>
-                    </div>
+                    <span className="w-px h-3.5 bg-border mx-1" />
 
-                    {/* Toggle Panel Button */}
-                    <button
-                      onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
-                      className="flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap bg-muted/40 hover:bg-muted/80 px-3 py-1 rounded-lg border border-border/40 transition-colors ml-1 text-foreground"
-                      title={isRightPanelOpen ? "Thu gọn bảng lệnh" : "Mở bảng lệnh"}
-                    >
-                      <SlidersHorizontal className="w-3 h-3" />
-                      {isRightPanelOpen ? "Đóng lệnh" : "Mở lệnh"}
-                    </button>
+                    {/* Stat 4: Deleted Count */}
+                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
+                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Xóa:</span>
+                      <span className="font-mono font-black text-rose-600 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                    </div>
                   </div>
                 </div>
 
               </section>
 
           {/* POSTS SCREEN CONTAINER */}
-          <section className="relative z-10 flex-1 glass overflow-hidden flex flex-col min-h-0">
+          <section className="relative z-10 flex-1 bg-card border border-border rounded-[20px] overflow-hidden flex flex-col shadow-sm min-h-0">
             {/* Table/List Header */}
-            <div className="px-5 py-3.5 border-b border-border/30 bg-transparent flex justify-between items-center shrink-0 z-10">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981] opacity-80"></span>
-                <span className="text-[13px] font-bold tracking-wide text-foreground flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-accent" />
-                  Danh sách bài viết
+            <div className="px-4 py-3 border-b border-border bg-card flex justify-between items-center shrink-0 shadow-sm z-10">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></span>
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-accent" />
+                  Danh sách bài viết từ các Page đã chọn
                 </span>
               </div>
               
@@ -2030,20 +1974,20 @@ export default function App() {
                 <div 
                   id="btn-toggle-select-all"
                   onClick={selectAllFiltered}
-                  className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/60 px-3 py-1.5 rounded-xl border border-border/50 cursor-pointer select-none transition-all font-semibold"
+                  className="flex items-center gap-2 text-xs text-foreground hover:text-accent bg-muted hover:bg-muted/80 px-3 py-1.5 rounded-xl border border-border cursor-pointer select-none transition-all font-medium"
                 >
                   <div 
-                    className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-all ${
+                    className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
                       displayedPosts.length > 0 && displayedPosts.every(p => selectedPostIds.includes(p.id))
                         ? "bg-accent border-accent text-white shadow-sm" 
-                        : "border-muted-foreground/30 hover:border-accent/40 bg-background/50"
+                        : "border-border hover:border-accent/40 bg-card"
                     }`}
                   >
                     {displayedPosts.length > 0 && displayedPosts.every(p => selectedPostIds.includes(p.id)) && (
-                      <Check className="w-2.5 h-2.5 stroke-[3.5px]" />
+                      <Check className="w-2.5 h-2.5 stroke-[3px]" />
                     )}
                   </div>
-                  <span>Chọn toàn bộ lọc hiện tại</span>
+                  <span>Chọn toàn bộ hiển thị ({displayedPosts.length})</span>
                 </div>
               )}
             </div>
@@ -2058,89 +2002,75 @@ export default function App() {
                   setPostListContainerHeight(target.clientHeight);
                 }
               }}
-              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-transparent"
+              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-white/20 rounded-b-[24px] shadow-sm"
             >
               {loadingPosts ? (
-                <div className="flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[400px] py-6 w-full">
-                  <div className="w-[480px] max-w-full glass shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] shadow-orange-500/5 p-8 flex flex-col items-center text-center relative overflow-hidden">
-                    {/* Glow effect background */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-2 bg-gradient-to-r from-orange-600/40 via-orange-500/80 to-orange-400/40 blur-[16px] rounded-full"></div>
-                    
-                    <div className="relative w-14 h-14 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5 z-10">
-                      <div className="absolute inset-0 border-[3px] border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
-                      <Facebook className="w-6 h-6 text-orange-500 absolute" />
-                    </div>
+                <div className="flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[300px] py-6 max-w-md mx-auto">
+                  {/* Circular Spinner & Big Icon */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-14 h-14 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
+                    <Facebook className="w-6 h-6 text-accent absolute fill-current animate-pulse" />
+                  </div>
 
-                    <h3 className="text-[17px] font-bold text-foreground mb-1 relative z-10">Đang tải bài viết</h3>
-                    
-                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-1.5 mb-6 max-w-[90%] inline-flex items-center gap-2">
-                       <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse shrink-0"></span>
-                       <span className="text-[13px] font-bold text-orange-400 truncate relative z-10">
-                         {scanProgress.currentPageName || "Đang khởi tạo..."}
-                       </span>
-                    </div>
-
-                    <div className="w-full grid grid-cols-2 gap-3 mb-6 relative z-10">
-                      <div className="bg-muted/40 border border-border/40 rounded-[16px] p-4 flex flex-col items-center">
-                        <span className="text-[10px] text-muted-foreground font-semibold mb-1 uppercase tracking-widest">Page hoàn thành</span>
-                        <div className="flex items-baseline gap-1 font-mono font-bold">
-                          <span className="text-orange-500 text-[20px] leading-none">{scanProgress.current}</span>
-                          <span className="text-muted-foreground text-[12px]">/ {scanProgress.total}</span>
-                        </div>
-                      </div>
-                      <div className="bg-muted/40 border border-border/40 rounded-[16px] p-4 flex flex-col items-center">
-                        <span className="text-[10px] text-muted-foreground font-semibold mb-1 uppercase tracking-widest">Bài đã tải</span>
-                        <div className="flex items-baseline gap-1 font-mono font-bold">
-                          <span className="text-emerald-500 text-[20px] leading-none">{posts.length}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar Container */}
-                    <div className="w-full flex items-center gap-3 mb-6 relative z-10">
-                      <div className="flex-1 bg-muted/60 h-2 rounded-full overflow-hidden shadow-inner relative">
-                        <div 
-                          className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full transition-all duration-300"
-                          style={{ width: `${scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0}%` }}
-                        />
-                      </div>
-                      <span className="text-[11px] font-mono font-bold text-orange-500 w-8 text-right">
-                         {scanProgress.total > 0 ? Math.round((scanProgress.current / scanProgress.total) * 100) : 0}%
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        scanCancelledRef.current = true;
-                        addLog("system", "Đang gửi yêu cầu dừng tải...", "pending");
-                      }}
-                      className="px-6 py-2 rounded-xl border border-rose-500/50 hover:bg-rose-500/10 text-rose-500 text-[12px] font-bold transition-all relative z-10 cursor-pointer"
-                    >
-                      Dừng tải
-                    </button>
-
-                    <p className="text-[11px] text-slate-400 mt-5 max-w-[95%] mx-auto leading-relaxed relative z-10">
-                      Hệ thống đang tải dữ liệu theo từng trang để hạn chế giới hạn request của Meta.
+                  {/* Progress Info Header */}
+                  <div className="text-center space-y-0.5 mt-2">
+                    <h3 className="font-bold text-xs tracking-wider text-muted-foreground uppercase opacity-80">Đang quét Fanpage hàng loạt</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+                      Tiến trình: <span className="text-accent font-mono font-bold text-xs">{scanProgress.current}/{scanProgress.total}</span> Page hoàn thành
                     </p>
                   </div>
+
+                  {/* Progress Bar Container */}
+                  <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
+                    <div 
+                      className="pretty-progress-bar"
+                      style={{ width: `${scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+
+                  {/* Current Active Page Name & Detail badge */}
+                  <div className="flex flex-col items-center gap-1.5 w-full animate-pulse mt-2">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">Đang kiểm tra & tải bài viết:</span>
+                    <div className="bg-accent/10 border border-accent/20 rounded-[10px] px-3 py-1 text-[11px] text-accent font-bold max-w-full truncate shadow-sm flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping shrink-0" />
+                      {scanProgress.currentPageName || "Đang khởi tạo..."}
+                    </div>
+                  </div>
+
+                  {/* Stop Scanning Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      scanCancelledRef.current = true;
+                      addLog("system", "Đang gửi yêu cầu dừng quét...", "pending");
+                    }}
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 text-[10px] font-bold transition-all shadow-sm cursor-pointer select-none"
+                  >
+                    <XOctagon className="w-3.5 h-3.5 shrink-0" />
+                    Dừng quét ngay
+                  </button>
+
+                  {/* Secondary info label */}
+                  <p className="text-[10px] text-muted-foreground/80 text-center leading-relaxed mt-4 max-w-[80%]">
+                    Hệ thống đang thu thập dữ liệu bài viết (lượt thích, bình luận, chia sẻ) từ API chính thức của Meta.
+                  </p>
                 </div>
               ) : posts.length === 0 ? (
-                <div className="flex flex-col justify-center items-center text-center gap-4 h-full min-h-[300px] py-8">
-                  <div className="w-16 h-16 rounded-[24px] bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shadow-lg shadow-accent/5">
-                    <Facebook className="w-8 h-8" />
+                <div className="flex flex-col justify-center items-center text-center gap-3 h-full min-h-[300px] py-8">
+                  <div className="w-12 h-12 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground shadow-sm">
+                    <Facebook className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-[13px] text-white tracking-wide">Chọn Fanpage bên trái để tải dữ liệu</h3>
-                    <p className="text-[11.5px] text-slate-400 mt-2 max-w-[340px] mx-auto leading-relaxed">
-                      Hệ thống sẽ tải giới hạn <span className="text-cyan-300 font-bold">{filters.maxPostsToFetch}</span> bài viết/trang.
+                    <h3 className="font-bold text-[13px] text-foreground">Chưa có bài viết nào</h3>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
+                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage. Hệ thống sẽ tự động tải tối đa <br/><span className="font-mono text-accent font-bold">{filters.maxPostsToFetch}</span> bài viết gốc.
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="w-full flex flex-col gap-1.5">
                   {(() => {
-                    const ROW_HEIGHT = 62; // reduced height by ~10%
+                    const ROW_HEIGHT = 70; // safe row budget in px
                     const buffer = 10; // safety viewport buffer
                     const headerOffset = 36; // Table Header height + padding offset
 
@@ -2185,13 +2115,13 @@ export default function App() {
                                 id={`post-row-${post.id}`}
                                 key={post.id}
                                 onClick={() => currentlyDeletingId !== post.id && togglePostSelection(post.id)}
-                                style={{ height: `${ROW_HEIGHT - 4}px` }}
-                                className={`group grid grid-cols-[30px_40px_1fr_120px_40px] gap-2 items-center px-2 py-1 rounded-[12px] transition-all duration-200 border ${
+                                style={{ height: `${ROW_HEIGHT - 6}px` }}
+                                className={`group grid grid-cols-[30px_44px_1fr_135px_50px] gap-2 items-center px-2 py-1.5 rounded-[16px] transition-all duration-200 border ${
                                   currentlyDeletingId === post.id
-                                    ? "bg-rose-500/10 border-rose-500/40 animate-pulse cursor-wait"
+                                    ? "bg-rose-500/10 border-rose-500/40 shadow-[0_4px_12px_rgba(239,68,68,0.15)] animate-pulse cursor-wait"
                                     : isChecked 
-                                      ? "bg-accent/10 border-accent/20 backdrop-blur-md cursor-pointer" 
-                                      : "glass-card hover:border-accent/40 cursor-pointer"
+                                      ? "bg-accent/15 border-accent/40 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md cursor-pointer" 
+                                      : "bg-background/20 backdrop-blur-md border-white/30 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 hover:border-white/50 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] cursor-pointer"
                                 }`}
                               >
                                 {/* Checkbox / Loading Spinner */}
@@ -2237,40 +2167,35 @@ export default function App() {
                                 </div>
 
                                 {/* Content Column */}
-                                <div className="flex flex-col justify-center min-w-0 pr-1 h-full">
-                                  <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                                    <span className="bg-muted/50 text-foreground/80 text-[9px] px-1.5 py-[1px] rounded-[4px] leading-none font-semibold border border-border/30 truncate max-w-[120px]" title={post.pageName}>
+                                <div className="flex flex-col gap-1 min-w-0 pr-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="bg-accent/10 text-accent text-[8px] px-1.5 py-0.5 rounded leading-none font-bold border border-accent/20 truncate max-w-[120px] shadow-sm" title={post.pageName}>
                                       {post.pageName}
                                     </span>
-                                    {post.status_type && (
-                                     <span className="text-[9px] text-slate-400 font-medium capitalize">
-                                        • {post.status_type.replace('_', ' ')}
-                                     </span>
-                                    )}
-                                    <span className="text-[9px] text-transparent group-hover:text-slate-500 font-mono transition-colors truncate max-w-[80px]" title={post.id}>
-                                      #{post.id.split('_').pop() || post.id}
+                                    <span className="text-[9px] text-muted-foreground/60 font-mono select-all">
+                                      ID: {post.id}
                                     </span>
                                     {currentlyDeletingId === post.id && (
-                                      <span className="text-rose-500 text-[9px] flex items-center gap-1 font-bold uppercase select-none relative ml-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping absolute -left-2.5" />
-                                        Đang xóa
+                                      <span className="bg-rose-500/15 text-rose-500 text-[8px] px-2 py-0.5 rounded flex items-center gap-1.5 font-extrabold uppercase tracking-widest border border-rose-500/25 shadow-sm shadow-rose-500/5 select-none">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                                        ĐANG XÓA...
                                       </span>
                                     )}
                                   </div>
                                   
-                                  <p className={`text-[11.5px] font-medium leading-tight line-clamp-2 break-all ${currentlyDeletingId === post.id ? "text-rose-400" : "text-foreground"}`} title={post.message || ""}>
+                                  <p className={`text-[11px] font-medium leading-tight line-clamp-2 break-all ${currentlyDeletingId === post.id ? "text-rose-200/95" : "text-foreground"}`} title={post.message || ""}>
                                     {post.message ? (
                                       post.message
                                     ) : (
-                                      <span className="italic text-slate-500 font-normal">[Chỉ có đa phương tiện]</span>
+                                      <span className="italic text-muted-foreground/60 font-normal">[Đa phương tiện - Không có văn bản]</span>
                                     )}
                                   </p>
                                 </div>
 
                                 {/* Time */}
-                                <div className={`text-center flex flex-col gap-0.5 shrink-0 select-none ${currentlyDeletingId === post.id ? "text-muted-foreground" : ""}`}>
+                                <div className={`text-center flex flex-col gap-0.5 shrink-0 select-none ${currentlyDeletingId === post.id ? "opacity-60" : ""}`}>
                                   <span className="text-[10px] font-mono font-medium text-foreground/80">{formattedDate}</span>
-                                  <span className="text-[9px] text-slate-400 font-mono">({diffDays} ngày trước)</span>
+                                  <span className="text-[9px] text-muted-foreground/70 font-mono">({diffDays} ngày trước)</span>
                                 </div>
 
                                 {/* Action Button Link to Facebook */}
@@ -2304,172 +2229,165 @@ export default function App() {
           </div>
 
           {/* RIGHT SIDEBAR: PROGRESS AND LOGS */}
-          {isRightPanelOpen && (
-            <aside className="w-full xl:w-[330px] 2xl:w-[350px] glass p-4 shrink-0 flex flex-col gap-4 h-[auto] xl:h-full overflow-hidden animate-in slide-in-from-right-8 duration-300">
+          <aside className="w-full xl:w-[260px] 2xl:w-[300px] bg-card rounded-[18px] p-4 shrink-0 flex flex-col gap-4 shadow-sm border border-border h-[auto] xl:h-full overflow-y-auto">
             {/* PROGRESS BAR PANEL */}
-            <div className="flex flex-col gap-4 min-h-0 shrink-0">
-              <div className="flex items-center gap-2 border-b border-border/30 pb-2">
-                <SlidersHorizontal className="w-4 h-4 text-accent" />
-                <h3 className="font-bold text-[12px] uppercase tracking-widest">Tác vụ bài viết</h3>
-              </div>
-
-              <div className="space-y-3">
-                {/* Progress Indicators */}
-                <div className="bg-muted/30 p-3 rounded-[16px] border border-border/50">
-                  <div className="flex justify-between items-center text-[11px] font-bold tracking-wide text-foreground mb-2">
-                    <span>{loadingPosts ? "Đang tải bài viết..." : (isDeleting ? "Đang xóa..." : "Tiến trình")}</span>
-                    <span className="font-mono text-accent">
-                      {loadingPosts 
-                        ? (scanProgress.total > 0 ? `${Math.round((scanProgress.current / scanProgress.total) * 100)}%` : "0%")
-                        : (progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%")
-                      }
-                    </span>
-                  </div>
-                  
-                  <div className="w-full bg-background rounded-full h-2 overflow-hidden shadow-inner mb-2 border border-border/10">
-                    <div 
-                      className={`h-full transition-all duration-300 ${loadingPosts ? "bg-orange-500" : isDeleting ? "bg-rose-500" : "bg-accent"}`}
-                      style={{ width: `${loadingPosts 
-                        ? (scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0)
-                        : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%` 
-                      }}
-                    ></div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10.5px] font-medium text-muted-foreground">
-                      {loadingPosts ? (
-                        <><span className="text-orange-500 font-bold">{scanProgress.current}</span> / <span>{scanProgress.total}</span> Page</>
-                      ) : isDeleting ? (
-                        <><span className="text-rose-500 font-bold">{progress.current}</span> / <span>{progress.total}</span> bài</>
-                      ) : (
-                        <span className="text-slate-400 italic">Sẵn sàng</span>
-                      )}
-                    </span>
-                  </div>
+            <div className="flex flex-col gap-3 min-h-0 shrink-0">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-[10.5px] uppercase font-bold tracking-widest text-muted-foreground">
+                  <span>{loadingPosts ? "Tải bài viết" : "Xoá bài viết"}</span>
+                  <span className="font-mono text-accent text-[10px] bg-accent/10 border border-accent/20 px-1.5 py-0.5 rounded shadow-sm">
+                    {loadingPosts 
+                      ? (scanProgress.total > 0 ? `${Math.round((scanProgress.current / scanProgress.total) * 100)}%` : "0%")
+                      : (progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%")
+                    }
+                  </span>
                 </div>
                 
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-2 w-full mt-2">
-                  {!loadingPosts && (
-                    <button
-                      id="btn-load-posts"
-                      type="button"
-                      onClick={() => fetchPostsFromSelectedPages(true)}
-                      disabled={selectedPageIds.length === 0 || isMetaRateLimited}
-                      className="w-full py-2.5 bg-accent hover:bg-accent/90 text-[#06202A] rounded-[14px] font-bold text-[11px] tracking-wide transition-all flex items-center justify-center gap-2 disabled:bg-slate-700/45 disabled:text-slate-400 disabled:border-white/5 disabled:cursor-not-allowed cursor-pointer select-none active:scale-95 shadow-sm hover:brightness-105"
-                    >
-                      <RotateCw className="w-3.5 h-3.5 shrink-0" />
-                      Tải bài viết
-                    </button>
-                  )}
+                <div className="w-full pretty-progress-track h-4 overflow-hidden shadow-inner">
+                  <div 
+                    className="pretty-progress-bar"
+                    style={{ width: `${loadingPosts 
+                      ? (scanProgress.total > 0 ? (scanProgress.current / scanProgress.total) * 100 : 0)
+                      : (progress.total > 0 ? (progress.current / progress.total) * 100 : 0)}%` 
+                    }}
+                  ></div>
+                </div>
 
-                  {loadingPosts && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        scanCancelledRef.current = true;
-                        addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
-                      }}
-                      className="w-full py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 border border-orange-500/30 rounded-[14px] text-[11px] font-bold tracking-wide transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
-                    >
-                      <XOctagon className="w-3.5 h-3.5" />
-                      Dừng tải
-                    </button>
-                  )}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    {loadingPosts ? (
+                      <><span className="text-accent font-black">{scanProgress.current}</span> / <span>{scanProgress.total}</span> trang</>
+                    ) : (
+                      <><span className="text-accent font-black">{progress.current}</span> / <span>{progress.total}</span> bài</>
+                    )}
+                  </span>
+                </div>
+                
+                <div className="flex gap-2 w-full mt-2">
+                  <button
+                    id="btn-load-posts"
+                    type="button"
+                    onClick={() => fetchPostsFromSelectedPages(true)}
+                    disabled={selectedPageIds.length === 0 || loadingPosts || isMetaRateLimited}
+                    className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
+                    Tải bài viết
+                  </button>
 
-                  <div className="flex gap-2">
-                    <button 
-                      id="btn-delete-trigger"
-                      type="button"
-                      onClick={() => setShowConfirmModal(true)}
-                      disabled={selectedPostIds.length === 0 || isDeleting}
-                      className={`flex-1 py-2.5 rounded-[14px] font-bold text-[11px] tracking-wide transition-all duration-200 flex items-center justify-center gap-2 select-none border ${
-                        selectedPostIds.length > 0 && !isDeleting
-                          ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border-rose-500/40 cursor-pointer shadow-sm' 
-                          : 'bg-slate-700/35 text-slate-500 border-transparent cursor-not-allowed'
-                      }`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                      Xóa bài đã chọn
-                    </button>
+                  <button 
+                    id="btn-delete-trigger"
+                    type="button"
+                    onClick={() => setShowConfirmModal(true)}
+                    disabled={selectedPostIds.length === 0 || isDeleting}
+                    className={`flex-1 py-2.5 rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 border ${
+                      selectedPostIds.length > 0 
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white border-transparent cursor-pointer shadow-md shadow-rose-950/25' 
+                        : 'bg-muted/40 text-muted-foreground/40 border-transparent opacity-40 cursor-not-allowed'
+                    }`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                    {selectedPostIds.length > 0 ? `Xóa bài viết (${selectedPostIds.length})` : "Xóa bài viết"}
+                  </button>
+                </div>
 
+                {(isDeleting || loadingPosts) && (
+                  <div className="flex gap-2 w-full mt-1.5">
                     {isDeleting && (
                       <button
                         id="btn-stop-deletion"
                         type="button"
                         onClick={() => {
                           deleteCancelledRef.current = true;
-                          addLog("queue", "Yêu cầu dừng tiến trình xóa...", "pending");
+                          addLog("queue", "Yêu cầu dừng tiến trình xóa bài viết...", "pending");
                         }}
-                        className="px-3 py-2.5 rounded-[14px] bg-rose-500 hover:bg-rose-600 text-white font-bold text-[11px] transition-all cursor-pointer shadow-sm"
-                        title="Dừng xóa"
+                        className="w-full py-2.5 rounded-full bg-slate-700 hover:bg-slate-600 text-white border border-slate-600/50 text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-sm"
                       >
-                        <X className="w-4 h-4" />
+                        Dừng xóa
+                      </button>
+                    )}
+                    {loadingPosts && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          scanCancelledRef.current = true;
+                          addLog("system", "Đang gửi yêu cầu dừng quét trang...", "pending");
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white border border-slate-600/50 text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer shadow-sm"
+                      >
+                        Dừng nạp
                       </button>
                     )}
                   </div>
+                )}
+              </div>
+
+              <div className="bg-rose-950/10 border border-rose-500/20 p-2.5 rounded-xl flex items-start gap-2 text-rose-400">
+                <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <div className="text-[10px] font-medium leading-relaxed">
+                  <span className="font-bold text-rose-500 uppercase block mb-0.5">Lưu ý:</span>
+                  Xóa bài viết là VĨNH VIỄN.
                 </div>
               </div>
             </div>
 
             {/* LIVE LOG CONSOLE TERMINAL */}
-            <div className="flex-1 flex flex-col glass-card p-3 shadow-inner min-h-[200px] overflow-hidden">
-              <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-2 shrink-0">
-                <span className="text-[11px] tracking-widest text-foreground font-bold flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-accent" />
-                  NHẬT KÝ HOẠT ĐỘNG
+            <div className="flex-1 flex flex-col bg-muted/30 rounded-xl p-3 shadow-inner min-h-[150px] overflow-hidden border border-border">
+              <div className="flex items-center justify-between border-b border-border pb-2 mb-2 shrink-0">
+                <span className="text-[10px] uppercase tracking-widest text-accent font-extrabold font-mono flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping" />
+                  Terminal Logs
                 </span>
                 <button 
                   type="button"
                   onClick={() => setLogs([])}
-                  className="text-[10px] hover:bg-muted p-1 px-2 rounded-md text-muted-foreground hover:text-foreground font-semibold transition-colors"
+                  className="text-[10px] hover:underline text-muted-foreground hover:text-foreground font-bold"
                 >
-                  Xóa
+                  Xóa tất cả
                 </button>
               </div>
 
               {/* Log Tabs */}
-              <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 shrink-0 custom-scrollbar">
+              <div className="flex gap-1 border-b border-border/40 pb-2 mb-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setActiveLogTab("all")}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
                     activeLogTab === "all"
-                      ? "bg-accent/10 text-accent"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      ? "bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-sm border border-slate-300 dark:border-slate-750"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40 border border-transparent"
                   }`}
                 >
                   Tất cả
-                  <span className="bg-background text-foreground/80 px-1.5 rounded-[4px] text-[9.5px]">
+                  <span className="bg-slate-300/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
                     {logs.length}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLogTab("success")}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
                     activeLogTab === "success"
-                      ? "bg-emerald-500/10 text-emerald-500"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-500/30"
+                      : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 border border-transparent"
                   }`}
                 >
                   Thành công
-                  <span className="bg-background text-foreground/80 px-1.5 rounded-[4px] text-[9.5px]">
+                  <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
                     {logs.filter(log => log.status === "success").length}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveLogTab("error")}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold font-mono transition-all flex items-center gap-1 shrink-0 ${
                     activeLogTab === "error"
-                      ? "bg-rose-500/10 text-rose-500"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 shadow-sm border border-rose-500/30"
+                      : "text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 border border-transparent"
                   }`}
                 >
                   Lỗi
-                  <span className="bg-background text-foreground/80 px-1.5 rounded-[4px] text-[9.5px]">
+                  <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
                     {logs.filter(log => log.status === "failed").length}
                   </span>
                 </button>
@@ -2477,7 +2395,7 @@ export default function App() {
 
               <div 
                 ref={logContainerRef}
-                className="flex-1 overflow-y-auto space-y-2 font-mono text-[10.5px] p-1 custom-scrollbar pr-2 mt-1"
+                className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] text-accent p-1 custom-scrollbar pr-1.5"
               >
                 {(() => {
                   const filtered = logs.filter((log) => {
@@ -2488,12 +2406,12 @@ export default function App() {
 
                   if (filtered.length === 0) {
                     return (
-                      <p className="text-slate-500 italic py-2 text-center text-[10px]">
+                      <p className="text-muted-foreground/50 italic py-1">
                         {activeLogTab === "error" 
                           ? "Không có nhật ký lỗi..." 
                           : activeLogTab === "success" 
                           ? "Không có nhật ký thành công..." 
-                          : "Chưa có nhật ký hoạt động..."}
+                          : "Chưa có nhật ký..."}
                       </p>
                     );
                   }
@@ -2503,33 +2421,24 @@ export default function App() {
                     let prefix = "•";
 
                     if (log.status === "success") {
-                      colorClass = "text-emerald-500 font-semibold";
+                      colorClass = "text-emerald-600 font-semibold";
                       prefix = "✔";
                     } else if (log.status === "failed") {
-                       colorClass = "text-rose-500 font-bold";
-                       prefix = "✘";
-                    } else if (log.status === "processing" || log.status === "pending") {
-                       colorClass = "text-orange-500 font-medium";
+                       colorClass = "text-rose-600 font-bold";
+                       prefix = "✘ LỖI";
+                    } else if (log.status === "processing") {
+                       colorClass = "text-amber-500 font-medium animate-pulse";
+                       prefix = "➜";
+                    } else if (log.status === "pending") {
+                       colorClass = "text-blue-500 font-medium";
                        prefix = "⏱";
-                    } else {
-                       // Cảnh báo / System fallback
-                       colorClass = "text-accent font-medium";
-                       prefix = "ℹ";
-                    }
-
-                    if (log.type === "system") {
-                       colorClass = "text-blue-500 font-semibold";
                     }
 
                     return (
-                      <div 
-                        key={log.id} 
-                        className={`${colorClass} flex gap-1.5 items-center leading-relaxed bg-background/40 hover:bg-background/80 px-2 py-1.5 rounded-lg border border-border/20 transition-colors w-full overflow-hidden`}
-                        title={log.postMessageSnippet}
-                      >
-                        <span className="shrink-0 text-muted-foreground font-normal text-[9.5px]">[{log.timestamp.split(" ")[1]}]</span>
-                        <span className="shrink-0 font-bold text-[10px]">{prefix}</span>
-                        <span className="truncate min-w-0" style={{ lineHeight: '1.2' }}>{log.postMessageSnippet}</span>
+                      <div key={log.id} className={`${colorClass} flex gap-1.5 leading-relaxed break-words`}>
+                        <span className="shrink-0 text-muted-foreground">[{log.timestamp.split(" ")[1]}]</span>
+                        <span className="shrink-0 font-bold">{prefix}</span>
+                        <span>{log.postMessageSnippet}</span>
                       </div>
                     );
                   });
@@ -2537,20 +2446,26 @@ export default function App() {
               </div>
             </div>
           </aside>
-          )}
           </div>
+          )}
 
-            <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'status' ? '' : 'hidden'}`}>
+          {activeTab === "status" && (
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
               <PageStatusTab pages={pages} userToken={userToken} />
             </div>
+          )}
 
-            <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'admins' ? '' : 'hidden'}`}>
+          {activeTab === "admins" && (
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
               <PageAdminsTab pages={pages} userToken={userToken} />
             </div>
+          )}
 
-            <div className={`flex-1 overflow-hidden flex flex-col min-h-0 w-full h-full ${activeTab === 'theme' ? '' : 'hidden'}`}>
-              <ThemeSettingsTab config={config} setConfig={setConfig} isDark={isDark} setIsDark={setIsDark} />
+          {activeTab === "theme" && (
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              <ThemeSettingsTab isDark={isDark} setIsDark={setIsDark} />
             </div>
+          )}
 
         </main>
       </div>
@@ -2583,7 +2498,7 @@ export default function App() {
       {/* MODAL 1: APP SETTINGS PANEL MODAL (Interactive Configuration override) */}
       {showConfig && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass p-6 md:p-8 w-full max-w-[500px]">
+          <div className="bg-card p-6 md:p-8 rounded-[32px] shadow-2xl w-full max-w-[500px] border border-border">
             <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
               <h2 className="text-xl font-bold text-foreground flex items-center gap-2.5">
                 <Settings className="w-5 h-5 text-accent" />
@@ -2661,7 +2576,7 @@ export default function App() {
       {/* CONFIRMATION DIALOG MODAL (Surgical Confirmation Overlays) */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass p-6 md:p-8 w-full max-w-[480px] text-center">
+          <div className="bg-card border border-border p-6 md:p-8 rounded-[40px] shadow-2xl w-full max-w-[480px] text-center">
             <div className="w-16 h-16 bg-rose-950/20 border border-rose-500/25 text-rose-400 rounded-[20px] flex items-center justify-center mx-auto mb-5 shadow-inner transform -rotate-6">
               <Trash2 className="w-8 h-8" />
             </div>
@@ -2715,48 +2630,9 @@ export default function App() {
                 id="btn-confirm-delete"
                 onClick={executeBatchDeletion}
                 disabled={!doubleConfirm}
-                className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold text-[13px] transition-all disabled:bg-slate-700/45 disabled:text-slate-400 disabled:border-white/5 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-rose-950/15"
+                className="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold text-[13px] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-rose-950/15"
               >
                 Xác nhận xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* RECONNECT FACEBOOK DIALOG MODAL */}
-      {showReconnectModal && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass p-6 md:p-8 w-full max-w-[480px] text-center">
-            <div className="w-16 h-16 bg-cyan-950/20 border border-cyan-500/25 text-cyan-400 rounded-[20px] flex items-center justify-center mx-auto mb-5 shadow-inner">
-              <KeyRound className="w-8 h-8" />
-            </div>
-
-            <h2 className="text-xl font-bold text-foreground mb-3">
-              Phiên kết nối đã hết hạn
-            </h2>
-            <p className="text-[13px] text-muted-foreground leading-relaxed mb-6">
-              Kết nối của bạn đến hệ thống Facebook đã hết hạn hoặc bị thu hồi trên máy chủ Meta. Vui lòng kết nối lại tài khoản Facebook để tiếp tục quản lý các Fanpage.
-            </p>
-
-            <div className="flex gap-3">
-              <button 
-                id="btn-reconnect-cancel"
-                onClick={() => setShowReconnectModal(false)}
-                className="flex-1 py-3.5 bg-muted hover:bg-muted/80 text-foreground rounded-full font-bold text-[13px] transition-all border border-border shadow-sm cursor-pointer"
-              >
-                Đóng lại
-              </button>
-              
-              <button 
-                id="btn-reconnect-now"
-                onClick={() => {
-                  setShowReconnectModal(false);
-                  handleOAuthLogin();
-                }}
-                className="flex-1 py-3.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-full font-bold text-[13px] transition-all cursor-pointer shadow-md shadow-cyan-950/15"
-              >
-                Kết nối lại ngay
               </button>
             </div>
           </div>

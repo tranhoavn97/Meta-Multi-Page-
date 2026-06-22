@@ -106,26 +106,26 @@ function ToastItemComponent({ toast, onClose }: { toast: ToastItem; onClose: (id
     switch (type) {
       case "success":
         return {
-          bg: "bg-background/70 border-border text-foreground",
+          bg: "bg-background border-border text-foreground",
           progressBg: "bg-emerald-500",
           icon: <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
         };
       case "error":
         return {
-          bg: "bg-background/70 border-border text-foreground",
+          bg: "bg-background border-border text-foreground",
           progressBg: "bg-rose-500",
           icon: <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
         };
       case "warning":
         return {
-          bg: "bg-background/70 border-border text-foreground",
+          bg: "bg-background border-border text-foreground",
           progressBg: "bg-amber-500",
           icon: <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
         };
       case "info":
       default:
         return {
-          bg: "bg-background/70 border-border text-foreground",
+          bg: "bg-background border-border text-foreground",
           progressBg: "bg-accent",
           icon: <Info className="w-5 h-5 text-accent shrink-0" />
         };
@@ -140,7 +140,7 @@ function ToastItemComponent({ toast, onClose }: { toast: ToastItem; onClose: (id
       exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
       style={{ originX: 1, originY: 1 }}
-      className={`pointer-events-auto relative overflow-hidden flex flex-col w-full border ${styles.bg} backdrop-blur-2xl rounded-[20px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)]`}
+      className={`pointer-events-auto relative overflow-hidden flex flex-col w-full border ${styles.bg} rounded-[20px] p-4 shadow-sm`}
     >
       <div className="flex gap-3 items-start pr-4">
         {styles.icon}

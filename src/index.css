@@ -24,35 +24,35 @@ html {
 }
 
 :root {
-  --bg: #03060C;
+  --bg: #060A13;
   --fg: #F8FAFC;
-  --muted: rgba(10, 16, 28, 0.6);
+  --muted: rgba(10, 16, 28, 0.7);
   --muted-fg: #94A3B8;
   --accent: #3B82F6;
   --accent-sec: #06B6D4;
   --accent-rgb: 59, 130, 246;
-  --border: rgba(255, 255, 255, 0.08);
-  --card: rgba(5, 18, 32, 0.86);
-  --glass: rgba(5, 18, 32, 0.86);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --shadow-glass: 0 10px 40px -10px rgba(0, 0, 0, 0.55);
+  --border: rgba(255, 255, 255, 0.05);
+  --card: rgba(9, 15, 26, 0.45);
+  --glass: rgba(9, 15, 26, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --shadow-glass: 0 10px 40px -10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --bg-gradient-1: rgba(59, 130, 246, 0.12);
   --bg-gradient-2: rgba(6, 182, 212, 0.12);
   --bg-gradient-3: rgba(139, 92, 246, 0.08);
 }
 
 .dark {
-  --bg: #03060C;
+  --bg: #060A13;
   --fg: #F8FAFC;
-  --muted: rgba(10, 16, 28, 0.6);
+  --muted: rgba(10, 16, 28, 0.7);
   --muted-fg: #94A3B8;
   --accent: #3B82F6;
   --accent-sec: #06B6D4;
-  --border: rgba(255, 255, 255, 0.08);
-  --card: rgba(5, 18, 32, 0.86);
-  --glass: rgba(5, 18, 32, 0.86);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --shadow-glass: 0 10px 40px -10px rgba(0, 0, 0, 0.55);
+  --border: rgba(255, 255, 255, 0.05);
+  --card: rgba(9, 15, 26, 0.45);
+  --glass: rgba(9, 15, 26, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --shadow-glass: 0 10px 40px -10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --bg-gradient-1: rgba(59, 130, 246, 0.12);
   --bg-gradient-2: rgba(6, 182, 212, 0.12);
   --bg-gradient-3: rgba(139, 92, 246, 0.08);
@@ -180,17 +180,19 @@ button {
 }
 
 @utility glass-card {
-  background: var(--color-glass);
+  background: var(--color-card);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   box-shadow: var(--shadow-glass);
 }
 
-@utility glass {
+@utility glass-panel {
   background: var(--color-glass);
   backdrop-filter: blur(28px) saturate(140%);
   -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-glass);
   border-radius: 20px;
 }
