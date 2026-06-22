@@ -36,27 +36,37 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Missing META_ACCESS_TOKEN" });
   }
 
-  const { post_id, postId, confirm, pageId: reqPageId, page_id: reqPageId2 } = req.body || {};
+  const { post_id, postId, confirm, pageId: reqPageId, page_id: reqPageId2, itemType, deleteSource } = req.body || {};
   const activePostId = post_id || postId;
   const providedPageId = reqPageId || reqPageId2;
 
-  if (!activePostId) {
-    return res.status(400).json({ error: "Thiếu post_id hoặc postId của bài viết." });
+  const pageId = providedPageId || (activePostId && activePostId.includes("_") ? activePostId.split("_")[0] : null);
+
+  if (!pageId) {
+    return res.status(400).json({ error: "Không tìm thấy pageId trong request hoặc postId." });
   }
 
   if (confirm !== true) {
     return res.status(400).json({ error: "Yêu cầu xóa không hợp lệ. Phải xác nhận xóa bằng tham số confirm=true." });
   }
 
+  // Determine what object to delete
+  // If it is video/reel and user chose deleteSource: we delete sourceObjectId
+  // Otherwise, we delete postId
+  const { sourceObjectId } = req.body || {};
+  let deletedObjectId = activePostId;
+  let deletingSourceObj = false;
+
+  if ((itemType === "video" || itemType === "reel") && deleteSource === true && sourceObjectId) {
+    deletedObjectId = sourceObjectId;
+    deletingSourceObj = true;
+  }
+
+  if (!deletedObjectId) {
+    return res.status(400).json({ error: "Thiếu postId hoặc sourceObjectId để thực hiện xóa." });
+  }
+
   try {
-    // 1. Get pageId from the post_id (post_id is typically [pageId]_[postId])
-    const parts = activePostId.split("_");
-    const pageId = parts.length > 1 ? parts[0] : providedPageId;
-
-    if (!pageId) {
-      return res.status(400).json({ error: "Không tìm thấy pageId trong post_id và không được truyền trong request body." });
-    }
-
     // 2. Fetch pages list to find the corresponding page_access_token
     let pageToken: string | null = null;
     try {
@@ -76,21 +86,124 @@ export default async function handler(req: any, res: any) {
     const activeToken = pageToken || META_ACCESS_TOKEN;
 
     // 3. Make the Meta delete-post graph API call
-    const deleteUrl = `https://graph.facebook.com/v19.0/${activePostId}?access_token=${activeToken}`;
+    const deleteUrl = `https://graph.facebook.com/v19.0/${deletedObjectId}?access_token=${activeToken}`;
     const result = await backendFetchJson(deleteUrl, {
       method: "DELETE"
     });
 
     if (result && result.error) {
       return res.status(400).json({ 
-        error: result.error.message || "Không thể xoá bài viết thông qua Meta Graph API.",
-        errorCode: result.error.code 
+        success: false,
+        error: {
+          code: "DELETE_API_ERROR",
+          message: result.error.message || "Không thể xoá bài viết thông qua Meta Graph API."
+        },
+        errorCode: result.error.code,
+        metaResponse: sanitize(result)
       });
     }
 
-    return res.status(200).json({ success: true, response: result });
+    // Strict validation: Meta response must confirm deletion success (i.e. result.success === true or result === true)
+    const isConfirmedSuccess = result === true || result?.success === true;
+    if (!isConfirmedSuccess) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "DELETE_NOT_CONFIRMED",
+          message: "Meta không xác nhận xoá thành công."
+        },
+        metaResponse: sanitize(result)
+      });
+    }
+
+    // 4. Verify post-deletion by trying to fetch the deleted object
+    let verified = false;
+    try {
+      const checkUrl = `https://graph.facebook.com/v19.0/${deletedObjectId}?fields=id&access_token=${activeToken}`;
+      const checkRes = await fetch(checkUrl);
+      const checkData = await checkRes.json();
+
+      if (
+        checkRes.status === 404 || 
+        checkRes.status === 400 || 
+        (checkData.error && (checkData.error.code === 100 || checkData.error.code === 803 || checkData.error.message?.includes("does not exist") || checkData.error.message?.includes("Unsupported get request")))
+      ) {
+        verified = true;
+      } else if (checkData.id) {
+        // Object still exists on Meta!
+        return res.status(400).json({
+          success: false,
+          verified: false,
+          error: {
+            code: "DELETE_VERIFICATION_FAILED",
+            message: "Xác minh thất bại: Đối tượng vẫn tồn tại trên Meta sau khi xóa."
+          },
+          deletedObjectId,
+          itemType,
+          pageId
+        });
+      } else {
+        // Unknown error during check
+        return res.status(400).json({
+          success: false,
+          verified: false,
+          error: {
+            code: "DELETE_VERIFICATION_FAILED",
+            message: checkData.error?.message || "Không xác minh được trạng thái xóa từ Meta."
+          },
+          deletedObjectId,
+          itemType,
+          pageId
+        });
+      }
+    } catch (e: any) {
+      console.error("Lỗi xác minh sau khi xóa:", e);
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: {
+          code: "DELETE_VERIFICATION_FAILED",
+          message: `Lỗi kết nối khi xác minh xóa: ${e.message}`
+        },
+        deletedObjectId,
+        itemType,
+        pageId
+      });
+    }
+
+    // 5. Successful Response
+    return res.status(200).json({
+      success: true,
+      verified: true,
+      deletedObjectId,
+      itemType,
+      pageId
+    });
   } catch (error: any) {
-    console.error(`Lỗi khi xóa bài viết ${activePostId}:`, error);
+    console.error(`Lỗi khi xóa bài viết ${deletedObjectId}:`, error);
     return res.status(500).json({ error: error.message || "Lỗi máy chủ khi xoá bài viết" });
   }
+}
+
+function sanitize(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  const cleaned = JSON.parse(JSON.stringify(obj));
+  
+  const scrub = (target: any) => {
+    if (!target || typeof target !== "object") return;
+    for (const key of Object.keys(target)) {
+      if (
+        key.toLowerCase().includes("token") || 
+        key.toLowerCase().includes("secret") || 
+        key.toLowerCase().includes("password")
+      ) {
+        target[key] = "[HIDDEN]";
+      } else if (typeof target[key] === "object") {
+        scrub(target[key]);
+      }
+    }
+  };
+
+  scrub(cleaned);
+  return cleaned;
 }

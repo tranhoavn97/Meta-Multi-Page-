@@ -46,6 +46,10 @@ export interface FacebookPost {
   shares?: {
     count?: number;
   };
+  itemType: "post" | "video" | "reel";
+  postId?: string;
+  sourceObjectId?: string;
+  thumbnail?: string;
 }
 
 export interface FilterCriteria {

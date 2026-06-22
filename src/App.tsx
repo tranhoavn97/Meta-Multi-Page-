@@ -432,6 +432,10 @@ export default function App() {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [doubleConfirm, setDoubleConfirm] = useState<boolean>(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
+  const [videoDeleteOption, setVideoDeleteOption] = useState<"post_only" | "all">("post_only");
+  const hasVideoSelected = useMemo(() => {
+    return posts.some(p => selectedPostIds.includes(p.id) && (p.itemType === "video" || p.itemType === "reel"));
+  }, [posts, selectedPostIds]);
 
   // Active Tab state for UI views integration
   const [activeTab, setActiveTab] = useState<"posts" | "theme">("posts");
@@ -986,6 +990,9 @@ export default function App() {
         if (data.data && data.data.length > 0) {
           const mapped: FacebookPost[] = data.data.map((item: any) => ({
             id: item.id,
+            postId: item.postId,
+            sourceObjectId: item.sourceObjectId,
+            itemType: item.itemType || "post",
             message: item.message,
             created_time: item.created_time,
             permalink_url: item.permalink_url,
@@ -997,7 +1004,8 @@ export default function App() {
             pageAccessToken: pageInfo.access_token,
             likes: item.likes,
             comments: item.comments,
-            shares: item.shares
+            shares: item.shares,
+            thumbnail: item.thumbnail
           }));
 
           allFetchedPosts = [...allFetchedPosts, ...mapped];
@@ -1214,23 +1222,55 @@ export default function App() {
       addLog(postId, `[${i+1}/${selectedPostIds.length}] Đang xóa bài trên Page "${post.pageName}"...`, "processing");
 
       try {
+        const deleteSource = videoDeleteOption === "all";
         const data = await safeFetchJson("/api/delete-post", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            postId: postId,
+            postId: post.postId || post.id,
+            sourceObjectId: post.sourceObjectId,
+            pageId: post.pageId,
+            itemType: post.itemType,
             confirm: true,
+            deleteSource: deleteSource,
             userToken: post.pageAccessToken
           })
         });
 
-        if (data.success) {
+        if (data.success === true && data.verified === true) {
           countSuccess++;
-          addLog(postId, `Đã xóa thành công bài viết [ID: ${postId}]: "${snippet}"`, "success");
+          let logMsg = "";
+          if (post.itemType === "video" || post.itemType === "reel") {
+            if (deleteSource) {
+              logMsg = `Đã xoá video gốc: [ID: ${postId}]: "${snippet}"`;
+            } else {
+              logMsg = `Chỉ xoá post wrapper: [ID: ${postId}]: "${snippet}"`;
+            }
+          } else {
+            logMsg = `Đã xoá bài đăng: [ID: ${postId}]: "${snippet}"`;
+          }
+          addLog(postId, logMsg, "success");
+
+          // Remove the successfully deleted and verified item from UI
+          setPosts(prev => prev.filter(p => p.id !== postId));
+
+          // Clear cache of Page
+          sessionStorage.removeItem(`meta_posts_cache_${post.pageId}`);
+          sessionStorage.removeItem(`meta_posts_cache_${post.pageId}_500`);
+        } else if (data.success === true && data.verified === false) {
+          countFail++;
+          addLog(postId, `Xác minh xoá thất bại: Meta nhận lệnh nhưng chưa xác minh được nội dung đã bị xoá.`, "failed");
         } else {
           countFail++;
-          addLog(postId, `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error || "Lỗi Meta API"}`, "failed");
-          if (handleAuthError(data.error || "")) break;
+          const errCode = data.error?.code;
+          let logMsg = `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error?.message || data.error || "Lỗi Meta API"}`;
+          if (errCode === "DELETE_NOT_CONFIRMED") {
+            logMsg = `Meta chưa xác nhận xoá: [ID: ${postId}].`;
+          } else if (errCode === "DELETE_VERIFICATION_FAILED") {
+            logMsg = `Xác minh xoá thất bại: [ID: ${postId}].`;
+          }
+          addLog(postId, logMsg, "failed");
+          if (handleAuthError(data.error?.message || data.error || "")) break;
         }
       } catch (err: any) {
         countFail++;
@@ -1266,8 +1306,8 @@ export default function App() {
       }
     }
     
-    // Refresh posts of pages to clear deleted items
-    fetchPostsFromSelectedPages();
+    // Refresh posts of pages to clear deleted items (forcing refresh / bypass cache)
+    await fetchPostsFromSelectedPages(true);
     setSelectedPostIds([]);
     setDoubleConfirm(false);
   };
@@ -2459,6 +2499,39 @@ export default function App() {
             <p className="text-[13px] text-muted-foreground leading-relaxed mb-6">
               Bạn đang chuẩn bị tiến hành xóa hàng loạt <b className="text-rose-400 font-mono text-sm bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-500/15">{selectedPostIds.length} bài đăng</b> khỏi các Fanpage. Hành động này sẽ triệt tiêu vĩnh viễn toàn bộ lượt Thích, Bình luận, và Chia sẻ đi kèm.
             </p>
+
+            {hasVideoSelected && (
+              <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-[20px] text-left mb-6 shadow-sm">
+                <span className="block text-[12px] font-bold text-amber-500 mb-2 uppercase tracking-wider">
+                  Tùy chọn xóa Video / Reel
+                </span>
+                <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+                  Một số nội dung được chọn là Video/Reel. Việc xóa bài viết trên Timeline không tự động xóa file video gốc trong thư viện của Fanpage. Vui lòng chọn cách xử lý:
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-foreground select-none">
+                    <input
+                      type="radio"
+                      name="video-delete-option"
+                      checked={videoDeleteOption === "post_only"}
+                      onChange={() => setVideoDeleteOption("post_only")}
+                      className="accent-amber-500"
+                    />
+                    <span>Chỉ xóa bài đăng trên timeline (Giữ lại video gốc)</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-foreground select-none">
+                    <input
+                      type="radio"
+                      name="video-delete-option"
+                      checked={videoDeleteOption === "all"}
+                      onChange={() => setVideoDeleteOption("all")}
+                      className="accent-amber-500"
+                    />
+                    <span>Xóa cả bài đăng timeline và video gốc khỏi thư viện Page</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Checkbox safety safeguard constraint (confirm=true requirement) */}
             <div className="bg-rose-950/10 border border-rose-500/20 p-4 rounded-[20px] text-left mb-6 shadow-sm">
