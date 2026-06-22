@@ -103,7 +103,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userAccessToken = result.data.access_token;
 
     if (!userAccessToken) {
-      return res.status(500).json({ error: "Không thể lấy access token từ Meta." });
+      res.setHeader("Content-Type", "application/json");
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_ACCESS_TOKEN",
+          message: "Không thể lấy access token từ Meta."
+        }
+      });
     }
 
     // 3. Save User Access Token into Secure, HTTP-Only session cookie
