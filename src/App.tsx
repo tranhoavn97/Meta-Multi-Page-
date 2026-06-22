@@ -1270,10 +1270,29 @@ export default function App() {
             logMsg = `Xác minh xoá thất bại: [ID: ${postId}].`;
           }
           addLog(postId, logMsg, "failed");
+
+          const isRateLimit = data.errorCode === 4 || data.error?.code === 4 || data.error?.message?.includes("limit") || data.error?.includes("limit");
+          if (isRateLimit) {
+            triggerMetaRateLimit();
+            addLog("queue", `Tiến trình xóa bị ngắt do chạm giới hạn API của Meta (Rate Limit).`, "failed");
+            break;
+          }
+
           if (handleAuthError(data.error?.message || data.error || "")) break;
         }
       } catch (err: any) {
         countFail++;
+        
+        const responseJson = err.responseJson;
+        const isRateLimit = err.message?.includes("limit") || err.message?.includes("(#4)") || responseJson?.errorCode === 4 || responseJson?.error?.code === 4;
+        
+        if (isRateLimit) {
+          addLog(postId, `Chạm giới hạn API của Meta: ${err.message}`, "failed");
+          triggerMetaRateLimit();
+          addLog("queue", `Tiến trình xóa bị ngắt do chạm giới hạn API của Meta (Rate Limit).`, "failed");
+          break;
+        }
+
         addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
         if (handleAuthError(err.message)) break;
       }
