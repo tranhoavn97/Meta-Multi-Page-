@@ -23,6 +23,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  ChevronDown,
   FileText,
   SlidersHorizontal,
   Image as ImageIcon,
@@ -282,45 +283,59 @@ function CustomSelect({
         setIsOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
 
   const selectedOption = options.find(o => o.value === value) || options[0];
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative inline-block" ref={containerRef}>
       <button
         type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-1.5 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-xs outline-none text-foreground font-bold cursor-pointer transition-all select-none min-w-[50px]"
+        className="inline-flex items-center justify-between gap-2 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-[11px] outline-none text-white font-bold cursor-pointer transition-all select-none min-w-fit"
       >
-        <span>{selectedOption?.label}</span>
-        <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${isOpen ? "rotate-90 text-accent" : ""}`} />
+        <span className="truncate">{selectedOption?.label}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-[115%] z-[99] w-[160px] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
+        <div 
+          className="absolute right-0 top-full mt-1.5 z-[999] min-w-full w-max max-w-[260px] max-h-[280px] overflow-y-auto overscroll-contain bg-slate-800/95 backdrop-blur-3xl border border-slate-700/50 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-[0.98] duration-150 ring-1 ring-white/5"
+          role="listbox"
+        >
           {options.map((opt) => (
             <button
               key={opt.value}
               type="button"
+              role="option"
+              aria-selected={value === opt.value}
               onClick={() => {
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
+              className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
                 value === opt.value
-                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold"
-                  : "text-foreground hover:bg-white/10"
+                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)]"
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <span>{opt.label}</span>
-              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px]" />}
+              <span className="truncate">{opt.label}</span>
+              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px] shrink-0" />}
             </button>
           ))}
         </div>
@@ -383,8 +398,8 @@ export default function App() {
     enableDateRange: false,
     keyword: "",
     enableKeyword: false,
-    maxPostsToFetch: 100,
-    maxPostsToShow: 300,
+    maxPostsToFetch: 500,
+    maxPostsToShow: 500,
     timeRangePreset: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
@@ -942,75 +957,81 @@ export default function App() {
       const currentIdx = index++;
       setScanProgress(p => ({ ...p, current: currentIdx, currentPageName: pageInfo.name }));
 
-      // Check Cache first if not forcing refresh (Requirement 7)
-      if (!forceRefresh) {
-        const cachedPostsStr = sessionStorage.getItem(`meta_posts_cache_${pageId}`);
-        if (cachedPostsStr) {
+          // Implement frontend caching handling
+          const cacheKey = `meta_posts_cache_${pageId}_${filters.maxPostsToFetch}`;
+          if (!forceRefresh) {
+            const cachedPostsStr = sessionStorage.getItem(cacheKey);
+            if (cachedPostsStr) {
+              try {
+                const cachedData = JSON.parse(cachedPostsStr);
+                if (cachedData && cachedData.savedAt && (Date.now() - cachedData.savedAt < 5 * 60 * 1000)) {
+                  allFetchedPosts = [...allFetchedPosts, ...cachedData.posts];
+                  addLog("system", `[Cache] Tải thành công ${cachedData.posts.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
+                  return;
+                }
+              } catch (e) {
+                // cache invalid
+              }
+            }
+          }
+
+          addLog("system", `[Meta API] Đang tải trực tiếp bài viết từ Page: "${pageInfo.name}"...`, "processing");
+
           try {
-            const cachedPostsList = JSON.parse(cachedPostsStr);
-            if (Array.isArray(cachedPostsList) && cachedPostsList.length > 0) {
-              allFetchedPosts = [...allFetchedPosts, ...cachedPostsList];
-              addLog("system", `[Cache] Tải thành công ${cachedPostsList.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
+            const urlParams = new URLSearchParams();
+            urlParams.append("pageId", pageId);
+            urlParams.append("limit", filters.maxPostsToFetch.toString());
+            urlParams.append("forceRefresh", forceRefresh ? "true" : "false");
+            if (pageInfo.access_token) {
+              urlParams.append("page_access_token", pageInfo.access_token);
+            }
+
+            let fakeProgress = 0;
+            const progressTimer = setInterval(() => {
+              fakeProgress += 100;
+              if (fakeProgress < filters.maxPostsToFetch) {
+                addLog("system", `${fakeProgress} / ${filters.maxPostsToFetch}`, "processing");
+              }
+            }, 400);
+
+            let data;
+            try {
+              data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
+            } finally {
+              clearInterval(progressTimer);
+            }
+
+            if (data && data.rateLimitInfo) {
+              checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
+            }
+
+            if (data.error || data.status === 429) {
+              if (data.errorCode === 4 || data.errorCode === 17 || data.status === 429) {
+                triggerMetaRateLimit();
+                return;
+              }
+              addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
               return;
             }
-          } catch (e) {
-            // cache invalid, fetch fresh
-          }
-        }
-      }
 
-      // Fresh fetch (Requirement 9)
-      addLog("system", `[Meta API] Đang tải trực tiếp bài viết từ Page: "${pageInfo.name}"...`, "processing");
-
-      try {
-        const urlParams = new URLSearchParams();
-        urlParams.append("pageId", pageId);
-        urlParams.append("limit", filters.maxPostsToFetch.toString());
-        if (pageInfo.access_token) {
-          urlParams.append("user_token", pageInfo.access_token);
-        }
-
-        const data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
-
-        if (data && data.rateLimitInfo) {
-          checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
-        }
-
-        if (data.error) {
-          if (data.errorCode === 4) {
-            triggerMetaRateLimit();
-            return;
-          }
-          addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
-          return;
-        }
-
-        if (data.data && data.data.length > 0) {
-          const mapped: FacebookPost[] = data.data.map((item: any) => ({
-            id: item.id,
-            message: item.message,
-            created_time: item.created_time,
-            permalink_url: item.permalink_url,
-            full_picture: item.full_picture,
-            status_type: item.status_type,
-            attachments: item.attachments,
-            pageId: pageInfo.id,
-            pageName: pageInfo.name,
-            pageAccessToken: pageInfo.access_token,
-            likes: item.likes,
-            comments: item.comments,
-            shares: item.shares
-          }));
-
-          allFetchedPosts = [...allFetchedPosts, ...mapped];
-          
-          // Cache posts list (Requirement 7)
-          sessionStorage.setItem(`meta_posts_cache_${pageId}`, JSON.stringify(mapped));
-          addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}" và lưu vào bộ nhớ đệm.`, "success");
-        } else {
-          addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
-        }
-      } catch (err: any) {
+            if (data.data && data.data.length > 0) {
+              const fetchedPosts = data.data;
+              allFetchedPosts = [...allFetchedPosts, ...fetchedPosts];
+              
+              if (data.fromCache) {
+                 addLog("system", `[Cache Backend] Tải thành công ${fetchedPosts.length} bài từ "${pageInfo.name}".`, "success");
+              } else {
+                 addLog("system", `${filters.maxPostsToFetch} / ${filters.maxPostsToFetch}`, "success");
+                 addLog("system", `Đọc thành công ${fetchedPosts.length} bài từ "${pageInfo.name}".`, "success");
+                 
+                 // Also cache in frontend for extra safety according to requirement
+                 const cacheObj = { savedAt: Date.now(), posts: fetchedPosts };
+                 sessionStorage.setItem(cacheKey, JSON.stringify(cacheObj));
+              }
+            } else {
+              addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
+            }
+          } catch (err: any) {
         const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
         if (errCode === 4 || err.message?.includes("giới hạn request")) {
           triggerMetaRateLimit();
@@ -1785,17 +1806,22 @@ export default function App() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
-                    <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
-                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-700 hover:border-slate-500 rounded-full transition-all h-10 w-full shadow-sm group">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none shrink-0 border-r border-slate-700 pr-2">
+                    <div className="relative flex flex-1 sm:flex-none items-center gap-1 shrink-0" ref={timeDropdownRef}>
+                      <div 
+                        className="inline-flex items-center justify-between gap-2 px-3 bg-slate-800/80 border border-slate-700 hover:border-slate-500 rounded-xl transition-all h-9 w-auto min-w-fit shadow-sm group cursor-pointer" 
+                        onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                        role="button"
+                        aria-haspopup="listbox"
+                        aria-expanded={showTimeDropdown}
+                      >
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider select-none shrink-0 border-r border-slate-700 pr-2">
                           thời gian
                         </span>
                         
                         <div 
-                          className="relative h-7 pl-1.5 pr-1 flex items-center justify-between gap-2 cursor-pointer min-w-[110px] hover:text-accent transition-colors flex-1"
-                          onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                          className="relative pl-1 flex items-center justify-between gap-2 text-white hover:text-accent transition-colors flex-1"
                         >
-                          <span className="text-xs font-bold text-white truncate group-hover:text-accent transition-colors">
+                          <span className="text-[11px] font-bold truncate">
                             {filters.timeRangePreset === "today" && "Hôm nay"}
                             {filters.timeRangePreset === "week" && "Tuần này"}
                             {filters.timeRangePreset === "month" && "Tháng này"}
@@ -1803,8 +1829,9 @@ export default function App() {
                             {filters.timeRangePreset === "all" && "Tất cả"}
                             {filters.timeRangePreset === "custom" && "Tuỳ chỉnh..."}
                           </span>
-                          <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${showTimeDropdown ? "rotate-90 text-accent" : ""}`} />
+                          <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-150 ${showTimeDropdown ? "rotate-180" : ""}`} />
                         </div>
+                      </div>
                         
                         {filters.timeRangePreset === "custom" && filters.enableDateRange && (filters.dateFrom || filters.dateTo) && (
                            <div 
@@ -1813,85 +1840,88 @@ export default function App() {
                                setTempDateTo(filters.dateTo);
                                setShowCustomDateModal(true);
                              }}
-                             className="text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
+                             className="ml-2 text-[10px] text-accent font-bold bg-accent/10 hover:bg-accent/20 px-2.5 py-1.5 rounded-full cursor-pointer transition-colors border border-accent/20 whitespace-nowrap"
                              title="Sửa ngày tuỳ chỉnh"
                            >
                              {filters.dateFrom ? filters.dateFrom.split("-").reverse().join("/") : "..."} - {filters.dateTo ? filters.dateTo.split("-").reverse().join("/") : "..."}
                            </div>
                         )}
-                      </div>
 
                       {/* Dropdown Menu */}
                       {showTimeDropdown && (
-                        <>
-                          <div className="absolute top-[115%] left-0 right-0 z-[100] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 min-w-[200px] ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5">
-                            {[
-                              { id: "today", label: "Hôm nay" },
-                              { id: "week", label: "Tuần này" },
-                              { id: "month", label: "Tháng này" },
-                              { id: "year", label: "Năm nay" },
-                              { id: "all", label: "Từ trước đến nay" },
-                              { id: "custom", label: "Tuỳ chỉnh..." }
-                            ].map((preset) => (
-                              <button
-                                key={preset.id}
-                                className={`text-left px-3.5 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
-                                  filters.timeRangePreset === preset.id 
-                                    ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold" 
-                                    : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
-                                }`}
-                                onClick={() => {
-                                  const val = preset.id;
-                                  if (val === "custom") {
-                                    setTempDateFrom(filters.dateFrom);
-                                    setTempDateTo(filters.dateTo);
-                                    setShowCustomDateModal(true);
-                                  } else {
-                                    const today = new Date();
-                                    let dFrom = "";
-                                    let dTo = "";
-                                    if (val === "today") {
-                                      dFrom = today.toISOString().split('T')[0];
-                                      dTo = dFrom;
-                                    } else if (val === "week") {
-                                      const day = today.getDay();
-                                      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-                                      const monday = new Date(today.setDate(diff));
-                                      dFrom = monday.toISOString().split('T')[0];
-                                      dTo = new Date().toISOString().split('T')[0];
-                                    } else if (val === "month") {
-                                      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                                      dFrom = startOfMonth.toISOString().split('T')[0];
-                                      dTo = new Date().toISOString().split('T')[0];
-                                    } else if (val === "year") {
-                                      const startOfYear = new Date(today.getFullYear(), 0, 1);
-                                      dFrom = startOfYear.toISOString().split('T')[0];
-                                      dTo = new Date().toISOString().split('T')[0];
-                                    }
-                                    
-                                    setFilters(f => ({ 
-                                      ...f, 
-                                      timeRangePreset: val as any,
-                                      dateFrom: dFrom,
-                                      dateTo: dTo,
-                                      enableDateRange: val !== "all"
-                                    }));
-                                    addLog("system", `Đã đổi bộ lọc thời gian thành: ${preset.label}`, "success");
+                        <div 
+                          className="absolute right-0 sm:left-0 top-[115%] mt-1 z-[100] min-w-full w-max max-w-[260px] max-h-[280px] overflow-y-auto overscroll-contain bg-slate-800/95 backdrop-blur-3xl border border-slate-700/50 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-[0.98] duration-150 ring-1 ring-white/5"
+                          role="listbox"
+                        >
+                          {[
+                            { id: "today", label: "Hôm nay" },
+                            { id: "week", label: "Tuần này" },
+                            { id: "month", label: "Tháng này" },
+                            { id: "year", label: "Năm nay" },
+                            { id: "all", label: "Từ trước đến nay" },
+                            { id: "custom", label: "Tuỳ chỉnh..." }
+                          ].map((preset) => (
+                            <button
+                              key={preset.id}
+                              role="option"
+                              aria-selected={filters.timeRangePreset === preset.id}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors flex items-center justify-between cursor-pointer ${
+                                filters.timeRangePreset === preset.id 
+                                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)]" 
+                                  : "text-slate-300 hover:text-white hover:bg-white/10"
+                              }`}
+                              onClick={() => {
+                                const val = preset.id;
+                                if (val === "custom") {
+                                  setTempDateFrom(filters.dateFrom);
+                                  setTempDateTo(filters.dateTo);
+                                  setShowCustomDateModal(true);
+                                } else {
+                                  const today = new Date();
+                                  let dFrom = "";
+                                  let dTo = "";
+                                  if (val === "today") {
+                                    dFrom = today.toISOString().split('T')[0];
+                                    dTo = dFrom;
+                                  } else if (val === "week") {
+                                    const day = today.getDay();
+                                    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                                    const monday = new Date(today.setDate(diff));
+                                    dFrom = monday.toISOString().split('T')[0];
+                                    dTo = new Date().toISOString().split('T')[0];
+                                  } else if (val === "month") {
+                                    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                                    dFrom = startOfMonth.toISOString().split('T')[0];
+                                    dTo = new Date().toISOString().split('T')[0];
+                                  } else if (val === "year") {
+                                    const startOfYear = new Date(today.getFullYear(), 0, 1);
+                                    dFrom = startOfYear.toISOString().split('T')[0];
+                                    dTo = new Date().toISOString().split('T')[0];
                                   }
-                                  setShowTimeDropdown(false);
-                                }}
-                              >
-                                {preset.label}
-                              </button>
-                            ))}
-                          </div>
-                        </>
+                                  
+                                  setFilters(f => ({ 
+                                    ...f, 
+                                    timeRangePreset: val as any,
+                                    dateFrom: dFrom,
+                                    dateTo: dTo,
+                                    enableDateRange: val !== "all"
+                                  }));
+                                  addLog("system", `Đã đổi bộ lọc thời gian thành: ${preset.label}`, "success");
+                                }
+                                setShowTimeDropdown(false);
+                              }}
+                            >
+                              <span>{preset.label}</span>
+                              {filters.timeRangePreset === preset.id && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-700 hover:border-slate-500 rounded-full transition-all h-10 shrink-0 shadow-sm group">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none shrink-0 border-r border-slate-700 pr-2">
+                    <div className="inline-flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 bg-slate-800/80 border border-slate-700 hover:border-slate-500 rounded-xl transition-all h-9 w-auto min-w-fit shrink-0 shadow-sm group">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider select-none shrink-0 border-r border-slate-700 pr-2">
                         tải
                       </span>
                       <div className="flex items-center gap-1">
@@ -1899,11 +1929,11 @@ export default function App() {
                           value={filters.maxPostsToFetch}
                           onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
                           options={[
-                            { value: 50, label: "50" },
                             { value: 100, label: "100" },
-                            { value: 150, label: "150 (Tải thêm)" },
-                            { value: 200, label: "200 (Tải thêm)" },
-                            { value: 300, label: "300 (Tối đa)" }
+                            { value: 200, label: "200" },
+                            { value: 300, label: "300" },
+                            { value: 400, label: "400" },
+                            { value: 500, label: "500 (Tối đa)" }
                           ]}
                         />
                       </div>
