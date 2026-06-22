@@ -825,7 +825,7 @@ export default function App() {
     toast.error(`Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.`, "Giới hạn Meta");
   };
 
-  const handleRateLimitOrUsage = (dataOrError: any, pageName?: string) => {
+  const handleRateLimitOrUsage = (dataOrError: any, pageName?: string, isDeleteAction: boolean = false) => {
     const isErr = dataOrError instanceof Error;
     const responseJson = isErr ? (dataOrError as any).responseJson : dataOrError;
     const status = isErr ? (dataOrError as any).status : null;
@@ -911,15 +911,15 @@ export default function App() {
         requestQueue.delayBetweenRequests = 0;
       }
 
-      // 6. Usage >= 85%: Stop loading next Page, show warn
-      if (usageMax >= 85) {
+      // 6. Usage >= 85%: Stop loading next Page, show warn (unless isDeleteAction is true)
+      if (usageMax >= 85 && !isDeleteAction) {
         scanCancelledRef.current = true;
         addLog("system", `Cảnh báo: Mức sử dụng API đã đạt ${usageMax.toFixed(1)}% (${limitType}). Dừng tải các Page tiếp theo.`, "skipped");
         toast.warning(`Mức sử dụng API sắp đạt giới hạn (${usageMax.toFixed(1)}%). Đã dừng tải tiếp.`, "Cảnh báo giới hạn");
       }
 
-      // 7. Usage >= 95%: Stop all tasks, lock download/delete buttons
-      if (usageMax >= 95) {
+      // 7. Usage >= 95%: Stop all tasks, lock download/delete buttons (unless isDeleteAction is true)
+      if (usageMax >= 95 && !isDeleteAction) {
         scanCancelledRef.current = true;
         deleteCancelledRef.current = true;
         requestQueue.clear();
@@ -1522,6 +1522,7 @@ export default function App() {
 
     let countSuccess = 0;
     let countFail = 0;
+    let countSkipped = 0;
     let wasCancelled = false;
     const affectedPageIds = new Set<string>();
 
@@ -1569,8 +1570,8 @@ export default function App() {
           });
         }, true);
 
-        // Check if rate limited
-        const isLimited = handleRateLimitOrUsage(data, post.pageName);
+        // Check if rate limited, pass true for isDeleteAction
+        const isLimited = handleRateLimitOrUsage(data, post.pageName, true);
         if (isLimited) {
           countFail++;
           wasCancelled = true;
@@ -1601,29 +1602,46 @@ export default function App() {
           countFail++;
           addLog(postId, `Xác minh xoá thất bại: Meta nhận lệnh nhưng chưa xác minh được nội dung đã bị xoá.`, "failed");
         } else {
-          countFail++;
           const errCode = data.errorCode || data.error?.code;
-          let logMsg = `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error?.message || data.error || "Lỗi Meta API"}`;
-          if (errCode === "DELETE_NOT_CONFIRMED") {
-            logMsg = `Meta chưa xác nhận xoá: [ID: ${postId}].`;
-          } else if (errCode === "DELETE_VERIFICATION_FAILED") {
-            logMsg = `Xác minh xoá thất bại: [ID: ${postId}].`;
-          }
-          addLog(postId, logMsg, "failed");
+          const errMsg = data.error?.message || "";
+          const isNotCreatedByApp = errCode === 200 || errMsg.toLowerCase().includes("this post wasn't created by the application");
 
-          if (errCode === 4 || errCode === 613) {
-            wasCancelled = true;
-            break;
+          if (isNotCreatedByApp) {
+            countSkipped++;
+            addLog(postId, `Bài viết không do ứng dụng này tạo (Lỗi #200): [ID: ${postId}] [Page: ${post.pageName}]`, "skipped");
+          } else {
+            countFail++;
+            let logMsg = `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error?.message || data.error || "Lỗi Meta API"}`;
+            if (errCode === "DELETE_NOT_CONFIRMED") {
+              logMsg = `Meta chưa xác nhận xoá: [ID: ${postId}].`;
+            } else if (errCode === "DELETE_VERIFICATION_FAILED") {
+              logMsg = `Xác minh xoá thất bại: [ID: ${postId}].`;
+            }
+            addLog(postId, logMsg, "failed");
+
+            if (errCode === 4 || errCode === 613) {
+              wasCancelled = true;
+              break;
+            }
           }
         }
       } catch (err: any) {
-        countFail++;
-        addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
-        
-        const isLimited = handleRateLimitOrUsage(err, post.pageName);
-        if (isLimited) {
-          wasCancelled = true;
-          break;
+        const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code || err.errorCode || err.error?.code;
+        const errMsg = (err.message || "").toLowerCase();
+        const isNotCreatedByApp = errCode === 200 || errMsg.includes("this post wasn't created by the application");
+
+        if (isNotCreatedByApp) {
+          countSkipped++;
+          addLog(postId, `Bài viết không do ứng dụng này tạo (Lỗi #200): [ID: ${postId}] [Page: ${post.pageName}]`, "skipped");
+        } else {
+          countFail++;
+          addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
+          
+          const isLimited = handleRateLimitOrUsage(err, post.pageName, true);
+          if (isLimited) {
+            wasCancelled = true;
+            break;
+          }
         }
       }
 
@@ -1642,17 +1660,25 @@ export default function App() {
     setDeletedCountSession(prev => prev + countSuccess);
     
     if (wasCancelled) {
-      addLog("queue", `Đã dừng tác vụ xoá hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "failed");
+      addLog("queue", `Đã dừng tác vụ xoá hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}${countSkipped > 0 ? `, Bỏ qua: ${countSkipped}` : ""}.`, "failed");
       toast.warning(`Tiến trình xoá đã bị dừng lại. Đã xoá thành công ${countSuccess} bài.`, "Đã dừng xoá");
     } else {
-      addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}.`, "success");
+      addLog("queue", `Hoàn thành tác vụ xóa hàng loạt! Thành công: ${countSuccess}, Thất bại: ${countFail}${countSkipped > 0 ? `, Bỏ qua: ${countSkipped}` : ""}.`, "success");
       
       if (countSuccess > 0 && countFail === 0) {
-        toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
+        if (countSkipped > 0) {
+          toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countSkipped} bài không do app tạo (bỏ qua).`, "Xóa hoàn tất");
+        } else {
+          toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
+        }
       } else if (countSuccess > 0 && countFail > 0) {
-        toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại.`, "Xóa hoàn tất");
+        toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại${countSkipped > 0 ? `, ${countSkipped} bài bỏ qua` : ""}.`, "Xóa hoàn tất");
       } else {
-        toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
+        if (countSuccess === 0 && countFail === 0 && countSkipped > 0) {
+          toast.info(`Tiến trình hoàn tất. Đã bỏ qua ${countSkipped} bài viết không do ứng dụng này tạo.`, "Không có gì thay đổi");
+        } else {
+          toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
+        }
       }
     }
     
@@ -2654,9 +2680,9 @@ export default function App() {
                     id="btn-delete-trigger"
                     type="button"
                     onClick={() => setShowConfirmModal(true)}
-                    disabled={selectedPostIds.length === 0 || isDeleting || isMetaRateLimited || currentUsageMax >= 95}
+                    disabled={selectedPostIds.length === 0 || isDeleting || isMetaRateLimited}
                     className={`flex-1 py-2.5 rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 border ${
-                      selectedPostIds.length > 0 && !isMetaRateLimited && currentUsageMax < 95
+                      selectedPostIds.length > 0 && !isMetaRateLimited
                         ? 'bg-rose-600 hover:bg-rose-700 text-white border-transparent cursor-pointer shadow-md shadow-rose-950/25' 
                         : 'bg-muted/40 text-muted-foreground/40 border-transparent opacity-40 cursor-not-allowed'
                     }`}
@@ -2763,7 +2789,7 @@ export default function App() {
                 >
                   Lỗi
                   <span className="bg-rose-500/20 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded-full text-[9px] font-semibold min-w-[14px] text-center">
-                    {logs.filter(log => log.status === "failed").length}
+                    {logs.filter(log => log.status === "failed" || log.status === "skipped").length}
                   </span>
                 </button>
               </div>
@@ -2774,7 +2800,7 @@ export default function App() {
               >
                 {(() => {
                   const filtered = logs.filter((log) => {
-                    if (activeLogTab === "error") return log.status === "failed";
+                    if (activeLogTab === "error") return log.status === "failed" || log.status === "skipped";
                     if (activeLogTab === "success") return log.status === "success";
                     return true;
                   });
@@ -2801,6 +2827,9 @@ export default function App() {
                     } else if (log.status === "failed") {
                        colorClass = "text-rose-600 font-bold";
                        prefix = "✘ LỖI";
+                    } else if (log.status === "skipped") {
+                       colorClass = "text-amber-500 font-medium";
+                       prefix = "⚠ BỎ QUA";
                     } else if (log.status === "processing") {
                        colorClass = "text-amber-500 font-medium animate-pulse";
                        prefix = "➜";
