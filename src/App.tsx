@@ -572,14 +572,7 @@ export default function App() {
   const [showConfig, setShowConfig] = useState<boolean>(false);
 
   // Meta API rate limiting and Polling states
-  const [isMetaRateLimited, setIsMetaRateLimited] = useState<boolean>(false);
-  const [rateLimitUnlockTime, setRateLimitUnlockTime] = useState<number | null>(null);
-  const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number>(0);
   const [currentUsageMax, setCurrentUsageMax] = useState<number>(0);
-  const [strikeCount, setStrikeCount] = useState<number>(() => {
-    const val = localStorage.getItem("meta_rate_limit_strike_count");
-    return val ? parseInt(val, 10) : 0;
-  });
   const [jobsErrorCount, setJobsErrorCount] = useState<number>(0);
   const [isTabVisible, setIsTabVisible] = useState<boolean>(true);
   const [hasRunningJobs, setHasRunningJobs] = useState<boolean>(false);
@@ -762,68 +755,7 @@ export default function App() {
     return () => {
       if (timerId) clearTimeout(timerId);
     };
-  }, [hasRunningJobs, isTabVisible, jobsErrorCount, isMetaRateLimited]);
-
-  // Meta Rate Limit Count down timer (Requirement 1)
-  useEffect(() => {
-    if (!rateLimitUnlockTime) return;
-    const interval = setInterval(() => {
-      const remaining = rateLimitUnlockTime - Date.now();
-      if (remaining <= 0) {
-        setIsMetaRateLimited(false);
-        setRateLimitUnlockTime(null);
-        setRateLimitSecondsLeft(0);
-        localStorage.removeItem("meta_rate_limit_unlock_time");
-        addLog("system", "Hết thời gian tạm khoá. Bạn có thể tiếp tục thực hiện các tác vụ.", "success");
-        toast.success("Hệ thống đã tự động mở khóa giới hạn Meta API. Bạn có thể quét tiếp.", "Đã mở khóa");
-      } else {
-        setRateLimitSecondsLeft(Math.ceil(remaining / 1000));
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [rateLimitUnlockTime]);
-
-  const resetRateLimitStrike = () => {
-    setStrikeCount(0);
-    localStorage.removeItem("meta_rate_limit_strike_count");
-    localStorage.removeItem("meta_rate_limit_unlock_time");
-  };
-
-  const triggerMetaRateLimit = (retryAfterSeconds?: number) => {
-    if (isMetaRateLimited && rateLimitUnlockTime && rateLimitUnlockTime > Date.now()) {
-      return;
-    }
-
-    const newStrike = strikeCount + 1;
-    setStrikeCount(newStrike);
-    localStorage.setItem("meta_rate_limit_strike_count", newStrike.toString());
-
-    let cooldownSeconds = 120;
-    if (retryAfterSeconds && retryAfterSeconds > 0) {
-      cooldownSeconds = retryAfterSeconds;
-    } else {
-      if (newStrike === 1) {
-        cooldownSeconds = 120;
-      } else if (newStrike === 2) {
-        cooldownSeconds = 300;
-      } else {
-        cooldownSeconds = 600;
-      }
-    }
-
-    const unlockTime = Date.now() + cooldownSeconds * 1000;
-    setIsMetaRateLimited(true);
-    setRateLimitUnlockTime(unlockTime);
-    setRateLimitSecondsLeft(cooldownSeconds);
-    localStorage.setItem("meta_rate_limit_unlock_time", unlockTime.toString());
-
-    scanCancelledRef.current = true;
-    deleteCancelledRef.current = true;
-    requestQueue.clear();
-
-    addLog("system", `GIỚI HẠN YÊU CẦU CỦA META. Dừng toàn bộ tác vụ. Strike: ${newStrike}. Cooldown: ${cooldownSeconds} giây.`, "failed");
-    toast.error(`Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.`, "Giới hạn Meta");
-  };
+  }, [hasRunningJobs, isTabVisible, jobsErrorCount]);
 
   const handleRateLimitOrUsage = (dataOrError: any, pageName?: string, isDeleteAction: boolean = false) => {
     const isErr = dataOrError instanceof Error;
@@ -852,9 +784,8 @@ export default function App() {
       ? ((dataOrError as any).retryAfterSeconds || responseJson?.retryAfterSeconds || null)
       : (dataOrError?.retryAfterSeconds || null);
 
-    // 1. If rate limited, trigger rate limit lock!
+    // 1. If rate limited, return true so the caller can handle it
     if (isRateLimited) {
-      triggerMetaRateLimit(retryAfterSeconds);
       return true; // was rate limited
     }
 
@@ -933,10 +864,6 @@ export default function App() {
 
   // Dedicated fetch with exponential backoff & Rate Limit detection compliance (Requirement 2 & 10)
   const fetchWithBackoff = async (url: string, options: any = {}, retryCount = 0): Promise<any> => {
-    if (isMetaRateLimited) {
-      throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
-    }
-
     try {
       const data = await safeFetchJson(url, options);
 
@@ -953,9 +880,6 @@ export default function App() {
         customErr.status = 200;
         throw customErr;
       }
-
-      // Successful request - reset strike count (Requirement 15)
-      resetRateLimitStrike();
 
       return data;
     } catch (err: any) {
@@ -1013,27 +937,9 @@ export default function App() {
 
   // Initial load
   useEffect(() => {
-    // Read cooldown/strike on mount (Requirement 5 & 6)
-    const unlockTimeStr = localStorage.getItem("meta_rate_limit_unlock_time");
-    if (unlockTimeStr) {
-      const unlockTimeVal = parseInt(unlockTimeStr, 10);
-      if (!isNaN(unlockTimeVal)) {
-        if (unlockTimeVal <= Date.now()) {
-          // Cooldown expired
-          localStorage.removeItem("meta_rate_limit_unlock_time");
-          setIsMetaRateLimited(false);
-          setRateLimitUnlockTime(null);
-          setRateLimitSecondsLeft(0);
-        } else {
-          // Cooldown active
-          setIsMetaRateLimited(true);
-          setRateLimitUnlockTime(unlockTimeVal);
-          const secLeft = Math.ceil((unlockTimeVal - Date.now()) / 1000);
-          setRateLimitSecondsLeft(secLeft);
-          addLog("system", `Khôi phục trạng thái khóa Meta API từ localStorage.`, "failed");
-        }
-      }
-    }
+    // Clean up old rate limit state from localStorage
+    localStorage.removeItem("meta_rate_limit_unlock_time");
+    localStorage.removeItem("meta_rate_limit_strike_count");
 
     const checkSetupAndFetch = async () => {
       // Check if redirect has returned with token
@@ -1249,12 +1155,6 @@ export default function App() {
       return;
     }
 
-    if (isMetaRateLimited) {
-      const remainingSec = Math.ceil(((rateLimitUnlockTime || 0) - Date.now()) / 1000);
-      toast.error(`Ứng dụng đang trong thời gian tạm khóa 10 phút do giới hạn của Meta. Vui lòng chờ ${remainingSec > 0 ? remainingSec : 0}s nữa.`, "Giới hạn Request");
-      return;
-    }
-
     setLoadingPosts(true);
     setApiError(null);
     setSelectedPostIds([]);
@@ -1270,7 +1170,7 @@ export default function App() {
     let index = 0;
 
     const scanSinglePage = async (pageId: string) => {
-      if (scanCancelledRef.current || isMetaRateLimited) return;
+      if (scanCancelledRef.current) return;
 
       const pageInfo = pages.find(p => p.id === pageId);
       if (!pageInfo) return;
@@ -1367,7 +1267,7 @@ export default function App() {
 
     // Worker queue pattern execution
     const worker = async () => {
-      while (pageIdQueue.length > 0 && !scanCancelledRef.current && !isMetaRateLimited) {
+      while (pageIdQueue.length > 0 && !scanCancelledRef.current) {
         const pageId = pageIdQueue.shift()!;
         await scanSinglePage(pageId);
       }
@@ -1527,7 +1427,7 @@ export default function App() {
     const affectedPageIds = new Set<string>();
 
     for (let i = 0; i < selectedPostIds.length; i++) {
-      if (deleteCancelledRef.current || isMetaRateLimited) {
+      if (deleteCancelledRef.current) {
         wasCancelled = true;
         addLog("queue", `Tiến trình xóa bị dừng tại bài viết thứ ${i + 1}/${selectedPostIds.length}`, "skipped");
         break;
@@ -1950,20 +1850,6 @@ export default function App() {
               <div className="text-xs flex-1">
                 <span className="font-semibold block text-[12px] text-rose-300">Sự cố kết nối hoặc xác thực:</span>
                 <p className="mt-1 font-mono text-[10px] sm:text-[11px] opacity-80 truncate max-w-full" title={apiError}>{apiError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* META RATE LIMIT ALERT BANNER */}
-          {isMetaRateLimited && (
-            <div className="mb-3 backdrop-blur-md bg-red-500/15 border-l-4 border-red-500 p-3.5 rounded-r-xl flex items-start gap-3 text-red-150 shadow-lg shrink-0 relative z-20">
-              <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5 animate-pulse" />
-              <div className="text-xs flex-1">
-                <span className="font-extrabold uppercase tracking-wider block text-[11px] text-red-400 mb-0.5">Giới hạn yêu cầu của Meta</span>
-                <p className="font-medium text-[12px]">Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.</p>
-                <span className="text-[10px] text-red-400 font-mono mt-1 block font-bold">
-                  {formatCountdown(rateLimitSecondsLeft)}
-                </span>
               </div>
             </div>
           )}
@@ -2669,7 +2555,7 @@ export default function App() {
                     id="btn-load-posts"
                     type="button"
                     onClick={() => fetchPostsFromSelectedPages(true)}
-                    disabled={selectedPageIds.length === 0 || loadingPosts || isMetaRateLimited || currentUsageMax >= 95}
+                    disabled={selectedPageIds.length === 0 || loadingPosts}
                     className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow"
                   >
                     <RotateCw className={`w-3.5 h-3.5 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
@@ -2680,9 +2566,9 @@ export default function App() {
                     id="btn-delete-trigger"
                     type="button"
                     onClick={() => setShowConfirmModal(true)}
-                    disabled={selectedPostIds.length === 0 || isDeleting || isMetaRateLimited}
+                    disabled={selectedPostIds.length === 0 || isDeleting}
                     className={`flex-1 py-2.5 rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 border ${
-                      selectedPostIds.length > 0 && !isMetaRateLimited
+                      selectedPostIds.length > 0
                         ? 'bg-rose-600 hover:bg-rose-700 text-white border-transparent cursor-pointer shadow-md shadow-rose-950/25' 
                         : 'bg-muted/40 text-muted-foreground/40 border-transparent opacity-40 cursor-not-allowed'
                     }`}
