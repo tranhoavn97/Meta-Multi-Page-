@@ -3,11 +3,20 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
   const contentType = response.headers.get("content-type") || "";
   const text = await response.text();
 
+  const rateLimitInfo = {
+    appUsage: response.headers.get("x-app-usage"),
+    pageUsage: response.headers.get("x-page-usage"),
+    businessUsage: response.headers.get("x-business-use-case-usage"),
+  };
+
   if (contentType.includes("application/json")) {
     try {
       const data = JSON.parse(text);
       if (!response.ok && !data.error) {
          data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
+      }
+      if (data && typeof data === "object") {
+        data._rateLimitInfo = rateLimitInfo;
       }
       return data;
     } catch (e) {
@@ -37,12 +46,19 @@ export default async function handler(req: any, res: any) {
     let allPages: any[] = [];
     let nextUrl: string | null = url;
 
+    let lastRateLimitInfo: any = null;
     while (nextUrl) {
       const data = await backendFetchJson(nextUrl);
+      if (data && data._rateLimitInfo) {
+        lastRateLimitInfo = data._rateLimitInfo;
+      }
 
       if (data.error) {
         if (allPages.length === 0) {
-          return res.status(500).json({ error: data.error.message || "Meta API Error" });
+          return res.status(500).json({ 
+            error: data.error.message || "Meta API Error",
+            errorCode: data.error.code 
+          });
         } else {
           break;
         }
@@ -56,9 +72,16 @@ export default async function handler(req: any, res: any) {
       }
 
       nextUrl = (data.paging && data.paging.next) || null;
+      if (nextUrl) {
+        const delayMs = Math.floor(Math.random() * 501) + 500; // 500 - 1000 ms
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
     }
 
-    return res.status(200).json({ data: allPages });
+    return res.status(200).json({ 
+      data: allPages,
+      rateLimitInfo: lastRateLimitInfo || { appUsage: null, pageUsage: null, businessUsage: null }
+    });
   } catch (error: any) {
     console.error("Lỗi khi tải danh sách Fanpages:", error);
     return res.status(500).json({ error: error.message || "Lỗi máy chủ khi lấy trang" });

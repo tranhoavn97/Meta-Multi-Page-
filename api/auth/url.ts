@@ -23,7 +23,7 @@ export default async function handler(req: any, res: any) {
     };
     const stateStr = Buffer.from(JSON.stringify(stateObj)).toString("base64");
 
-    const scopes = "pages_manage_posts,pages_read_engagement";
+    const scopes = "pages_show_list,pages_manage_posts,pages_read_engagement,business_management";
     const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${stateStr}&response_type=code`;
 
     return res.status(200).json({ url: authUrl });

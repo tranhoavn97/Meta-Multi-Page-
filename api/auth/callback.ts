@@ -79,7 +79,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).send(`
       <html>
         <head>
-          <title>Facebook Auth Success</title>
+          <title>Facebook Đăng Nhập Thành Công</title>
           <meta charset="utf-8" />
           <style>
             body { font-family: system-ui, sans-serif; text-align: center; padding: 60px; background: #f0fdf4; color: #166534; }
