@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE } from "./_lib/meta-config";
+import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson, parseUsagePercentage } from "./_lib/meta-client";
 import { registerPageTokens } from "./_lib/page-token-store";
 
@@ -8,17 +8,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  const userToken = getMetaAccessToken(req);
-  if (!userToken) {
-    return res.status(401).json({
-      success: false,
-      error: {
-        code: "UNAUTHORIZED",
-        message: "Phiên làm việc Facebook chưa được khởi tạo. Vui lòng kết nối lại tài khoản của bạn.",
-        reconnectRequired: true
-      }
-    });
-  }
+  try {
+    const envCheck = checkRequiredEnvVars();
+    if (!envCheck.valid) {
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_SERVER_CONFIG",
+          message: "Máy chủ đang thiếu cấu hình cần thiết."
+        }
+      });
+    }
+
+    const userToken = getMetaAccessToken(req);
+    if (!userToken) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Phiên làm việc Facebook chưa được khởi tạo. Vui lòng kết nối lại tài khoản của bạn.",
+          reconnectRequired: true
+        }
+      });
+    }
 
   try {
     const url = `${GRAPH_API_BASE}/me/accounts?fields=id,name,access_token,category,picture{url},tasks&access_token=${encodeURIComponent(userToken)}&limit=100`;
@@ -89,4 +101,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
   }
+} catch (globalError: any) {
+  console.error("Lỗi toàn cục trong pages API:", globalError);
+  return res.status(500).json({
+    success: false,
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      message: globalError.message || "Đã xảy ra lỗi không phân loại trên hệ thống."
+    }
+  });
+}
 }

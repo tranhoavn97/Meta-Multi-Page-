@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE } from "./_lib/meta-config";
+import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
 import { getPageAccessToken } from "./_lib/page-token-store";
 
@@ -8,15 +8,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: {
-        code: "METHOD_NOT_ALLOWED",
-        message: "Chỉ hỗ trợ phương thức POST để thực hiện xoá."
-      }
-    });
-  }
+  try {
+    const envCheck = checkRequiredEnvVars();
+    if (!envCheck.valid) {
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_SERVER_CONFIG",
+          message: "Máy chủ đang thiếu cấu hình cần thiết."
+        }
+      });
+    }
+
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        success: false,
+        error: {
+          code: "METHOD_NOT_ALLOWED",
+          message: "Chỉ hỗ trợ phương thức POST để thực hiện xoá."
+        }
+      });
+    }
 
   const { post_id, postId, pageId: suppliedPageId, confirm } = req.body || {};
   const activePostId = post_id || postId;
@@ -102,4 +114,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
   }
+} catch (globalError: any) {
+  console.error("Lỗi hệ thống toàn cục trong delete-post:", globalError);
+  return res.status(500).json({
+    success: false,
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      message: globalError.message || "Đã xảy ra lỗi không phân loại trên máy chủ."
+    }
+  });
+}
 }

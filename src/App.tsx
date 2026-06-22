@@ -679,13 +679,56 @@ export default function App() {
     } catch (err: any) {
       const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
       const errMsg = err.message || "";
+      const isVercelInvocationFailed = 
+        errMsg.toUpperCase().includes("FUNCTION_INVOCATION_FAILED") || 
+        JSON.stringify(err.responseJson || "").toUpperCase().includes("FUNCTION_INVOCATION_FAILED");
 
       if (errCode === 4 || errMsg.toLowerCase().includes("application request limit reached")) {
         triggerMetaRateLimit();
         throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
       }
 
-      // Max 3 retries
+      // Requirement 15: "Không retry FUNCTION_INVOCATION_FAILED 3 lần trong 60 giây. Không tiếp tục quét hoặc xoá bài."
+      if (isVercelInvocationFailed) {
+        const message = "Máy chủ đang gặp lỗi. Vui lòng kiểm tra Runtime Logs trên Vercel.";
+        addLog("system", `Lỗi nghiêm trọng: ${message}`, "failed");
+        toast.error(message, "Lỗi Runtime Vercel");
+        
+        // Stop scanning and deletions immediately!
+        scanCancelledRef.current = true;
+        deleteCancelledRef.current = true;
+        setLoadingPosts(false);
+        setIsDeleting(false);
+
+        const fatalErr = new Error(message) as any;
+        fatalErr.fatal = true;
+        throw fatalErr;
+      }
+
+      // Requirement 15: "Với HTTP 500 chỉ retry tối đa 1 lần sau 2 giây. Sau đó hiển thị: ‘Máy chủ đang gặp lỗi. Vui lòng kiểm tra Runtime Logs trên Vercel.’ Không tiếp tục quét Page hoặc xoá bài."
+      if (err.status === 500) {
+        if (retryCount >= 1) {
+          const message = "Máy chủ đang gặp lỗi. Vui lòng kiểm tra Runtime Logs trên Vercel.";
+          addLog("system", `Lỗi 500 sau khi thử lại: ${message}`, "failed");
+          toast.error(message, "Lỗi máy chủ máy chủ");
+
+          // Stop scanning and deletions immediately!
+          scanCancelledRef.current = true;
+          deleteCancelledRef.current = true;
+          setLoadingPosts(false);
+          setIsDeleting(false);
+
+          const fatalErr = new Error(message) as any;
+          fatalErr.fatal = true;
+          throw fatalErr;
+        }
+
+        addLog("system", `Máy chủ trả về HTTP 500. Đang thử lại duy nhất một lần sau 2 giây...`, "processing");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return fetchWithBackoff(url, options, retryCount + 1);
+      }
+
+      // Max 3 retries for other non-500, non-Vercel-failed actions
       if (retryCount >= 3) {
         throw err;
       }

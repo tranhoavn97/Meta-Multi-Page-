@@ -2,17 +2,38 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
 import { parseCookies, clearCookie } from "../_lib/cookies";
 import { setMetaAccessToken } from "../_lib/session";
-import { GRAPH_API_VERSION, GRAPH_API_BASE } from "../_lib/meta-config";
+import { GRAPH_API_VERSION, GRAPH_API_BASE, checkRequiredEnvVars } from "../_lib/meta-config";
 import { metaFetchJson } from "../_lib/meta-client";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { code, state, error, error_description } = req.query;
-
-  if (error) {
-    return res.status(400).json({ error: error_description || error });
-  }
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
 
   try {
+    const envCheck = checkRequiredEnvVars();
+    if (!envCheck.valid) {
+      res.setHeader("Content-Type", "application/json");
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_SERVER_CONFIG",
+          message: "Máy chủ đang thiếu cấu hình cần thiết."
+        }
+      });
+    }
+
+    const { code, state, error, error_description } = req.query;
+
+    if (error) {
+      res.setHeader("Content-Type", "application/json");
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "OAUTH_ERROR",
+          message: String(error_description || error)
+        }
+      });
+    }
+
     // 1. Read states
     const queryState = typeof state === "string" ? state : "";
     const cookies = parseCookies(req.headers?.cookie);
@@ -22,21 +43,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     clearCookie(res, "oauth_state");
 
     if (!queryState || !cookieState || queryState !== cookieState) {
-      return res.status(400).json({ error: "OAuth state không hợp lệ hoặc đã hết hạn." });
+      res.setHeader("Content-Type", "application/json");
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_STATE",
+          message: "OAuth state không hợp lệ hoặc đã hết hạn."
+        }
+      });
     }
 
     if (!code || typeof code !== "string") {
-      return res.status(400).json({ error: "Không nhận được mã xác thực (Authorization code)." });
+      res.setHeader("Content-Type", "application/json");
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "MISSING_CODE",
+          message: "Không nhận được mã xác thực (Authorization code)."
+        }
+      });
     }
 
     const appId = process.env.META_APP_ID;
     const appSecret = process.env.META_APP_SECRET;
 
     if (!appSecret) {
-      return res.status(500).json({ error: "META_APP_SECRET chưa được cấu hình trên máy chủ." });
+      res.setHeader("Content-Type", "application/json");
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_APP_SECRET",
+          message: "META_APP_SECRET chưa được cấu hình trên máy chủ."
+        }
+      });
     }
     if (!appId) {
-      return res.status(400).json({ error: "Chưa cấu hình Meta App ID." });
+      res.setHeader("Content-Type", "application/json");
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "MISSING_APP_ID",
+          message: "Chưa cấu hình Meta App ID."
+        }
+      });
     }
 
     const appUrl = process.env.APP_URL || `https://${req.headers.host}`;

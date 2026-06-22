@@ -1,36 +1,47 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE } from "./_lib/meta-config";
+import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson } from "./_lib/meta-client";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: {
-        code: "METHOD_NOT_ALLOWED",
-        message: "Chỉ hỗ trợ phương thức POST để kiểm tra trạng thái."
-      }
-    });
-  }
-
-  const userToken = getMetaAccessToken(req);
-  if (!userToken) {
-    return res.status(401).json({
-      success: false,
-      status: "disconnected",
-      error: {
-        code: "UNAUTHORIZED",
-        message: "Phiên làm việc Facebook đã hết hạn. Vui lòng kết nối lại tài khoản.",
-        reconnectRequired: true
-      }
-    });
-  }
-
   try {
+    const envCheck = checkRequiredEnvVars();
+    if (!envCheck.valid) {
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_SERVER_CONFIG",
+          message: "Máy chủ đang thiếu cấu hình cần thiết."
+        }
+      });
+    }
+
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        success: false,
+        error: {
+          code: "METHOD_NOT_ALLOWED",
+          message: "Chỉ hỗ trợ phương thức POST để kiểm tra trạng thái."
+        }
+      });
+    }
+
+    const userToken = getMetaAccessToken(req);
+    if (!userToken) {
+      return res.status(401).json({
+        success: false,
+        status: "disconnected",
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Phiên làm việc Facebook đã hết hạn. Vui lòng kết nối lại tài khoản.",
+          reconnectRequired: true
+        }
+      });
+    }
+
     const meUrl = `${GRAPH_API_BASE}/me?fields=id,name&access_token=${encodeURIComponent(userToken)}`;
     let meData: any;
     try {

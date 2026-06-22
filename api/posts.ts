@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getMetaAccessToken } from "./_lib/session";
-import { GRAPH_API_BASE } from "./_lib/meta-config";
+import { GRAPH_API_BASE, checkRequiredEnvVars } from "./_lib/meta-config";
 import { metaFetchJson, parseUsagePercentage, getSingleQueryParam } from "./_lib/meta-client";
 import { getPageAccessToken } from "./_lib/page-token-store";
 
@@ -10,16 +10,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  const pageId = getSingleQueryParam(req.query.pageId || req.query.page_id);
-  if (!pageId) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        code: "BAD_REQUEST",
-        message: "Yêu cầu thiếu pageId nhận diện Fanpage."
-      }
-    });
-  }
+  try {
+    const envCheck = checkRequiredEnvVars();
+    if (!envCheck.valid) {
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: "MISSING_SERVER_CONFIG",
+          message: "Máy chủ đang thiếu cấu hình cần thiết."
+        }
+      });
+    }
+
+    const pageId = getSingleQueryParam(req.query.pageId || req.query.page_id);
+    if (!pageId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: "BAD_REQUEST",
+          message: "Yêu cầu thiếu pageId nhận diện Fanpage."
+        }
+      });
+    }
 
   const forceRefresh = req.query.forceRefresh === "true";
   const requestedLimit = Math.min(500, parseInt((req.query.limit as string) || "500", 10));
@@ -159,4 +171,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
   }
+} catch (globalError: any) {
+  console.error("Lỗi toàn cục trong posts API:", globalError);
+  return res.status(500).json({
+    success: false,
+    error: {
+      code: "INTERNAL_SERVER_ERROR",
+      message: globalError.message || "Đã xảy ra lỗi không phân loại trên hệ thống."
+    }
+  });
+}
 }
