@@ -44,6 +44,7 @@ import {
 import { FacebookPage, FacebookPost, FilterCriteria, DeletionLog } from "./types";
 import { safeFetchJson } from "./utils/safeFetchJson";
 import { useToast } from "./components/Toast";
+import Tooltip from "./components/Tooltip";
 import PageStatusTab from "./components/PageStatusTab";
 import PageAdminsTab from "./components/PageAdminsTab";
 import ThemeSettingsTab from "./components/ThemeSettingsTab";
@@ -1318,23 +1319,31 @@ export default function App() {
         <aside className={`w-full transition-all duration-300 glass-card p-4 shrink-0 flex flex-col gap-5 shadow-lg relative z-30 h-auto md:h-full overflow-y-auto rounded-[24px] border border-transparent ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[195px] xl:w-[215px]'}`}>
           {/* Logo & Branding */}
           <div className="flex items-center gap-3 w-full justify-between select-none px-1">
-            <div 
-              className="flex items-center gap-3 overflow-hidden cursor-pointer group"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title="Mở rộng / Thu gọn Sidebar"
+            <Tooltip 
+              content={isSidebarCollapsed ? "Mở rộng Sidebar" : "Thu gọn Sidebar"} 
+              side="right" 
+              description="Bật / Tắt Menu"
             >
-              <div className="w-10 h-10 bg-[#1877F2]/10 border border-[#1877F2]/25 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:bg-[#1877F2]/20 shrink-0">
-                <Facebook className="w-5 h-5 text-[#1877F2] fill-current" />
-              </div>
-              {!isSidebarCollapsed && (
-                <div className="hidden sm:block whitespace-nowrap">
-                  <h1 className="text-[16px] font-sans font-semibold tracking-tight text-foreground transition-colors">
-                    Meta Page
-                  </h1>
-                  <p className="text-[9px] text-slate-400 mt-0.5 font-mono tracking-wider">MANAGER</p>
+              <div 
+                className="flex items-center gap-3 overflow-hidden cursor-pointer group w-full"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              >
+                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-500 to-[#1877F2] flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(24,119,242,0.4)] border border-blue-400/30 overflow-hidden transform group-hover:scale-[1.03] transition-all duration-300">
+                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <Facebook className="w-5 h-5 text-white fill-current drop-shadow-md z-10" />
                 </div>
-              )}
-            </div>
+                {!isSidebarCollapsed && (
+                  <div className="hidden sm:flex flex-col min-w-0 justify-center">
+                    <h1 className="text-[17px] font-black tracking-tight truncate pb-0.5 leading-none bg-clip-text text-transparent bg-gradient-to-r from-slate-200 to-slate-400 dark:from-white dark:to-slate-300">
+                      Meta Sync
+                    </h1>
+                    <span className="text-[9px] font-black text-blue-500/80 dark:text-blue-400 tracking-[0.2em] uppercase font-mono truncate leading-none mt-1 transition-colors drop-shadow-sm">
+                      Workspace
+                    </span>
+                  </div>
+                )}
+              </div>
+            </Tooltip>
           </div>
 
           <div className="hidden sm:block w-full h-px bg-white/[0.06]" />
@@ -1349,100 +1358,103 @@ export default function App() {
             
             <nav className="flex flex-row md:flex-col gap-1.5 w-full justify-between md:justify-start">
               {/* Tab: Bài viết */}
-              <button
-                 id="tab-posts"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("posts");
-                   addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Bài viết" : undefined}
-                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                   activeTab === "posts"
-                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
-              >
-                {activeTab === "posts" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                  activeTab === "posts"
-                    ? "bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
-                    : "bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                }`}>
-                  <FileText className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "posts" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Bài viết
-                  </span>
-                )}
-              </button>
+              <Tooltip disabled={!isSidebarCollapsed} content="Bài viết" description="Quản lý và xoá nội dung" side="right">
+                <button
+                   id="tab-posts"
+                   type="button"
+                   onClick={() => {
+                     setActiveTab("posts");
+                     addLog("system", "Chuyển sang trang: Quản lý bài viết", "success");
+                   }}
+                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
+                     activeTab === "posts"
+                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
+                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                   }`}
+                >
+                  {activeTab === "posts" && (
+                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                  )}
+                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    activeTab === "posts"
+                      ? "bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                      : "bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                  }`}>
+                    <FileText className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "posts" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                      Bài viết
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
 
               {/* Tab: Trạng thái API */}
-              <button
-                 id="tab-status"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("status");
-                   addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Trạng thái API" : undefined}
-                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                   activeTab === "status"
-                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
-              >
-                {activeTab === "status" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                  activeTab === "status"
-                    ? "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
-                    : "bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                }`}>
-                  <Activity className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "status" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Trạng thái API
-                  </span>
-                )}
-              </button>
+              <Tooltip disabled={!isSidebarCollapsed} content="Trạng thái API" description="Kiểm tra quyền và kết nối" side="right">
+                <button
+                   id="tab-status"
+                   type="button"
+                   onClick={() => {
+                     setActiveTab("status");
+                     addLog("system", "Chuyển sang trang: Trạng thái Fanpage", "success");
+                   }}
+                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
+                     activeTab === "status"
+                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
+                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                   }`}
+                >
+                  {activeTab === "status" && (
+                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                  )}
+                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    activeTab === "status"
+                      ? "bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                      : "bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                  }`}>
+                    <Activity className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "status" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                      Trạng thái API
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
 
               {/* Tab: Quản trị viên */}
-              <button
-                 id="tab-admins"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("admins");
-                   addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Quản trị viên" : undefined}
-                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                   activeTab === "admins"
-                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
-              >
-                {activeTab === "admins" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                  activeTab === "admins"
-                    ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]"
-                    : "bg-purple-500/15 text-purple-400 group-hover:bg-purple-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
-                }`}>
-                  <Users className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "admins" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Quản trị viên
-                  </span>
-                )}
-              </button>
+              <Tooltip disabled={!isSidebarCollapsed} content="Quản trị viên" description="Xem thành viên quản lý Page" side="right">
+                <button
+                   id="tab-admins"
+                   type="button"
+                   onClick={() => {
+                     setActiveTab("admins");
+                     addLog("system", "Chuyển sang trang: Quản trị viên Fanpage", "success");
+                   }}
+                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
+                     activeTab === "admins"
+                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
+                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                   }`}
+                >
+                  {activeTab === "admins" && (
+                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                  )}
+                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    activeTab === "admins"
+                      ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+                      : "bg-purple-500/15 text-purple-400 group-hover:bg-purple-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(168,85,247,0.2)]"
+                  }`}>
+                    <Users className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "admins" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                      Quản trị viên
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
             </nav>
           </div>
 
@@ -1458,92 +1470,100 @@ export default function App() {
 
             <nav className="flex flex-col gap-1.5 w-full">
               {/* Tab: Tuỳ biến */}
-              <button
-                 id="tab-theme"
-                 type="button"
-                 onClick={() => {
-                   setActiveTab("theme");
-                   addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
-                 }}
-                 title={isSidebarCollapsed ? "Tuỳ biến" : undefined}
-                 className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                   activeTab === "theme"
-                     ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
-                     : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                 }`}
-              >
-                {activeTab === "theme" && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                  activeTab === "theme"
-                    ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]"
-                    : "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
-                }`}>
-                  <Palette className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "theme" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Tuỳ biến
-                  </span>
-                )}
-              </button>
+              <Tooltip disabled={!isSidebarCollapsed} content="Tuỳ biến" description="Thay đổi giao diện ứng dụng" side="right">
+                <button
+                   id="tab-theme"
+                   type="button"
+                   onClick={() => {
+                     setActiveTab("theme");
+                     addLog("system", "Chuyển sang trang: Tùy biến giao diện", "success");
+                   }}
+                   className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
+                     activeTab === "theme"
+                       ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm"
+                       : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                   }`}
+                >
+                  {activeTab === "theme" && (
+                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                  )}
+                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    activeTab === "theme"
+                      ? "bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.4)]"
+                      : "bg-amber-500/15 text-amber-400 group-hover:bg-amber-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                  }`}>
+                    <Palette className="w-4 h-4 transition-transform duration-300 group-hover:scale-105" />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${activeTab === "theme" ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                      Tuỳ biến
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
 
               {/* Nút cài đặt API */}
-              <button 
-                id="btn-settings"
-                type="button"
-                onClick={() => setShowConfig(!showConfig)}
-                className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
-                  showConfig 
-                    ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm" 
-                    : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
-                }`}
-                title={isSidebarCollapsed ? "Cài đặt API" : undefined}
-              >
-                {showConfig && (
-                  <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
-                )}
-                <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
-                  showConfig 
-                    ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                    : "bg-cyan-500/15 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                }`}>
-                  <Settings className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${showConfig ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
-                    Cài đặt API
-                  </span>
-                )}
-              </button>
+              <Tooltip disabled={!isSidebarCollapsed} content="Cài đặt API" description="Cấu hình Meta App và Token" side="right">
+                <button 
+                  id="btn-settings"
+                  type="button"
+                  onClick={() => setShowConfig(!showConfig)}
+                  className={`group flex items-center justify-start gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 cursor-pointer outline-none relative w-full border ${
+                    showConfig 
+                      ? "bg-[var(--accent)]/12 border-[var(--accent)]/20 text-white shadow-sm" 
+                      : "border-transparent text-slate-400 hover:text-white hover:bg-white/[0.02]"
+                  }`}
+                >
+                  {showConfig && (
+                    <span className="absolute left-0 top-3 bottom-3 w-[3.5px] rounded-r bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]" />
+                  )}
+                  <div className={`w-8.5 h-8.5 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    showConfig 
+                      ? "bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]"
+                      : "bg-cyan-500/15 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white group-hover:shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                  }`}>
+                    <Settings className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <span className={`hidden sm:block text-[13px] font-bold tracking-wide whitespace-nowrap transition-colors duration-300 ${showConfig ? "text-[var(--accent)] font-extrabold" : "text-slate-300 group-hover:text-white"}`}>
+                      Cài đặt API
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
             </nav>
           </div>
 
           {/* Footer User Profile & Connection Status */}
           <div className="flex flex-col gap-3 w-full shrink-0">
             {/* User credentials & Logout */}
-            <button 
-              type="button"
-              onClick={() => {
-                if (userToken) {
-                  clearCredentials();
-                } else {
-                  handleOAuthLogin();
-                }
-              }}
-              title={userToken ? "Đăng xuất tài khoản" : "Cấu hình liên kết OAuth"}
-              className={`flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl border transition-all duration-300 font-bold text-[13px] ${
-                userToken 
-                  ? "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/30 shadow-sm" 
-                  : "bg-blue-500/10 text-[#1877F2] border-[#1877F2]/20 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/30 shadow-sm"
-              }`}
+            <Tooltip 
+              disabled={!isSidebarCollapsed} 
+              content={userToken ? "Đăng xuất" : "Đăng nhập Facebook"} 
+              description={userToken ? "Xoá phiên đăng nhập hiện tại" : "Cấu hình liên kết OAuth"} 
+              side="right"
             >
-              <LogOut className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && (
-                <span>{userToken ? "Đăng xuất" : "Đăng nhập Facebook"}</span>
-              )}
-            </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  if (userToken) {
+                    clearCredentials();
+                  } else {
+                    handleOAuthLogin();
+                  }
+                }}
+                className={`flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl border transition-all duration-300 font-bold text-[13px] ${
+                  userToken 
+                    ? "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/30 shadow-sm" 
+                    : "bg-blue-500/10 text-[#1877F2] border-[#1877F2]/20 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/30 shadow-sm"
+                }`}
+              >
+                <LogOut className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && (
+                  <span>{userToken ? "Đăng xuất" : "Đăng nhập Facebook"}</span>
+                )}
+              </button>
+            </Tooltip>
           </div>
         </aside>
 
@@ -1581,8 +1601,8 @@ export default function App() {
           <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-3.5 items-stretch overflow-hidden">
         
             {/* SUB-SIDEBAR: PAGES LIST */}
-            <aside className={`w-full xl:w-[260px] 2xl:w-[280px] bg-card rounded-[20px] p-4 flex flex-col shadow-sm border border-border overflow-hidden min-h-0 xl:h-full shrink-0 ${activeTab === 'posts' ? '' : 'hidden'}`}>
-          <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-border">
+            <aside className={`w-full xl:w-[260px] 2xl:w-[280px] glass-panel p-4 flex flex-col overflow-hidden min-h-0 xl:h-full shrink-0 ${activeTab === 'posts' ? '' : 'hidden'}`}>
+          <div className="flex flex-col gap-2.5 mb-4 pb-3 border-b border-glass-border">
             <div className="flex justify-between items-center">
               <span className="text-xs uppercase tracking-widest text-muted-foreground font-mono font-bold flex items-center gap-1.5">
                 <CheckSquare className="w-4 h-4 text-accent" />
@@ -1759,15 +1779,15 @@ export default function App() {
             <div className={`flex-1 min-w-0 flex flex-col xl:flex-row gap-3.5 overflow-hidden min-h-0 h-full ${activeTab === 'posts' ? '' : 'hidden'}`}>
               <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
               {/* TOP BAR: FILTERS CARD */}
-              <section className="relative z-30 bg-card rounded-[18px] p-4 text-foreground shadow-sm border border-border shrink-0">
+              <section className="relative z-30 glass-panel p-4 text-foreground shrink-0">
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 relative z-40">
                   {/* Left: Filter Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full xl:w-auto flex-wrap pb-1 sm:pb-0">
                     
                     {/* Filter: Date Range Selection / Dropdown */}
                     <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0" ref={timeDropdownRef}>
-                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 w-full shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-700 hover:border-slate-500 rounded-full transition-all h-10 w-full shadow-sm group">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none shrink-0 border-r border-slate-700 pr-2">
                           thời gian
                         </span>
                         
@@ -1775,7 +1795,7 @@ export default function App() {
                           className="relative h-7 pl-1.5 pr-1 flex items-center justify-between gap-2 cursor-pointer min-w-[110px] hover:text-accent transition-colors flex-1"
                           onClick={() => setShowTimeDropdown(!showTimeDropdown)}
                         >
-                          <span className="text-xs font-bold text-foreground truncate group-hover:text-accent transition-colors">
+                          <span className="text-xs font-bold text-white truncate group-hover:text-accent transition-colors">
                             {filters.timeRangePreset === "today" && "Hôm nay"}
                             {filters.timeRangePreset === "week" && "Tuần này"}
                             {filters.timeRangePreset === "month" && "Tháng này"}
@@ -1870,8 +1890,8 @@ export default function App() {
                     </div>
 
                     {/* Filter: Max Limits config */}
-                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 shrink-0 shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group text-foreground">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-slate-800/80 border border-slate-700 hover:border-slate-500 rounded-full transition-all h-10 shrink-0 shadow-sm group">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none shrink-0 border-r border-slate-700 pr-2">
                         tải
                       </span>
                       <div className="flex items-center gap-1">
@@ -1892,36 +1912,32 @@ export default function App() {
                   </div>
 
                   {/* Right: Stats Badges */}
-                  <div className="flex items-center gap-1.5 bg-muted/60 px-3 py-1.5 rounded-xl border border-border select-none font-medium text-foreground shadow-sm shrink-0 overflow-x-auto custom-scrollbar h-10">
+                  <div className="flex items-center gap-2 select-none font-medium shrink-0 overflow-x-auto custom-scrollbar">
                     {/* Stat 1: Selection */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Chọn:</span>
-                      <span className="font-mono font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">{selectedPostIds.length}</span>
-                      <span className="text-muted-foreground font-mono">/ {displayedPosts.length}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 shadow-sm">
+                      <span className="font-bold uppercase tracking-wider text-slate-400">Chọn</span>
+                      <div className="flex items-center gap-1 font-mono font-black border-l border-slate-700 pl-1.5 ml-0.5">
+                        <span className="text-accent">{selectedPostIds.length}</span>
+                        <span className="text-slate-500">/ {displayedPosts.length}</span>
+                      </div>
                     </div>
-
-                    <span className="w-px h-3.5 bg-border mx-1" />
 
                     {/* Stat 2: Total dynamic matches */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Lọc:</span>
-                      <span className="font-mono font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">{filteredPosts.length}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 shadow-sm">
+                      <span className="font-bold uppercase tracking-wider text-slate-400">Lọc</span>
+                      <span className="font-mono font-black text-blue-400 border-l border-slate-700 pl-1.5 ml-0.5">{filteredPosts.length}</span>
                     </div>
-
-                    <span className="w-px h-3.5 bg-border mx-1" />
 
                     {/* Stat 3: Total cached posts in session */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Nạp:</span>
-                      <span className="font-mono font-black text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-200">{posts.length}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 shadow-sm">
+                      <span className="font-bold uppercase tracking-wider text-slate-400">Nạp</span>
+                      <span className="font-mono font-black text-purple-400 border-l border-slate-700 pl-1.5 ml-0.5">{posts.length}</span>
                     </div>
 
-                    <span className="w-px h-3.5 bg-border mx-1" />
-
                     {/* Stat 4: Deleted Count */}
-                    <div className="flex items-center gap-1 text-[10px] whitespace-nowrap">
-                      <span className="font-bold uppercase tracking-wider text-muted-foreground">Xóa:</span>
-                      <span className="font-mono font-black text-rose-600 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded leading-none">{deletedCountSession}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] whitespace-nowrap bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 shadow-sm">
+                      <span className="font-bold uppercase tracking-wider text-slate-400">Xóa</span>
+                      <span className="font-mono font-black text-rose-400 border-l border-slate-700 pl-1.5 ml-0.5">{deletedCountSession}</span>
                     </div>
                   </div>
                 </div>
@@ -1929,9 +1945,9 @@ export default function App() {
               </section>
 
           {/* POSTS SCREEN CONTAINER */}
-          <section className="relative z-10 flex-1 bg-card border border-border rounded-[20px] overflow-hidden flex flex-col shadow-sm min-h-0">
+          <section className="relative z-10 flex-1 glass-panel overflow-hidden flex flex-col min-h-0">
             {/* Table/List Header */}
-            <div className="px-4 py-3 border-b border-border bg-card flex justify-between items-center shrink-0 shadow-sm z-10">
+            <div className="px-4 py-3 border-b border-glass-border bg-transparent flex justify-between items-center shrink-0 z-10">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_#10b981]"></span>
                 <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
@@ -1972,7 +1988,7 @@ export default function App() {
                   setPostListContainerHeight(target.clientHeight);
                 }
               }}
-              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-background/10 backdrop-blur-[24px] border border-border rounded-b-[24px] shadow-sm"
+              className="p-3 overflow-y-auto overflow-x-auto flex-1 min-h-0 custom-scrollbar bg-transparent"
             >
               {loadingPosts ? (
                 <div className="flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[300px] py-6 max-w-md mx-auto">
