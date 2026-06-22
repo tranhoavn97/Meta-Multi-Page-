@@ -711,7 +711,6 @@ export default function App() {
   // Poll /api/jobs/active dynamically matching user's specific constraints (Requirement 15)
   useEffect(() => {
     if (jobsErrorCount >= 2) return;
-    if (isMetaRateLimited) return;
     if (!hasRunningJobs) return;
     if (!isTabVisible) return;
 
@@ -1126,7 +1125,7 @@ export default function App() {
         toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
-      if (isMetaRateLimited || err.message?.includes("giới hạn request")) {
+      if (err.message?.includes("giới hạn request")) {
         return;
       }
 
