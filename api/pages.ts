@@ -1,89 +1,92 @@
-async function backendFetchJson(url: string, options: any = {}): Promise<any> {
-  const response = await fetch(url, options);
-  const contentType = response.headers.get("content-type") || "";
-  const text = await response.text();
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getMetaAccessToken } from "./_lib/session";
+import { GRAPH_API_BASE } from "./_lib/meta-config";
+import { metaFetchJson, parseUsagePercentage } from "./_lib/meta-client";
+import { registerPageTokens } from "./_lib/page-token-store";
 
-  const rateLimitInfo = {
-    appUsage: response.headers.get("x-app-usage"),
-    pageUsage: response.headers.get("x-page-usage"),
-    businessUsage: response.headers.get("x-business-use-case-usage"),
-  };
-
-  if (contentType.includes("application/json")) {
-    try {
-      const data = JSON.parse(text);
-      if (!response.ok && !data.error) {
-         data.error = { message: `API Error ${response.status}: ${text.slice(0, 500)}` };
-      }
-      if (data && typeof data === "object") {
-        data._rateLimitInfo = rateLimitInfo;
-      }
-      return data;
-    } catch (e) {
-      // JSON parse failed
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
-  }
-
-  throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
-}
-
-export default async function handler(req: any, res: any) {
-  // Ensure we set headers to prevent caching issues in serverless functions
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || (req.query.user_token || req.query.userToken) as string;
-  if (!META_ACCESS_TOKEN) {
-    return res.status(400).json({ error: "Missing META_ACCESS_TOKEN" });
+  const userToken = getMetaAccessToken(req);
+  if (!userToken) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Phiên làm việc Facebook chưa được khởi tạo. Vui lòng kết nối lại tài khoản của bạn.",
+        reconnectRequired: true
+      }
+    });
   }
 
   try {
-    const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture{url}&access_token=${META_ACCESS_TOKEN}&limit=100`;
-    let allPages: any[] = [];
+    const url = `${GRAPH_API_BASE}/me/accounts?fields=id,name,access_token,category,picture{url},tasks&access_token=${encodeURIComponent(userToken)}&limit=100`;
+    
+    let allPagesRaw: any[] = [];
     let nextUrl: string | null = url;
+    let lastRateLimitInfo = { appUsage: null, pageUsage: null, businessUsage: null };
+    let warning: string | null = null;
 
-    let lastRateLimitInfo: any = null;
     while (nextUrl) {
-      const data = await backendFetchJson(nextUrl);
-      if (data && data._rateLimitInfo) {
-        lastRateLimitInfo = data._rateLimitInfo;
-      }
-
-      if (data.error) {
-        if (allPages.length === 0) {
-          return res.status(500).json({ 
-            error: data.error.message || "Meta API Error",
-            errorCode: data.error.code 
-          });
-        } else {
-          break;
-        }
-      }
+      const result = await metaFetchJson(nextUrl);
+      const data = result.data;
+      lastRateLimitInfo = result.rateLimitInfo as any;
 
       const pagesBatch = data.data || [];
-      allPages = allPages.concat(pagesBatch);
+      allPagesRaw = allPagesRaw.concat(pagesBatch);
 
       if (pagesBatch.length === 0) {
         break;
       }
 
+      // Check current rate limit usage
+      const appUsage = parseUsagePercentage(lastRateLimitInfo.appUsage);
+      const pageUsage = parseUsagePercentage(lastRateLimitInfo.pageUsage);
+
+      if (appUsage >= 80 || pageUsage >= 80) {
+        warning = `Giới hạn API gần đạt đỉnh (${Math.max(appUsage, pageUsage)}%). Hệ thống đã dừng tải danh sách phân trang để bảo toàn giới hạn.`;
+        break;
+      }
+
       nextUrl = (data.paging && data.paging.next) || null;
       if (nextUrl) {
-        const delayMs = Math.floor(Math.random() * 501) + 500; // 500 - 1000 ms
+        // Quick 100-200ms delay between pages as requested in Part 11
+        const delayMs = Math.floor(Math.random() * 101) + 100;
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
 
-    return res.status(200).json({ 
-      data: allPages,
-      rateLimitInfo: lastRateLimitInfo || { appUsage: null, pageUsage: null, businessUsage: null }
+    // Register true page tokens server-side securely
+    registerPageTokens(allPagesRaw);
+
+    // Strip sensitive access_tokens before responding to client browser
+    const sanitizedPages = allPagesRaw.map((page: any) => ({
+      id: page.id,
+      name: page.name,
+      category: page.category,
+      picture: page.picture,
+      tasks: page.tasks || []
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: sanitizedPages,
+      warning,
+      rateLimitInfo: lastRateLimitInfo
     });
-  } catch (error: any) {
-    console.error("Lỗi khi tải danh sách Fanpages:", error);
-    return res.status(500).json({ error: error.message || "Lỗi máy chủ khi lấy trang" });
+  } catch (err: any) {
+    console.error("Lỗi trong quá trình lấy danh sách Page:", err);
+    const status = err.status || 500;
+    return res.status(status).json({
+      success: false,
+      error: {
+        code: err.code || "PAGES_FETCH_FAILED",
+        message: err.message || "Lỗi máy chủ khi lấy danh sách Fanpage.",
+        metaCode: err.metaCode,
+        retryable: err.retryable || false,
+        reconnectRequired: err.reconnectRequired || false
+      }
+    });
   }
 }

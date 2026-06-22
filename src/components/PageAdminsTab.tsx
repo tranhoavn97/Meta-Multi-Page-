@@ -287,36 +287,36 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
 
         {/* 2. TOP METRICS PANEL: STANDALONE INDIVIDUAL CELLS */}
         <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 shrink-0">
-          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
+          <div className="glass-card p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[11px] uppercase font-bold tracking-wider text-muted-foreground">TỔNG PAGE</p>
             <p className="text-xl font-black text-foreground mt-0.5 select-none font-mono">{pages.length}</p>
           </div>
-          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">QUYỀN QUẢN LÝ</p>
+          <div className="glass-card p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">QUYỀN QUẢN LÝ</p>
             <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 select-none font-mono">
               {pageAdmins.length > 0 ? hasManageRights : "-"}
             </p>
           </div>
-          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">QUYỀN ĐĂNG BÀI</p>
+          <div className="glass-card p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[11px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">QUYỀN ĐĂNG BÀI</p>
             <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 select-none font-mono">
               {pageAdmins.length > 0 ? hasCreateRights : "-"}
             </p>
           </div>
-          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NẰM TRONG BM</p>
+          <div className="glass-card p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[11px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">NẰM TRONG BM</p>
             <p className="text-xl font-black text-purple-600 dark:text-purple-400 mt-0.5 select-none font-mono">
               {pageAdmins.length > 0 ? inBmCount : "-"}
             </p>
           </div>
-          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-teal-600 dark:text-teal-400">CHƯA KHỞI TẠO</p>
+          <div className="glass-card p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[11px] uppercase font-bold tracking-wider text-teal-600 dark:text-teal-400">CHƯA KHỞI TẠO</p>
             <p className="text-xl font-black text-teal-600 dark:text-teal-400 mt-0.5 select-none font-mono">
               {pageAdmins.length > 0 ? noBmCount : "-"}
             </p>
           </div>
-          <div className="glass-card border border-border rounded-[14px] p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">THIẾU QUYỀN</p>
+          <div className="glass-card p-3 text-center transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <p className="text-[11px] uppercase font-bold tracking-wider text-rose-600 dark:text-rose-400">THIẾU QUYỀN</p>
             <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5 select-none font-mono">
               {pageAdmins.length > 0 ? missingCount : "-"}
             </p>
@@ -324,7 +324,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         </div>
 
         {/* 4. MAIN INTERACTIVE TABLE WITH INTEGRATED FILTER HEADER */}
-        <div className="flex-1 glass-card border flex flex-col overflow-hidden min-h-0 shadow-sm rounded-[24px]">
+        <div className="flex-1 glass-card flex flex-col overflow-hidden min-h-0 shadow-sm">
           {scanning ? (
             <div className="flex-1 flex flex-col justify-center items-center gap-4 text-foreground h-full min-h-[350px] py-6 max-w-md mx-auto">
               <div className="relative flex items-center justify-center">
@@ -347,7 +347,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
               </div>
 
               <div className="flex flex-col items-center gap-1.5 w-full animate-pulse mt-2">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">Đang xử lý:</span>
+                <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-widest">Đang xử lý:</span>
                 <div className="bg-accent/10 border border-accent/20 rounded-[10px] px-3 py-1 text-[11px] text-accent font-bold max-w-full truncate shadow-sm flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping shrink-0" />
                   {progress.currentStepName || "Đang khởi tạo..."}
@@ -360,13 +360,13 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                   cancelScanRef.current = true;
                   addLog("Yêu cầu", "Đang gửi yêu cầu dừng quét...", "skipped");
                 }}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 text-[10px] font-bold transition-all shadow-sm cursor-pointer select-none"
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-400 text-[11px] font-bold transition-all shadow-sm cursor-pointer select-none"
               >
                 <XOctagon className="w-3.5 h-3.5 shrink-0" />
                 Dừng quét ngay
               </button>
 
-              <p className="text-[10px] text-muted-foreground/80 text-center leading-relaxed mt-4 max-w-[80%]">
+              <p className="text-[11px] text-muted-foreground/80 text-center leading-relaxed mt-4 max-w-[80%]">
                 Hệ thống đang truy vấn thông tin Business Manager, phân tách chéo phân lớp sở hữu và kiểm tra chi tiết các vai trò thành viên quản trị.
               </p>
             </div>
@@ -400,15 +400,15 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                 <table className="w-full text-left border-separate border-spacing-0">
                   <thead className="sticky top-2 z-10 select-none drop-shadow-sm">
                     <tr className="group">
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-r-0 rounded-l-[20px]">Fanpage</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Page ID</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[10%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Category</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Quyền của tôi</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business Manager</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business ID</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Phân loại</th>
-                      <th className="px-5 py-4 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Trạng thái</th>
-                      <th className="px-5 py-4 text-center text-[10px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-l-0 rounded-r-[20px]">FB Link</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-r-0 rounded-l-[16px]">Fanpage</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Page ID</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[10%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Category</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[15%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Quyền của tôi</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business Manager</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[12%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Business ID</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Phân loại</th>
+                      <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border-y border-border/60">Trạng thái</th>
+                      <th className="px-5 py-4 text-center text-[11px] font-bold tracking-widest uppercase whitespace-nowrap text-muted-foreground lg:w-[8%] bg-background/40 backdrop-blur-[24px] border border-border/60 border-l-0 rounded-r-[16px]">FB Link</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-xs font-medium text-foreground">
@@ -464,12 +464,12 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                               )}
                             </td>
                             <td className="p-3.5">
-                              <span className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold uppercase tracking-wider shadow-sm ${typeBg}`}>
+                              <span className={`px-2.5 py-1 rounded-[8px] text-[11px] font-bold uppercase tracking-wider shadow-sm ${typeBg}`}>
                                 {row.businessType}
                               </span>
                             </td>
                             <td className="p-3.5">
-                              <span className={`px-2.5 py-1 rounded-[10px] text-[10px] font-bold tracking-wide shadow-sm ${statusBg}`}>
+                              <span className={`px-2.5 py-1 rounded-[8px] text-[11px] font-bold tracking-wide shadow-sm ${statusBg}`}>
                                 {row.status}
                               </span>
                             </td>
@@ -508,37 +508,42 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
     </div>
 
       {/* RIGHT SIDEBAR: PROGRESS AND LOGS & ACTIONS */}
-      <aside className="w-full xl:w-[260px] 2xl:w-[300px] bg-card border border-border rounded-2xl p-3 shrink-0 flex flex-col gap-4 shadow-sm h-[auto] xl:h-full overflow-y-auto">
+      <aside className="w-full xl:w-[260px] 2xl:w-[300px] glass p-3 shrink-0 flex flex-col gap-4 h-[auto] xl:h-full overflow-y-auto">
         
         {/* PROGRESS BAR PANEL */}
         <div className="flex flex-col gap-3 min-h-0 shrink-0">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-[10px] uppercase font-bold text-muted-foreground tracking-wide">
-              <span>Tiến độ thực hiện</span>
-              <span className="font-mono text-accent text-[10px] bg-accent/5 border border-accent/20 px-1.5 py-0.5 rounded shadow-sm">
-                {progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%"}
-              </span>
+          <div className="space-y-4">
+            <div className="flex justify-between items-end">
+              <div>
+                <h4 className="text-[11px] uppercase font-bold text-muted-foreground tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                  Tiến độ thực hiện
+                </h4>
+                <div className="text-[13px] font-black text-foreground font-mono tracking-tight">
+                  {progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}` : "0"}
+                  <span className="text-[11px] text-accent font-bold">%</span>
+                </div>
+              </div>
+              <div className="text-[11px] font-bold text-muted-foreground bg-background/50 backdrop-blur-md px-2.5 py-1 rounded-md border border-border/50 shadow-sm">
+                <span className="text-accent font-black text-[13px]">{progress.current}</span> / <span>{progress.total}</span> bước
+              </div>
             </div>
             
-            <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden border border-border p-0.5 shadow-inner">
+            <div className="w-full h-1.5 bg-background/50 backdrop-blur-md rounded-full overflow-hidden border border-border/50 shadow-inner">
               <div 
-                className="bg-accent h-full rounded-full transition-all duration-300 shadow-sm"
+                className="bg-accent h-full rounded-full transition-all duration-500 relative"
                 style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
-              ></div>
+              >
+                <div className="absolute inset-0 bg-white/20 w-full h-full"></div>
+              </div>
             </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] font-bold text-foreground">
-                <span className="text-accent font-black">{progress.current}</span> / <span className="text-muted-foreground">{progress.total}</span> bước
-              </span>
-            </div>
-
+            
             <div className="flex gap-2 w-full mt-2">
               {pageAdmins.length > 0 && (
                 <button
                   type="button"
                   onClick={handleExportCSV}
-                  className="flex-1 py-2.5 bg-background border border-border text-foreground rounded-xl font-bold text-[10px] tracking-wide uppercase transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer hover:bg-card-hover"
+                  className="flex-1 py-2.5 bg-background border border-border text-foreground rounded-xl font-bold text-[11px] tracking-wide uppercase transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer hover:bg-card-hover"
                 >
                   <Download className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   CSV
@@ -549,7 +554,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                 type="button"
                 onClick={runAdminsBMScan}
                 disabled={pages.length === 0 || scanning}
-                className={`flex-1 py-2.5 btn-primary text-white rounded-xl font-bold text-[10px] tracking-wide uppercase transition-all flex items-center justify-center gap-1.5 shadow-md select-none ${
+                className={`flex-1 py-2.5 btn-primary text-white rounded-xl font-bold text-[11px] tracking-wide uppercase transition-all flex items-center justify-center gap-1.5 shadow-md select-none ${
                   pages.length === 0 || scanning
                     ? "opacity-50 cursor-not-allowed shadow-none"
                     : "cursor-pointer"
@@ -568,7 +573,7 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                     cancelScanRef.current = true;
                     addLog("Yêu cầu", "Đang gửi tín hiệu dừng tiến trình quét...", "skipped");
                   }}
-                  className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 border border-transparent text-white text-[10px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
+                  className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 border border-transparent text-white text-[11px] font-bold tracking-widest uppercase transition-all cursor-pointer animate-pulse shadow-md shadow-orange-500/20"
                 >
                   Dừng
                 </button>
@@ -578,68 +583,68 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
         </div>
 
         {/* LIVE LOG CONSOLE TERMINAL */}
-        <div className="flex-1 flex flex-col bg-muted/30 rounded-xl p-3 shadow-inner min-h-[150px] overflow-hidden border border-border">
-          <div className="flex items-center justify-between border-b border-border pb-2 mb-2 shrink-0">
-            <span className="text-[10px] uppercase tracking-widest text-accent font-extrabold font-mono flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-accent rounded-full animate-ping" />
-              Terminal Logs
+        <div className="flex-1 flex flex-col glass-card p-3 shadow-inner min-h-[150px] xl:min-h-[200px] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-2 shrink-0">
+            <span className="text-[11px] tracking-widest text-foreground font-bold flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-accent" />
+              NHẬT KÝ HOẠT ĐỘNG
             </span>
             <button 
               type="button"
               onClick={() => setLogs([])}
-              className="text-[10px] hover:underline text-muted-foreground hover:text-foreground font-bold"
+              className="text-[11px] hover:bg-muted p-1 px-2 rounded-md text-muted-foreground hover:text-foreground font-semibold transition-colors"
             >
-              Xóa tất cả
+              Xóa
             </button>
           </div>
 
           {/* Log Tabs */}
-          <div className="flex items-center gap-2 border-b border-border/40 pb-3 mb-2 shrink-0">
+          <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1 shrink-0 custom-scrollbar">
             <button
               type="button"
               onClick={() => setActiveLogTab("all")}
-              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 shrink-0 ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                 activeLogTab === "all"
-                  ? "bg-slate-800 text-slate-100 border border-slate-700"
-                  : "text-slate-400 hover:text-slate-200 border border-transparent"
+                  ? "bg-accent/10 text-accent"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               }`}
             >
               Tất cả
-              <span className="bg-slate-700/80 text-slate-300 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
+              <span className="bg-background text-foreground/80 px-1.5 rounded-[4px] text-[11px]">
                 {logs.length}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setActiveLogTab("success")}
-              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 shrink-0 ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                 activeLogTab === "success"
-                  ? "bg-slate-800 text-slate-100 border border-slate-700"
-                  : "text-slate-400 hover:text-slate-200 border border-transparent"
+                  ? "bg-emerald-500/10 text-emerald-500"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               }`}
             >
               Thành công
-              <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
+              <span className="bg-background text-foreground/80 px-1.5 rounded-[4px] text-[11px]">
                 {logs.filter(log => log.status === "success").length}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setActiveLogTab("error")}
-              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-2 shrink-0 ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                 activeLogTab === "error"
-                  ? "bg-slate-800 text-slate-100 border border-slate-700"
-                  : "text-slate-400 hover:text-slate-200 border border-transparent"
+                  ? "bg-rose-500/10 text-rose-500"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               }`}
             >
               Lỗi
-              <span className="bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded-full text-[10px] font-semibold min-w-[20px] text-center">
+              <span className="bg-background text-foreground/80 px-1.5 rounded-[4px] text-[11px]">
                 {logs.filter(log => log.status === "failed").length}
               </span>
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[10px] p-1 custom-scrollbar pr-1.5">
+          <div className="flex-1 overflow-y-auto space-y-2 font-mono text-[11px] p-1 custom-scrollbar pr-2 mt-1">
             {(() => {
               const filtered = logs.filter((log) => {
                 if (activeLogTab === "error") return log.status === "failed";
@@ -649,12 +654,12 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
 
               if (filtered.length === 0) {
                 return (
-                  <p className="text-muted-foreground/50 italic py-1">
+                  <p className="text-slate-500 italic py-2 text-center text-[11px]">
                     {activeLogTab === "error" 
                       ? "Không có nhật ký lỗi..." 
                       : activeLogTab === "success" 
                       ? "Không có nhật ký thành công..." 
-                      : "Chưa có nhật ký..."}
+                      : "Chưa có nhật ký hoạt động..."}
                   </p>
                 );
               }
@@ -664,27 +669,28 @@ export default function PageAdminsTab({ pages, userToken }: PageAdminsTabProps) 
                 let prefix = "•";
 
                 if (log.status === "success") {
-                  colorClass = "text-emerald-600 font-semibold";
+                  colorClass = "text-emerald-500 font-semibold";
                   prefix = "✔";
                 } else if (log.status === "failed") {
-                   colorClass = "text-rose-600 font-bold";
-                   prefix = "✘ LỖI";
+                   colorClass = "text-rose-500 font-bold";
+                   prefix = "✘";
                 } else if (log.status === "processing") {
-                   colorClass = "text-amber-500 font-medium animate-pulse";
-                   prefix = "➜";
+                   colorClass = "text-amber-500 font-medium";
+                   prefix = "⏱";
                 } else if (log.status === "skipped") {
                    colorClass = "text-blue-500 font-medium";
                    prefix = "⏱";
                 }
 
                 return (
-                  <div key={log.id} className={`${colorClass} flex items-start gap-1.5 leading-relaxed break-words py-1 border-b border-border/20`}>
-                    <span className="shrink-0 text-muted-foreground select-none">[{log.time}]</span>
-                    <span className="shrink-0 font-bold select-none">{prefix}</span>
-                    <span className="max-w-[70px] truncate select-none font-bold shrink-0 text-slate-400 dark:text-slate-500" title={log.context}>
-                      {log.context}:
-                    </span>
-                    <span className="text-foreground/80 font-medium">{log.message}</span>
+                  <div 
+                    key={log.id} 
+                    className={`${colorClass} flex gap-1.5 items-center leading-relaxed bg-background/40 hover:bg-background/80 px-2 py-1.5 rounded-lg border border-border/20 transition-colors w-full overflow-hidden`}
+                    title={`${log.context}: ${log.message}`}
+                  >
+                    <span className="shrink-0 text-muted-foreground font-normal text-[11px]">[{log.time}]</span>
+                    <span className="shrink-0 font-bold text-[11px]">{prefix}</span>
+                    <span className="truncate min-w-0" style={{ lineHeight: '1.2' }}>{log.context}: {log.message}</span>
                   </div>
                 );
               });

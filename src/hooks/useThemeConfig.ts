@@ -54,8 +54,8 @@ export interface ThemeConfig {
 const defaultThemeConfig: ThemeConfig = {
   bgTheme: "ocean",
   primaryColorName: "Cyan Neon",
-  glassOpacity: 45,
-  bgOverlay: 85,
+  glassOpacity: 25,
+  bgOverlay: 25,
   blurSize: "24px",
   fontSize: "base",
   fontFamily: "Inter",
@@ -69,7 +69,28 @@ const defaultThemeConfig: ThemeConfig = {
 export function useThemeConfig() {
   const [config, setConfigState] = useState<ThemeConfig>(() => {
     const saved = localStorage.getItem("app_theme_config");
-    return saved ? { ...defaultThemeConfig, ...JSON.parse(saved) } : defaultThemeConfig;
+    let savedConfig = saved ? JSON.parse(saved) : {};
+    
+    const effectiveGlassOpacity = savedConfig.glassOpacity !== undefined 
+      ? (savedConfig.glassOpacity > 60 ? 25 : savedConfig.glassOpacity) 
+      : 25;
+    const effectiveBgOverlay = savedConfig.bgOverlay !== undefined 
+      ? (savedConfig.bgOverlay > 50 ? 25 : savedConfig.bgOverlay) 
+      : 25;
+
+    const normalizedConfig = {
+      ...defaultThemeConfig,
+      ...savedConfig,
+      glassOpacity: effectiveGlassOpacity,
+      bgOverlay: effectiveBgOverlay
+    };
+    
+    // Auto-save the normalized configuration directly (but do not erase images)
+    try {
+        localStorage.setItem("app_theme_config", JSON.stringify(normalizedConfig));
+    } catch(e) {}
+    
+    return normalizedConfig;
   });
 
   const setConfig = (newConfig: ThemeConfig) => {
@@ -133,19 +154,19 @@ export function useThemeConfig() {
     const alphaGlass = config.glassOpacity / 100;
     const alphaBorder = Math.min(alphaGlass + 0.15, 1);
     if (isDark) {
-      root.style.setProperty("--glass", `rgba(6, 10, 24, ${Math.max(alphaGlass, 0.5)})`);
-      root.style.setProperty("--glass-border", `rgba(255, 255, 255, 0.06)`);
-      root.style.setProperty("--card", `rgba(10, 14, 30, ${Math.max(alphaGlass, 0.65)})`);
+      root.style.setProperty("--glass", `rgba(6, 18, 31, ${alphaGlass})`);
+      root.style.setProperty("--glass-border", `rgba(255, 255, 255, ${Math.max(0.02, alphaGlass * 0.15)})`);
+      root.style.setProperty("--card", `rgba(8, 23, 38, ${Math.min(1, alphaGlass + 0.06)})`);
     } else {
-      root.style.setProperty("--glass", `rgba(255, 255, 255, ${Math.max(alphaGlass, 0.75)})`);
-      root.style.setProperty("--glass-border", `rgba(15, 23, 42, 0.07)`);
-      root.style.setProperty("--card", `rgba(255, 255, 255, ${Math.max(alphaGlass, 0.82)})`);
+      root.style.setProperty("--glass", `rgba(255, 255, 255, ${alphaGlass})`);
+      root.style.setProperty("--glass-border", `rgba(15, 23, 42, ${Math.max(0.02, alphaGlass * 0.1)})`);
+      root.style.setProperty("--card", `rgba(255, 255, 255, ${Math.min(1, alphaGlass + 0.07)})`);
     }
 
     // Apply bg overlay
     const overlayAlpha = config.bgOverlay / 100;
     if (isDark) {
-      root.style.setProperty("--bg", `rgba(2, 6, 22, ${overlayAlpha})`);
+      root.style.setProperty("--bg", `rgba(2, 10, 20, ${overlayAlpha})`);
     } else {
       root.style.setProperty("--bg", `rgba(248, 250, 252, ${overlayAlpha})`);
     }
@@ -178,7 +199,7 @@ export function useThemeConfig() {
       }
       
       /* GLASS & BLUR ACCENTS */
-      .neu-panel, .glass-panel, .neu-input, .neu-button, aside, main {
+      .neu-panel, .glass, .neu-input, .neu-button, aside, main {
         backdrop-filter: blur(${finalBlurAmount}px) !important;
         -webkit-backdrop-filter: blur(${finalBlurAmount}px) !important;
       }
@@ -188,7 +209,7 @@ export function useThemeConfig() {
         border-radius: ${finalBorderRadius}px !important;
       }
       
-      .glass-panel, .mac-dropdown {
+      .glass, .mac-dropdown {
         border-radius: ${Math.max(finalBorderRadius - 6, 10)}px !important;
       }
       
@@ -207,12 +228,12 @@ export function useThemeConfig() {
         box-shadow: 0 15px 40px 0 rgba(0, 0, 0, 0.24), inset 0 1px 1px ${isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.8)"} !important;
       }
       
-      .glass-panel {
+      .glass {
         border: 1px solid ${isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(15, 23, 42, 0.06)"} !important;
         box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.1), inset 0 1px 1px ${isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.4)"} !important;
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
-      .glass-panel:hover {
+      .glass:hover {
         border-color: ${isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(15, 23, 42, 0.10)"} !important;
         box-shadow: 0 12px 30px 0 rgba(0, 0, 0, 0.15) !important;
       }
