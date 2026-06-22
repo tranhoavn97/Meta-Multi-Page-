@@ -69,8 +69,8 @@ export default async function handler(req: any, res: any) {
     const requestedLimit = parseInt(req.query.limit as string, 10) || 100;
     const initialLimit = Math.min(requestedLimit, 100);
 
-    // 2. Fetch /posts with expanded fields (including object_id, attachments)
-    let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,story,created_time,permalink_url,status_type,full_picture,object_id,attachments{media,type,url,target}&access_token=${activeToken}&limit=${initialLimit}`;
+    // 2. Fetch /posts with expanded fields (including attachments)
+    let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,story,created_time,permalink_url,status_type,full_picture,attachments{media,type,url,target}&access_token=${activeToken}&limit=${initialLimit}`;
     let allPosts: any[] = [];
     let nextUrl: string | null = postsUrl;
 

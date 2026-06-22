@@ -12,6 +12,7 @@ import authCallbackHandler from "./api/auth/callback";
 import pageStatusHandler from "./api/page-status";
 import businessesHandler from "./api/businesses";
 import pageBusinessMapHandler from "./api/page-business-map";
+import jobsActiveHandler from "./api/jobs/active";
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.post("/api/check-pages", checkPagesHandler);
 app.post("/api/page-status", pageStatusHandler);
 app.get("/api/businesses", businessesHandler);
 app.post("/api/page-business-map", pageBusinessMapHandler);
+app.get("/api/jobs/active", jobsActiveHandler);
 
 // Vite middleware configuration for development vs static build for production
 async function startServer() {
