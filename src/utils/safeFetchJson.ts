@@ -14,6 +14,7 @@ export async function safeFetchJson(url: string, options: any = {}): Promise<any
     }
     
     const err = new Error(`API Error ${response.status}: ${text.slice(0, 500)}`) as any;
+    err.status = response.status;
     if (errorObj) {
       err.responseJson = errorObj;
       if (errorObj.error) {

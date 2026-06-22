@@ -326,6 +326,213 @@ function CustomSelect({
   );
 }
 
+interface RateLimitStatus {
+  maxUsage: number;
+  type: "app" | "page" | "business" | "none";
+  estimatedTimeToRegainAccess: number; // in seconds
+}
+
+export function parseRateLimitHeader(appHeader: string | null, pageHeader: string | null, bizHeader: string | null): RateLimitStatus {
+  let maxUsage = 0;
+  let type: "app" | "page" | "business" | "none" = "none";
+  let estimatedTimeToRegainAccess = 0;
+
+  const getMaxPct = (obj: any): number => {
+    if (!obj) return 0;
+    try {
+      if (typeof obj === "string") {
+        if (obj.startsWith("{")) {
+          const parsed = JSON.parse(obj);
+          let maxVal = 0;
+          for (const key of Object.keys(parsed)) {
+            const val = parseFloat(parsed[key]);
+            if (!isNaN(val) && val > maxVal) maxVal = val;
+          }
+          return maxVal;
+        }
+        const val = parseFloat(obj);
+        return isNaN(val) ? 0 : val;
+      } else if (typeof obj === "object") {
+        let maxVal = 0;
+        for (const key of Object.keys(obj)) {
+          const val = parseFloat(obj[key]);
+          if (!isNaN(val) && val > maxVal) maxVal = val;
+        }
+        return maxVal;
+      }
+    } catch (e) {}
+    return 0;
+  };
+
+  const appPct = getMaxPct(appHeader);
+  if (appPct > maxUsage) {
+    maxUsage = appPct;
+    type = "app";
+  }
+
+  const pagePct = getMaxPct(pageHeader);
+  if (pagePct > maxUsage) {
+    maxUsage = pagePct;
+    type = "page";
+  }
+
+  if (bizHeader) {
+    try {
+      const bizObj = JSON.parse(bizHeader);
+      for (const key of Object.keys(bizObj)) {
+        const items = bizObj[key];
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            const val = Math.max(item.call_count || 0, item.total_cputime || 0, item.total_time || 0);
+            if (val > maxUsage) {
+              maxUsage = val;
+              type = "business";
+            }
+            if (item.estimated_time_to_regain_access && item.estimated_time_to_regain_access > estimatedTimeToRegainAccess) {
+              estimatedTimeToRegainAccess = item.estimated_time_to_regain_access * 60;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  return { maxUsage, type, estimatedTimeToRegainAccess };
+}
+
+class RequestQueue {
+  private activeCount = 0;
+  private activeDeletes = 0;
+  private queue: { fn: () => Promise<any>; resolve: (v: any) => void; reject: (err: any) => void; isDelete: boolean }[] = [];
+  
+  public maxConcurrency = 2; 
+  public delayBetweenRequests = 0;
+
+  async enqueue(fn: () => Promise<any>, isDelete = false): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject, isDelete });
+      this.process();
+    });
+  }
+
+  private process() {
+    const limit = this.maxConcurrency;
+    if (this.activeCount >= limit) return;
+    if (this.activeDeletes > 0) return;
+
+    const nextIndex = this.queue.findIndex(req => {
+      if (req.isDelete) {
+        return this.activeCount === 0;
+      }
+      return true;
+    });
+
+    if (nextIndex === -1) return;
+
+    const req = this.queue.splice(nextIndex, 1)[0];
+    this.activeCount++;
+    if (req.isDelete) this.activeDeletes++;
+
+    const runTask = async () => {
+      try {
+        const result = await req.fn();
+        req.resolve(result);
+      } catch (err) {
+        req.reject(err);
+      } finally {
+        this.activeCount--;
+        if (req.isDelete) this.activeDeletes--;
+        
+        if (this.delayBetweenRequests > 0) {
+          setTimeout(() => this.process(), this.delayBetweenRequests);
+        } else {
+          this.process();
+        }
+      }
+    };
+
+    runTask();
+  }
+
+  clear() {
+    this.queue.forEach(req => req.reject(new Error("Queue cleared")));
+    this.queue = [];
+  }
+}
+
+export const requestQueue = new RequestQueue();
+
+function CustomSelectStr({ 
+  value, 
+  onChange, 
+  options 
+}: { 
+  value: string; 
+  onChange: (val: string) => void; 
+  options: { value: string; label: string }[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedOption = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between gap-1.5 bg-transparent hover:text-accent focus:text-accent h-7 px-1 text-xs outline-none text-foreground font-bold cursor-pointer transition-all select-none min-w-[50px]"
+      >
+        <span>{selectedOption?.label}</span>
+        <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 group-hover:text-accent ${isOpen ? "rotate-90 text-accent" : ""}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-[115%] z-[99] w-[160px] bg-card/90 backdrop-blur-3xl border border-glass-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 flex flex-col gap-1 ease-out animate-in fade-in slide-in-from-top-1 zoom-in-95 duration-100 ring-1 ring-white/5 select-none">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold hover:translate-x-0.5 transition-all flex items-center justify-between cursor-pointer ${
+                value === opt.value
+                  ? "bg-accent text-white shadow-[0_4px_12px_rgba(59,130,246,0.35)] font-bold"
+                  : "text-foreground hover:bg-white/10"
+              }`}
+            >
+              <span>{opt.label}</span>
+              {value === opt.value && <Check className="w-3.5 h-3.5 text-white stroke-[3.5px]" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const formatCountdown = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `Có thể thử lại sau ${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+};
+
 export default function App() {
   const toast = useToast();
   const { config, setConfig } = useThemeConfig(); // Instantiate global theme styles
@@ -367,6 +574,12 @@ export default function App() {
   // Meta API rate limiting and Polling states
   const [isMetaRateLimited, setIsMetaRateLimited] = useState<boolean>(false);
   const [rateLimitUnlockTime, setRateLimitUnlockTime] = useState<number | null>(null);
+  const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number>(0);
+  const [currentUsageMax, setCurrentUsageMax] = useState<number>(0);
+  const [strikeCount, setStrikeCount] = useState<number>(() => {
+    const val = localStorage.getItem("meta_rate_limit_strike_count");
+    return val ? parseInt(val, 10) : 0;
+  });
   const [jobsErrorCount, setJobsErrorCount] = useState<number>(0);
   const [isTabVisible, setIsTabVisible] = useState<boolean>(true);
   const [hasRunningJobs, setHasRunningJobs] = useState<boolean>(false);
@@ -383,6 +596,7 @@ export default function App() {
     maxPostsToFetch: 100,
     maxPostsToShow: 300,
     timeRangePreset: "all",
+    contentType: "all",
   });
   const [showCustomDateModal, setShowCustomDateModal] = useState<boolean>(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState<boolean>(false);
@@ -501,9 +715,12 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // Poll /api/jobs/active dynamically matching user's specific constraints (Requirement 6)
+  // Poll /api/jobs/active dynamically matching user's specific constraints (Requirement 15)
   useEffect(() => {
-    if (jobsErrorCount >= 3) return;
+    if (jobsErrorCount >= 2) return;
+    if (isMetaRateLimited) return;
+    if (!hasRunningJobs) return;
+    if (!isTabVisible) return;
 
     let timerId: any = null;
 
@@ -524,22 +741,15 @@ export default function App() {
       } catch (err: any) {
         setJobsErrorCount(prev => {
           const nextVal = prev + 1;
-          if (nextVal >= 3) {
-            addLog("system", `Đã dừng kiểm tra trạng thái tiến trình nền do API báo lỗi 3 lần liên tiếp: ${err.message}`, "failed");
+          if (nextVal >= 2) {
+            addLog("system", `Đã dừng kiểm tra trạng thái tiến trình nền do API báo lỗi 2 lần liên tiếp: ${err.message}`, "failed");
           }
           return nextVal;
         });
       }
     };
 
-    // Determine poll interval dynamically based on requirements
-    let currentInterval = 25000; // default 20-30s when no jobs are running
-
-    if (!isTabVisible) {
-      currentInterval = 60000; // max 60s when tab is hidden
-    } else if (hasRunningJobs) {
-      currentInterval = 2000; // 2s when job is running
-    }
+    let currentInterval = 2000; // 2s when job is running
 
     const runLoop = () => {
       performPoll().finally(() => {
@@ -552,77 +762,173 @@ export default function App() {
     return () => {
       if (timerId) clearTimeout(timerId);
     };
-  }, [hasRunningJobs, isTabVisible, jobsErrorCount]);
+  }, [hasRunningJobs, isTabVisible, jobsErrorCount, isMetaRateLimited]);
 
   // Meta Rate Limit Count down timer (Requirement 1)
   useEffect(() => {
     if (!rateLimitUnlockTime) return;
     const interval = setInterval(() => {
-      if (Date.now() >= rateLimitUnlockTime) {
+      const remaining = rateLimitUnlockTime - Date.now();
+      if (remaining <= 0) {
         setIsMetaRateLimited(false);
         setRateLimitUnlockTime(null);
-        addLog("system", "Hết thời gian tạm khoá 10 phút. Bạn có thể tiếp tục thực hiện quét bài viết.", "success");
+        setRateLimitSecondsLeft(0);
+        localStorage.removeItem("meta_rate_limit_unlock_time");
+        addLog("system", "Hết thời gian tạm khoá. Bạn có thể tiếp tục thực hiện các tác vụ.", "success");
         toast.success("Hệ thống đã tự động mở khóa giới hạn Meta API. Bạn có thể quét tiếp.", "Đã mở khóa");
+      } else {
+        setRateLimitSecondsLeft(Math.ceil(remaining / 1000));
       }
     }, 1000);
     return () => clearInterval(interval);
   }, [rateLimitUnlockTime]);
 
-  const triggerMetaRateLimit = () => {
-    setIsMetaRateLimited(true);
-    setRateLimitUnlockTime(Date.now() + 10 * 60 * 1000); // 10 minutes
-    addLog("system", "ỨNG DỤNG ĐÃ CHẠM GIỚI HẠN REQUEST CỦA META. TẠM KHÓA TOÀN BỘ YÊU CẦU TRONG 10 PHÚT.", "failed");
-    toast.error("Ứng dụng bị tạm khóa quét trong 10 phút do chạm giới hạn API của Meta.", "Chạm giới hạn Meta");
+  const resetRateLimitStrike = () => {
+    setStrikeCount(0);
+    localStorage.removeItem("meta_rate_limit_strike_count");
+    localStorage.removeItem("meta_rate_limit_unlock_time");
   };
 
-  const checkAndWarnUsage = (info: any, pageName: string) => {
-    if (!info) return;
+  const triggerMetaRateLimit = (retryAfterSeconds?: number) => {
+    if (isMetaRateLimited && rateLimitUnlockTime && rateLimitUnlockTime > Date.now()) {
+      return;
+    }
 
-    const parseMaxPercentage = (headerVal: any): number => {
-      if (!headerVal) return 0;
-      try {
-        if (typeof headerVal === "string") {
-          if (headerVal.startsWith("{")) {
-            const parsed = JSON.parse(headerVal);
-            let maxPct = 0;
-            for (const key in parsed) {
-              const val = parseFloat(parsed[key]);
-              if (!isNaN(val) && val > maxPct) {
-                maxPct = val;
+    const newStrike = strikeCount + 1;
+    setStrikeCount(newStrike);
+    localStorage.setItem("meta_rate_limit_strike_count", newStrike.toString());
+
+    let cooldownSeconds = 120;
+    if (retryAfterSeconds && retryAfterSeconds > 0) {
+      cooldownSeconds = retryAfterSeconds;
+    } else {
+      if (newStrike === 1) {
+        cooldownSeconds = 120;
+      } else if (newStrike === 2) {
+        cooldownSeconds = 300;
+      } else {
+        cooldownSeconds = 600;
+      }
+    }
+
+    const unlockTime = Date.now() + cooldownSeconds * 1000;
+    setIsMetaRateLimited(true);
+    setRateLimitUnlockTime(unlockTime);
+    setRateLimitSecondsLeft(cooldownSeconds);
+    localStorage.setItem("meta_rate_limit_unlock_time", unlockTime.toString());
+
+    scanCancelledRef.current = true;
+    deleteCancelledRef.current = true;
+    requestQueue.clear();
+
+    addLog("system", `GIỚI HẠN YÊU CẦU CỦA META. Dừng toàn bộ tác vụ. Strike: ${newStrike}. Cooldown: ${cooldownSeconds} giây.`, "failed");
+    toast.error(`Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.`, "Giới hạn Meta");
+  };
+
+  const handleRateLimitOrUsage = (dataOrError: any, pageName?: string) => {
+    const isErr = dataOrError instanceof Error;
+    const responseJson = isErr ? (dataOrError as any).responseJson : dataOrError;
+    const status = isErr ? (dataOrError as any).status : null;
+    
+    // Extract message and error codes
+    let message = isErr ? dataOrError.message : "";
+    let errorCode = responseJson?.errorCode || responseJson?.error?.code || dataOrError?.errorCode || dataOrError?.error?.code;
+    
+    if (responseJson?.error?.message) {
+      message = responseJson.error.message;
+    } else if (dataOrError?.error?.message) {
+      message = dataOrError.error.message;
+    }
+    
+    const msgLower = (message || "").toLowerCase();
+    const isRateLimited = 
+      status === 429 ||
+      errorCode === 4 ||
+      errorCode === 613 ||
+      msgLower.includes("application request limit reached") ||
+      msgLower.includes("calls to this api have exceeded");
+
+    const retryAfterSeconds = isErr 
+      ? ((dataOrError as any).retryAfterSeconds || responseJson?.retryAfterSeconds || null)
+      : (dataOrError?.retryAfterSeconds || null);
+
+    // 1. If rate limited, trigger rate limit lock!
+    if (isRateLimited) {
+      triggerMetaRateLimit(retryAfterSeconds);
+      return true; // was rate limited
+    }
+
+    // 2. Read usage info and adjust behavior / warn / halt
+    const info = responseJson?.rateLimitInfo || responseJson?._rateLimitInfo || dataOrError?.rateLimitInfo || dataOrError?._rateLimitInfo;
+    if (info) {
+      const parseUsagePct = (headerVal: any): number => {
+        if (!headerVal) return 0;
+        try {
+          if (typeof headerVal === "string") {
+            if (headerVal.startsWith("{")) {
+              const parsed = JSON.parse(headerVal);
+              let maxVal = 0;
+              for (const key of Object.keys(parsed)) {
+                const val = parseFloat(parsed[key]);
+                if (!isNaN(val) && val > maxVal) maxVal = val;
               }
+              return maxVal;
             }
-            return maxPct;
-          } else {
             const val = parseFloat(headerVal);
             return isNaN(val) ? 0 : val;
-          }
-        } else if (typeof headerVal === "object") {
-          let maxPct = 0;
-          for (const key in headerVal) {
-            const val = parseFloat(headerVal[key]);
-            if (!isNaN(val) && val > maxPct) {
-              maxPct = val;
+          } else if (typeof headerVal === "object") {
+            let maxVal = 0;
+            for (const key of Object.keys(headerVal)) {
+              const val = parseFloat(headerVal[key]);
+              if (!isNaN(val) && val > maxVal) maxVal = val;
             }
+            return maxVal;
           }
-          return maxPct;
-        }
-      } catch (e) {
-        // ignored
+        } catch (e) {}
+        return 0;
+      };
+
+      const appPct = parseUsagePct(info.appUsage);
+      const pagePct = parseUsagePct(info.pageUsage);
+      const bizPct = parseUsagePct(info.businessUsage);
+      const usageMax = Math.max(appPct, pagePct, bizPct);
+
+      setCurrentUsageMax(usageMax);
+
+      // Log the usage and limit types
+      let limitType = "app";
+      if (pagePct === usageMax) limitType = "page";
+      if (bizPct === usageMax) limitType = "business";
+
+      // 5. Usage >= 70%: Concurrency = 1, delay = 1000ms
+      if (usageMax >= 70) {
+        requestQueue.maxConcurrency = 1;
+        requestQueue.delayBetweenRequests = 1000;
+        addLog("system", `Mức sử dụng API: ${usageMax.toFixed(1)}% (${limitType}). Đã giảm concurrency về 1, delay 1000ms.`, "skipped");
+      } else {
+        // Reset to default limits
+        requestQueue.maxConcurrency = 2;
+        requestQueue.delayBetweenRequests = 0;
       }
-      return 0;
-    };
 
-    const appPct = parseMaxPercentage(info.appUsage);
-    const pagePct = parseMaxPercentage(info.pageUsage);
-    const bizPct = parseMaxPercentage(info.businessUsage);
+      // 6. Usage >= 85%: Stop loading next Page, show warn
+      if (usageMax >= 85) {
+        scanCancelledRef.current = true;
+        addLog("system", `Cảnh báo: Mức sử dụng API đã đạt ${usageMax.toFixed(1)}% (${limitType}). Dừng tải các Page tiếp theo.`, "skipped");
+        toast.warning(`Mức sử dụng API sắp đạt giới hạn (${usageMax.toFixed(1)}%). Đã dừng tải tiếp.`, "Cảnh báo giới hạn");
+      }
 
-    const maxPct = Math.max(appPct, pagePct, bizPct);
-
-    if (maxPct > 80) {
-      addLog("system", `Cảnh báo sử dụng API trên "${pageName}": ${maxPct.toFixed(1)}% (vượt mức cho phép 80%). Tự động dừng để đảm bảo an toàn.`, "skipped");
-      toast.warning(`Tự động tạm dừng quét vì mức sử dụng API Meta của trang "${pageName}" đạt ${maxPct.toFixed(0)}%.`, "Nguy cơ giới hạn");
-      scanCancelledRef.current = true;
+      // 7. Usage >= 95%: Stop all tasks, lock download/delete buttons
+      if (usageMax >= 95) {
+        scanCancelledRef.current = true;
+        deleteCancelledRef.current = true;
+        requestQueue.clear();
+        addLog("system", `Nguy hiểm: Mức sử dụng API đã đạt ${usageMax.toFixed(1)}% (${limitType}). Đã dừng toàn bộ tác vụ và khóa chức năng.`, "failed");
+        toast.error(`Sử dụng API đạt mức nguy hiểm ${usageMax.toFixed(1)}%. Khóa mọi nút bấm.`, "Nguy hiểm giới hạn");
+      }
     }
+
+    return false; // not rate limited
   };
 
   // Dedicated fetch with exponential backoff & Rate Limit detection compliance (Requirement 2 & 10)
@@ -634,35 +940,50 @@ export default function App() {
     try {
       const data = await safeFetchJson(url, options);
 
-      if (data && data.error) {
-        const errorMsg = data.error?.message || data.error || "";
-        const errorCode = data.errorCode || data.error?.code;
-
-        if (errorCode === 4 || errorMsg.toLowerCase().includes("application request limit reached")) {
-          triggerMetaRateLimit();
-          throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
-        }
-      }
-      return data;
-    } catch (err: any) {
-      const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
-      const errMsg = err.message || "";
-
-      if (errCode === 4 || errMsg.toLowerCase().includes("application request limit reached")) {
-        triggerMetaRateLimit();
+      // Check rate limit and usage from response data
+      const pageName = options?.pageName || "API Request";
+      const isLimited = handleRateLimitOrUsage(data, pageName);
+      if (isLimited) {
         throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
       }
 
-      // Max 3 retries
-      if (retryCount >= 3) {
+      if (data && data.error) {
+        const customErr = new Error(data.error.message || "Meta API Error") as any;
+        customErr.isMetaApiError = true;
+        customErr.status = 200;
+        throw customErr;
+      }
+
+      // Successful request - reset strike count (Requirement 15)
+      resetRateLimitStrike();
+
+      return data;
+    } catch (err: any) {
+      const pageName = options?.pageName || "API Request";
+      const isLimited = handleRateLimitOrUsage(err, pageName);
+      if (isLimited) {
+        throw new Error("Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.");
+      }
+
+      const status = err.status;
+      const responseJson = err.responseJson;
+      const errorCode = responseJson?.errorCode || responseJson?.error?.code;
+
+      const isNetworkError = (status === undefined || status === null || status === 0) && !err.isMetaApiError;
+      const isGatewayError = (status === 502 || status === 503 || status === 504);
+      const shouldRetry = (isNetworkError || isGatewayError) && 
+                          (errorCode !== 4 && errorCode !== 613 && errorCode !== 190) &&
+                          (status !== 429 && status !== 401 && status !== 403);
+
+      if (!shouldRetry || retryCount >= 2) {
         throw err;
       }
 
-      // Backoff intervals: 5s, 15s, 60s
-      const backoffDelays = [5000, 15000, 60000];
-      const backoffDelay = backoffDelays[retryCount] || 60000;
+      // Backoff intervals: 5s, 15s
+      const backoffDelays = [5000, 15000];
+      const backoffDelay = backoffDelays[retryCount] || 15000;
 
-      addLog("system", `Có lỗi xảy ra: ${errMsg}. Đang thử lại lần ${retryCount + 1}/3 sau ${backoffDelay / 1000} giây...`, "processing");
+      addLog("system", `Có lỗi xảy ra: ${err.message}. Đang thử lại lần ${retryCount + 1}/2 sau ${backoffDelay / 1000} giây...`, "processing");
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
 
       return fetchWithBackoff(url, options, retryCount + 1);
@@ -692,6 +1013,28 @@ export default function App() {
 
   // Initial load
   useEffect(() => {
+    // Read cooldown/strike on mount (Requirement 5 & 6)
+    const unlockTimeStr = localStorage.getItem("meta_rate_limit_unlock_time");
+    if (unlockTimeStr) {
+      const unlockTimeVal = parseInt(unlockTimeStr, 10);
+      if (!isNaN(unlockTimeVal)) {
+        if (unlockTimeVal <= Date.now()) {
+          // Cooldown expired
+          localStorage.removeItem("meta_rate_limit_unlock_time");
+          setIsMetaRateLimited(false);
+          setRateLimitUnlockTime(null);
+          setRateLimitSecondsLeft(0);
+        } else {
+          // Cooldown active
+          setIsMetaRateLimited(true);
+          setRateLimitUnlockTime(unlockTimeVal);
+          const secLeft = Math.ceil((unlockTimeVal - Date.now()) / 1000);
+          setRateLimitSecondsLeft(secLeft);
+          addLog("system", `Khôi phục trạng thái khóa Meta API từ localStorage.`, "failed");
+        }
+      }
+    }
+
     const checkSetupAndFetch = async () => {
       // Check if redirect has returned with token
       const urlParams = new URLSearchParams(window.location.search);
@@ -823,6 +1166,7 @@ export default function App() {
 
   // Fetch listed Pages with cache tracking (Requirement 7)
   const fetchPages = async (tokenToUse?: string, forceRefresh = false) => {
+    if (isMetaRateLimited) return;
     const activeToken = tokenToUse || userToken;
 
     // Check Cache first if not forcing refresh
@@ -855,15 +1199,7 @@ export default function App() {
       // Use our fetchWithBackoff for pages loading (Requirement 2 & 10)
       const data = await fetchWithBackoff(`/api/pages?${urlParams.toString()}`);
 
-      if (data && data.rateLimitInfo) {
-        checkAndWarnUsage(data.rateLimitInfo, "Danh sách Trang");
-      }
-
       if (data.error) {
-        if (data.errorCode === 4) {
-          triggerMetaRateLimit();
-          return;
-        }
         setApiError(data.error);
         addLog("system", `Lỗi API lấy trang: ${data.error}`, "failed");
         if (!handleAuthError(data.error)) {
@@ -884,9 +1220,7 @@ export default function App() {
         toast.warning("Không tìm thấy Fanpage nào liên kết với tài khoản này.", "Thông báo");
       }
     } catch (err: any) {
-      const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
-      if (errCode === 4 || err.message?.includes("giới hạn request")) {
-        triggerMetaRateLimit();
+      if (isMetaRateLimited || err.message?.includes("giới hạn request")) {
         return;
       }
 
@@ -944,19 +1278,23 @@ export default function App() {
       const currentIdx = index++;
       setScanProgress(p => ({ ...p, current: currentIdx, currentPageName: pageInfo.name }));
 
-      // Check Cache first if not forcing refresh (Requirement 7)
+      // Check Cache first if not forcing refresh (Requirement 14)
       if (!forceRefresh) {
         const cachedPostsStr = sessionStorage.getItem(`meta_posts_cache_${pageId}`);
-        if (cachedPostsStr) {
-          try {
-            const cachedPostsList = JSON.parse(cachedPostsStr);
-            if (Array.isArray(cachedPostsList) && cachedPostsList.length > 0) {
-              allFetchedPosts = [...allFetchedPosts, ...cachedPostsList];
-              addLog("system", `[Cache] Tải thành công ${cachedPostsList.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm.`, "success");
-              return;
+        const cachedTimeStr = sessionStorage.getItem(`meta_posts_cache_${pageId}_time`);
+        if (cachedPostsStr && cachedTimeStr) {
+          const cacheAge = Date.now() - parseInt(cachedTimeStr, 10);
+          if (cacheAge < 5 * 60 * 1000) { // 5 minutes cache
+            try {
+              const cachedPostsList = JSON.parse(cachedPostsStr);
+              if (Array.isArray(cachedPostsList) && cachedPostsList.length > 0) {
+                allFetchedPosts = [...allFetchedPosts, ...cachedPostsList];
+                addLog("system", `[Cache] Tải thành công ${cachedPostsList.length} bài viết của page "${pageInfo.name}" từ bộ nhớ đệm (vẫn trong hạn 5 phút).`, "success");
+                return;
+              }
+            } catch (e) {
+              // cache invalid, fetch fresh
             }
-          } catch (e) {
-            // cache invalid, fetch fresh
           }
         }
       }
@@ -968,21 +1306,14 @@ export default function App() {
         const urlParams = new URLSearchParams();
         urlParams.append("pageId", pageId);
         urlParams.append("limit", filters.maxPostsToFetch.toString());
+        urlParams.append("contentType", filters.contentType);
         if (pageInfo.access_token) {
           urlParams.append("user_token", pageInfo.access_token);
         }
 
-        const data = await fetchWithBackoff(`/api/posts?${urlParams.toString()}`);
-
-        if (data && data.rateLimitInfo) {
-          checkAndWarnUsage(data.rateLimitInfo, pageInfo.name);
-        }
+        const data = await requestQueue.enqueue(() => fetchWithBackoff(`/api/posts?${urlParams.toString()}`, { pageName: pageInfo.name }), false);
 
         if (data.error) {
-          if (data.errorCode === 4) {
-            triggerMetaRateLimit();
-            return;
-          }
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
           return;
         }
@@ -1010,19 +1341,14 @@ export default function App() {
 
           allFetchedPosts = [...allFetchedPosts, ...mapped];
           
-          // Cache posts list (Requirement 7)
+          // Cache posts list (Requirement 14)
           sessionStorage.setItem(`meta_posts_cache_${pageId}`, JSON.stringify(mapped));
+          sessionStorage.setItem(`meta_posts_cache_${pageId}_time`, Date.now().toString());
           addLog("system", `Đọc thành công ${data.data.length} bài từ "${pageInfo.name}" và lưu vào bộ nhớ đệm.`, "success");
         } else {
           addLog("system", `Fanpage "${pageInfo.name}" không có bài viết nào hoặc không thể đọc.`, "skipped");
         }
       } catch (err: any) {
-        const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code;
-        if (errCode === 4 || err.message?.includes("giới hạn request")) {
-          triggerMetaRateLimit();
-          return;
-        }
-
         if (err.responseJson && err.responseJson.isDetailedError) {
           const detail = err.responseJson;
           const msg = `Lỗi Page "${detail.pageName}" (${detail.pageId}). Lỗi Meta API: ${detail.error}. Endpoint: ${detail.endpoint}`;
@@ -1197,11 +1523,12 @@ export default function App() {
     let countSuccess = 0;
     let countFail = 0;
     let wasCancelled = false;
+    const affectedPageIds = new Set<string>();
 
     for (let i = 0; i < selectedPostIds.length; i++) {
-      if (deleteCancelledRef.current) {
+      if (deleteCancelledRef.current || isMetaRateLimited) {
         wasCancelled = true;
-        addLog("queue", `Tiến trình xóa bị dừng theo yêu cầu của người dùng tại bài viết thứ ${i + 1}/${selectedPostIds.length}`, "skipped");
+        addLog("queue", `Tiến trình xóa bị dừng tại bài viết thứ ${i + 1}/${selectedPostIds.length}`, "skipped");
         break;
       }
 
@@ -1214,6 +1541,7 @@ export default function App() {
       }
 
       setCurrentlyDeletingId(postId);
+      affectedPageIds.add(post.pageId);
 
       const snippet = post.message 
           ? (post.message.length > 50 ? `${post.message.substring(0, 50)}...` : post.message)
@@ -1223,19 +1551,31 @@ export default function App() {
 
       try {
         const deleteSource = videoDeleteOption === "all";
-        const data = await safeFetchJson("/api/delete-post", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            postId: post.postId || post.id,
-            sourceObjectId: post.sourceObjectId,
-            pageId: post.pageId,
-            itemType: post.itemType,
-            confirm: true,
-            deleteSource: deleteSource,
-            userToken: post.pageAccessToken
-          })
-        });
+        
+        // Wrap delete call in requestQueue.enqueue(..., true) to enforce concurrency=1 & exclusive lock (Requirement 8 & 12)
+        const data = await requestQueue.enqueue(async () => {
+          return await safeFetchJson("/api/delete-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              postId: post.postId || post.id,
+              sourceObjectId: post.sourceObjectId,
+              pageId: post.pageId,
+              itemType: post.itemType,
+              confirm: true,
+              deleteSource: deleteSource,
+              userToken: post.pageAccessToken
+            })
+          });
+        }, true);
+
+        // Check if rate limited
+        const isLimited = handleRateLimitOrUsage(data, post.pageName);
+        if (isLimited) {
+          countFail++;
+          wasCancelled = true;
+          break;
+        }
 
         if (data.success === true && data.verified === true) {
           countSuccess++;
@@ -1256,13 +1596,13 @@ export default function App() {
 
           // Clear cache of Page
           sessionStorage.removeItem(`meta_posts_cache_${post.pageId}`);
-          sessionStorage.removeItem(`meta_posts_cache_${post.pageId}_500`);
+          sessionStorage.removeItem(`meta_posts_cache_${post.pageId}_time`);
         } else if (data.success === true && data.verified === false) {
           countFail++;
           addLog(postId, `Xác minh xoá thất bại: Meta nhận lệnh nhưng chưa xác minh được nội dung đã bị xoá.`, "failed");
         } else {
           countFail++;
-          const errCode = data.error?.code;
+          const errCode = data.errorCode || data.error?.code;
           let logMsg = `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error?.message || data.error || "Lỗi Meta API"}`;
           if (errCode === "DELETE_NOT_CONFIRMED") {
             logMsg = `Meta chưa xác nhận xoá: [ID: ${postId}].`;
@@ -1271,37 +1611,28 @@ export default function App() {
           }
           addLog(postId, logMsg, "failed");
 
-          const isRateLimit = data.errorCode === 4 || data.error?.code === 4 || data.error?.message?.includes("limit") || data.error?.includes("limit");
-          if (isRateLimit) {
-            triggerMetaRateLimit();
-            addLog("queue", `Tiến trình xóa bị ngắt do chạm giới hạn API của Meta (Rate Limit).`, "failed");
+          if (errCode === 4 || errCode === 613) {
+            wasCancelled = true;
             break;
           }
-
-          if (handleAuthError(data.error?.message || data.error || "")) break;
         }
       } catch (err: any) {
         countFail++;
+        addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
         
-        const responseJson = err.responseJson;
-        const isRateLimit = err.message?.includes("limit") || err.message?.includes("(#4)") || responseJson?.errorCode === 4 || responseJson?.error?.code === 4;
-        
-        if (isRateLimit) {
-          addLog(postId, `Chạm giới hạn API của Meta: ${err.message}`, "failed");
-          triggerMetaRateLimit();
-          addLog("queue", `Tiến trình xóa bị ngắt do chạm giới hạn API của Meta (Rate Limit).`, "failed");
+        const isLimited = handleRateLimitOrUsage(err, post.pageName);
+        if (isLimited) {
+          wasCancelled = true;
           break;
         }
-
-        addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
-        if (handleAuthError(err.message)) break;
       }
 
       setProgress(p => ({ ...p, current: i + 1 }));
 
-      // Artificial Delay with 300ms - 500ms
+      // Concurrency is 1, so wait for delay between deletions (Requirement 12)
+      // delay 800–1500ms giữa mỗi lần xoá
       if (i < selectedPostIds.length - 1) {
-        const delay = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+        const delay = Math.floor(Math.random() * (1500 - 800 + 1)) + 800;
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -1325,8 +1656,87 @@ export default function App() {
       }
     }
     
-    // Refresh posts of pages to clear deleted items (forcing refresh / bypass cache)
-    await fetchPostsFromSelectedPages(true);
+    // Requirement 13: Không tự động quét lại toàn bộ Page sau khi xoá.
+    // Chỉ refresh các Page vừa xử lý và chỉ sau 3–5 giây.
+    if (affectedPageIds.size > 0) {
+      addLog("queue", "Chuẩn bị làm mới các trang bị ảnh hưởng sau 4 giây...", "pending");
+      setTimeout(async () => {
+        // Collect pages list
+        const pagesToRefresh = Array.from(affectedPageIds);
+        addLog("queue", `Bắt đầu làm mới ${pagesToRefresh.length} trang có bài bị xoá...`, "processing");
+        
+        let allFetchedPosts: FacebookPost[] = [];
+        for (const pageId of pagesToRefresh) {
+          const pageInfo = pages.find(p => p.id === pageId);
+          if (!pageInfo) continue;
+          
+          try {
+            const urlParams = new URLSearchParams();
+            urlParams.append("pageId", pageId);
+            urlParams.append("limit", filters.maxPostsToFetch.toString());
+            urlParams.append("contentType", filters.contentType);
+            if (pageInfo.access_token) {
+              urlParams.append("user_token", pageInfo.access_token);
+            }
+            
+            // Bypass cache to load fresh posts
+            const data = await requestQueue.enqueue(() => fetchWithBackoff(`/api/posts?${urlParams.toString()}`, { pageName: pageInfo.name }), false);
+            if (data.data) {
+              const mapped: FacebookPost[] = data.data.map((item: any) => ({
+                id: item.id,
+                postId: item.postId,
+                sourceObjectId: item.sourceObjectId,
+                itemType: item.itemType || "post",
+                message: item.message,
+                created_time: item.created_time,
+                permalink_url: item.permalink_url,
+                full_picture: item.full_picture,
+                status_type: item.status_type,
+                attachments: item.attachments,
+                pageId: pageInfo.id,
+                pageName: pageInfo.name,
+                pageAccessToken: pageInfo.access_token,
+                likes: item.likes,
+                comments: item.comments,
+                shares: item.shares,
+                thumbnail: item.thumbnail
+              }));
+              allFetchedPosts = [...allFetchedPosts, ...mapped];
+              sessionStorage.setItem(`meta_posts_cache_${pageId}`, JSON.stringify(mapped));
+              sessionStorage.setItem(`meta_posts_cache_${pageId}_time`, Date.now().toString());
+            }
+          } catch (err) {
+            console.error(`Error refreshing page ${pageId}:`, err);
+          }
+        }
+        
+        // Merge remaining posts from pages that were not affected
+        const unaffectedPageIds = selectedPageIds.filter(id => !affectedPageIds.has(id));
+        for (const pageId of unaffectedPageIds) {
+          const cachedPostsStr = sessionStorage.getItem(`meta_posts_cache_${pageId}`);
+          if (cachedPostsStr) {
+            try {
+              const list = JSON.parse(cachedPostsStr);
+              if (Array.isArray(list)) {
+                allFetchedPosts = [...allFetchedPosts, ...list];
+              }
+            } catch (e) {}
+          }
+        }
+        
+        // Sort and Deduplicate
+        allFetchedPosts.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
+        const uniquePostsMap = new Map<string, FacebookPost>();
+        for (const p of allFetchedPosts) {
+          if (!uniquePostsMap.has(p.id)) {
+            uniquePostsMap.set(p.id, p);
+          }
+        }
+        setPosts(Array.from(uniquePostsMap.values()));
+        addLog("queue", "Đã cập nhật giao diện các trang bị ảnh hưởng xong.", "success");
+      }, 4000); // 4 seconds delay (requirement: 3–5 giây)
+    }
+
     setSelectedPostIds([]);
     setDoubleConfirm(false);
   };
@@ -1525,11 +1935,9 @@ export default function App() {
               <div className="text-xs flex-1">
                 <span className="font-extrabold uppercase tracking-wider block text-[11px] text-red-400 mb-0.5">Giới hạn yêu cầu của Meta</span>
                 <p className="font-medium text-[12px]">Ứng dụng đã chạm giới hạn request của Meta. Vui lòng chờ rồi thử lại.</p>
-                {rateLimitUnlockTime && (
-                  <span className="text-[10px] text-red-400 font-mono mt-1 block">
-                    Khóa tạm thời đến: {new Date(rateLimitUnlockTime).toLocaleTimeString("vi-VN")} ( Còn khoảng {Math.ceil((rateLimitUnlockTime - Date.now()) / 1000)} giây)
-                  </span>
-                )}
+                <span className="text-[10px] text-red-400 font-mono mt-1 block font-bold">
+                  {formatCountdown(rateLimitSecondsLeft)}
+                </span>
               </div>
             </div>
           )}
@@ -1860,6 +2268,27 @@ export default function App() {
                             { value: 150, label: "150 (Tải thêm)" },
                             { value: 200, label: "200 (Tải thêm)" },
                             { value: 300, label: "300 (Tối đa)" }
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Filter: Content Type selection */}
+                    <div className="flex flex-1 sm:flex-none items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 shrink-0 shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group text-foreground">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                        Loại bài
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <CustomSelectStr
+                          value={filters.contentType}
+                          onChange={(val: any) => {
+                            setFilters(f => ({ ...f, contentType: val }));
+                            addLog("system", `Đã đổi bộ lọc loại nội dung thành: ${val === "all" ? "Tất cả" : val === "post" ? "Bài viết thường" : "Video/Reel"}`, "success");
+                          }}
+                          options={[
+                            { value: "all", label: "Tất cả" },
+                            { value: "post", label: "Bài viết thường" },
+                            { value: "video", label: "Video/Reel" }
                           ]}
                         />
                       </div>
@@ -2214,7 +2643,7 @@ export default function App() {
                     id="btn-load-posts"
                     type="button"
                     onClick={() => fetchPostsFromSelectedPages(true)}
-                    disabled={selectedPageIds.length === 0 || loadingPosts || isMetaRateLimited}
+                    disabled={selectedPageIds.length === 0 || loadingPosts || isMetaRateLimited || currentUsageMax >= 95}
                     className="flex-1 py-2 btn-primary rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer select-none active:scale-95 shadow"
                   >
                     <RotateCw className={`w-3.5 h-3.5 shrink-0 ${loadingPosts ? "animate-spin" : ""}`} />
@@ -2225,9 +2654,9 @@ export default function App() {
                     id="btn-delete-trigger"
                     type="button"
                     onClick={() => setShowConfirmModal(true)}
-                    disabled={selectedPostIds.length === 0 || isDeleting}
+                    disabled={selectedPostIds.length === 0 || isDeleting || isMetaRateLimited || currentUsageMax >= 95}
                     className={`flex-1 py-2.5 rounded-full font-bold text-[9px] xl:text-[10px] tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 border ${
-                      selectedPostIds.length > 0 
+                      selectedPostIds.length > 0 && !isMetaRateLimited && currentUsageMax < 95
                         ? 'bg-rose-600 hover:bg-rose-700 text-white border-transparent cursor-pointer shadow-md shadow-rose-950/25' 
                         : 'bg-muted/40 text-muted-foreground/40 border-transparent opacity-40 cursor-not-allowed'
                     }`}

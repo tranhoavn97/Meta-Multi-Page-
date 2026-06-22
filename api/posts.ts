@@ -1,3 +1,5 @@
+import { getPageToken } from "./token-cache.js";
+
 async function backendFetchJson(url: string, options: any = {}): Promise<any> {
   const response = await fetch(url, options);
   const contentType = response.headers.get("content-type") || "";
@@ -7,7 +9,40 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
     appUsage: response.headers.get("x-app-usage"),
     pageUsage: response.headers.get("x-page-usage"),
     businessUsage: response.headers.get("x-business-use-case-usage"),
+    retryAfter: response.headers.get("retry-after"),
+    cooldownMs: 0
   };
+
+  // Calculate cooldownMs and retryAfterSeconds
+  let cooldownMs = 0;
+  let retryAfterSeconds: number | null = null;
+  if (rateLimitInfo.retryAfter) {
+    const retrySec = parseInt(rateLimitInfo.retryAfter, 10);
+    if (!isNaN(retrySec) && retrySec > 0) {
+      cooldownMs = retrySec * 1000;
+      retryAfterSeconds = retrySec;
+    }
+  } else if (rateLimitInfo.businessUsage) {
+    try {
+      const bizObj = JSON.parse(rateLimitInfo.businessUsage);
+      let maxMinutes = 0;
+      for (const key of Object.keys(bizObj)) {
+        const items = bizObj[key];
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            if (item.estimated_time_to_regain_access && item.estimated_time_to_regain_access > maxMinutes) {
+               maxMinutes = item.estimated_time_to_regain_access;
+            }
+          }
+        }
+      }
+      if (maxMinutes > 0) {
+        cooldownMs = maxMinutes * 60 * 1000;
+        retryAfterSeconds = maxMinutes * 60;
+      }
+    } catch (e) {}
+  }
+  rateLimitInfo.cooldownMs = cooldownMs;
 
   if (contentType.includes("application/json")) {
     try {
@@ -17,6 +52,7 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
       }
       if (data && typeof data === "object") {
         data._rateLimitInfo = rateLimitInfo;
+        data.retryAfterSeconds = retryAfterSeconds;
       }
       return data;
     } catch (e) {
@@ -25,7 +61,12 @@ async function backendFetchJson(url: string, options: any = {}): Promise<any> {
   }
 
   if (!response.ok) {
-    throw new Error(`API Error ${response.status}: ${text.slice(0, 500)}`);
+    const errObj = {
+      error: { message: `API Error ${response.status}: ${text.slice(0, 500)}` },
+      _rateLimitInfo: rateLimitInfo,
+      retryAfterSeconds: retryAfterSeconds
+    };
+    return errObj;
   }
 
   throw new Error(`Response is not JSON: ${text.slice(0, 500)}`);
@@ -45,22 +86,18 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Thiếu pageId hoặc page_id truy cập Fanpage" });
   }
 
-  try {
-    // 1. Fetch the pages to get the specific page's access_token
-    let pageToken: string | null = null;
-    let allPagesData: any = null;
-    try {
-      const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${META_ACCESS_TOKEN}&limit=100`;
-      allPagesData = await backendFetchJson(pagesUrl);
+  const contentType = (req.query.contentType || req.query.content_type || "all") as "all" | "post" | "video";
 
-      if (allPagesData && allPagesData.data) {
-        const pageItem = allPagesData.data.find((p: any) => p.id === pageId);
-        if (pageItem) {
-          pageToken = pageItem.access_token;
-        }
-      }
+  try {
+    // 1. Fetch the pages to get the specific page's access_token using the cache
+    let pageToken: string | null = null;
+    let pageName = "Unknown Page";
+    try {
+      const pageInfo = await getPageToken(META_ACCESS_TOKEN, pageId);
+      pageToken = pageInfo.token;
+      pageName = pageInfo.name;
     } catch (e) {
-      console.warn("Could not fetch page token from accounts endpoint, falling back to provided token:", e);
+      console.warn("Could not fetch page token from accounts endpoint, falling back to user token:", e);
     }
 
     // Fallback to the main user token if we couldn't resolve the page access token
@@ -69,77 +106,89 @@ export default async function handler(req: any, res: any) {
     const requestedLimit = parseInt(req.query.limit as string, 10) || 100;
     const initialLimit = Math.min(requestedLimit, 100);
 
-    // 2. Fetch /posts with expanded fields (including attachments)
-    let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,story,created_time,permalink_url,status_type,full_picture,attachments{media,type,url,target}&access_token=${activeToken}&limit=${initialLimit}`;
+    let latestRateLimitInfo: any = null;
+
+    // 2. Fetch /posts (if not requested only videos)
     let allPosts: any[] = [];
-    let nextUrl: string | null = postsUrl;
+    if (contentType !== "video") {
+      let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,story,created_time,permalink_url,status_type,full_picture,attachments{media,type,url,target}&access_token=${activeToken}&limit=${initialLimit}`;
+      let nextUrl: string | null = postsUrl;
 
-    while (nextUrl && allPosts.length < requestedLimit) {
-      const data = await backendFetchJson(nextUrl);
-
-      if (data.error) {
-        if (allPosts.length === 0) {
-          const pageName = allPagesData?.data?.find((p: any) => p.id === pageId)?.name || "Unknown Page";
-          const endpointLog = nextUrl.replace(activeToken, "[HIDDEN_TOKEN]");
-          return res.status(500).json({ 
-             error: data.error.message || "Meta API Error when fetching posts",
-             errorCode: data.error.code,
-             pageName: pageName,
-             pageId: pageId,
-             endpoint: endpointLog,
-             isDetailedError: true
-          });
-        } else {
-          break;
+      while (nextUrl && allPosts.length < requestedLimit) {
+        const data = await backendFetchJson(nextUrl);
+        if (data && data._rateLimitInfo) {
+          latestRateLimitInfo = data._rateLimitInfo;
         }
-      }
 
-      const postsBatch = data.data || [];
-      allPosts = allPosts.concat(postsBatch);
-
-      if (postsBatch.length === 0 || allPosts.length >= requestedLimit) {
-        break;
-      }
-
-      nextUrl = (data.paging && data.paging.next) || null;
-      if (nextUrl) {
-        const delayMs = Math.floor(Math.random() * 501) + 500;
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    // 3. Fetch /videos (Page Videos Library)
-    let videosUrl = `https://graph.facebook.com/v19.0/${pageId}/videos?fields=id,title,description,created_time,permalink_url,picture&access_token=${activeToken}&limit=${initialLimit}`;
-    let allVideos: any[] = [];
-    let nextVideoUrl: string | null = videosUrl;
-
-    while (nextVideoUrl && allVideos.length < requestedLimit) {
-      try {
-        const data = await backendFetchJson(nextVideoUrl);
         if (data.error) {
+          if (allPosts.length === 0) {
+            const endpointLog = nextUrl.replace(activeToken, "[HIDDEN_TOKEN]");
+            return res.status(500).json({ 
+               error: data.error,
+               errorCode: data.error.code,
+               pageName: pageName,
+               pageId: pageId,
+               endpoint: endpointLog,
+               isDetailedError: true,
+               rateLimitInfo: latestRateLimitInfo,
+               retryAfterSeconds: data.retryAfterSeconds
+            });
+          } else {
+            break;
+          }
+        }
+
+        const postsBatch = data.data || [];
+        allPosts = allPosts.concat(postsBatch);
+
+        if (postsBatch.length === 0 || allPosts.length >= requestedLimit) {
           break;
         }
-        const videosBatch = data.data || [];
-        allVideos = allVideos.concat(videosBatch);
-        if (videosBatch.length === 0 || allVideos.length >= requestedLimit) {
-          break;
-        }
-        nextVideoUrl = (data.paging && data.paging.next) || null;
-        if (nextVideoUrl) {
-          const delayMs = Math.floor(Math.random() * 301) + 200;
+
+        nextUrl = (data.paging && data.paging.next) || null;
+        if (nextUrl) {
+          const delayMs = Math.floor(Math.random() * 501) + 500;
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
-      } catch (e) {
-        console.error("Lỗi khi tải danh sách videos từ Meta:", e);
-        break;
       }
     }
 
-    const pageName = allPagesData?.data?.find((p: any) => p.id === pageId)?.name || "Unknown Page";
+    // 3. Fetch /videos (if not requested only posts)
+    let allVideos: any[] = [];
+    if (contentType !== "post") {
+      let videosUrl = `https://graph.facebook.com/v19.0/${pageId}/videos?fields=id,title,description,created_time,permalink_url,picture&access_token=${activeToken}&limit=${initialLimit}`;
+      let nextVideoUrl: string | null = videosUrl;
+
+      while (nextVideoUrl && allVideos.length < requestedLimit) {
+        try {
+          const data = await backendFetchJson(nextVideoUrl);
+          if (data && data._rateLimitInfo) {
+            latestRateLimitInfo = data._rateLimitInfo;
+          }
+
+          if (data.error) {
+            break;
+          }
+          const videosBatch = data.data || [];
+          allVideos = allVideos.concat(videosBatch);
+          if (videosBatch.length === 0 || allVideos.length >= requestedLimit) {
+            break;
+          }
+          nextVideoUrl = (data.paging && data.paging.next) || null;
+          if (nextVideoUrl) {
+            const delayMs = Math.floor(Math.random() * 501) + 500;
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        } catch (e) {
+          console.error("Lỗi khi tải danh sách videos từ Meta:", e);
+          break;
+        }
+      }
+    }
 
     // 4. Map posts to standardized layout
     const postsMapped = allPosts.map((item: any) => {
-      const sourceObjId = item.object_id || item.attachments?.data?.[0]?.target?.id || undefined;
+      const sourceObjId = item.attachments?.data?.[0]?.target?.id || undefined;
       const isVideo = item.status_type === "added_video" || (item.attachments?.data?.[0]?.type === "video") || (item.status_type === "shared_story" && item.attachments?.data?.[0]?.type === "video");
       return {
         id: item.id,
@@ -211,7 +260,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ 
       data: finalPosts,
-      rateLimitInfo: allPagesData?._rateLimitInfo || { appUsage: null, pageUsage: null, businessUsage: null }
+      rateLimitInfo: latestRateLimitInfo || { appUsage: null, pageUsage: null, businessUsage: null, retryAfter: null, cooldownMs: 0 }
     });
   } catch (error: any) {
     console.error(`Lỗi khi lấy danh sách bài viết cho page ${pageId}:`, error);

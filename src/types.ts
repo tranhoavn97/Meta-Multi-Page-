@@ -63,6 +63,7 @@ export interface FilterCriteria {
   maxPostsToFetch: number; // For API query limit
   maxPostsToShow: number; // For UI list restriction
   timeRangePreset?: "today" | "week" | "month" | "year" | "all" | "custom";
+  contentType: "all" | "post" | "video";
 }
 
 export interface DeletionLog {
