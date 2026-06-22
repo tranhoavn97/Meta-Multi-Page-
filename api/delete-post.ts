@@ -31,7 +31,7 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || (req.body?.user_token || req.body?.userToken || req.query?.user_token || req.query?.userToken) as string;
+  const META_ACCESS_TOKEN = (req.body?.user_token || req.body?.userToken || req.query?.user_token || req.query?.userToken || process.env.META_ACCESS_TOKEN) as string;
   if (!META_ACCESS_TOKEN) {
     return res.status(400).json({ error: "Missing META_ACCESS_TOKEN" });
   }

@@ -35,7 +35,7 @@ export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Content-Type", "application/json");
 
-  const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN || (req.query.user_token || req.query.userToken) as string;
+  const META_ACCESS_TOKEN = (req.query.user_token || req.query.userToken || process.env.META_ACCESS_TOKEN) as string;
   if (!META_ACCESS_TOKEN) {
     return res.status(400).json({ error: "Missing META_ACCESS_TOKEN" });
   }
