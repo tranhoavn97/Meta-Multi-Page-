@@ -8,6 +8,7 @@ export interface FacebookPage {
       url: string;
     };
   } | any;
+  tasks?: string[];
 }
 
 export interface FacebookPost {

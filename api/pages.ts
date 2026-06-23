@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture{url}&access_token=${META_ACCESS_TOKEN}&limit=100`;
+    const url = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture{url},tasks&access_token=${META_ACCESS_TOKEN}&limit=100`;
     let allPages: any[] = [];
     let nextUrl: string | null = url;
 

@@ -1482,15 +1482,19 @@ export default function App() {
     }
   };
 
-  // Auto loaded posts once pages & selection is resolved or API filters change
+  // Clean up posts and selections for pages that have been deselected
   useEffect(() => {
-    if (selectedPageIds.length > 0 && pages.length > 0) {
-      fetchPostsFromSelectedPages();
-    } else {
+    if (selectedPageIds.length === 0) {
       setPosts([]);
       setSelectedPostIds([]);
+    } else {
+      setPosts(prev => {
+        const nextPosts = prev.filter(p => selectedPageIds.includes(p.pageId));
+        setSelectedPostIds(prevSelected => prevSelected.filter(id => nextPosts.some(p => p.id === id)));
+        return nextPosts;
+      });
     }
-  }, [selectedPageIds, filters.maxPostsToFetch, filters.contentType]);
+  }, [selectedPageIds]);
 
   // Handle Page checkbox toggle
   const togglePageSelection = (pageId: string) => {
@@ -1623,6 +1627,21 @@ export default function App() {
         continue;
       }
 
+      // Check if Page Access Token has permission to manage posts (CREATE_CONTENT or MANAGE tasks)
+      const pageInfo = pages.find(p => p.id === post.pageId);
+      const hasPostManagementPermission = !pageInfo?.tasks || 
+                                           pageInfo.tasks.includes("CREATE_CONTENT") || 
+                                           pageInfo.tasks.includes("CREATE") || 
+                                           pageInfo.tasks.includes("MANAGE") || 
+                                           pageInfo.tasks.includes("pages_manage_posts");
+
+      if (!hasPostManagementPermission) {
+        countFail++;
+        addLog(postId, `Thất bại khi xóa bài viết: Page Access Token thiếu quyền quản lý bài viết trên Page "${post.pageName}" (Cần quyền CREATE_CONTENT/MANAGE).`, "failed");
+        setProgress(p => ({ ...p, current: i + 1 }));
+        continue;
+      }
+
       setCurrentlyDeletingId(postId);
       affectedPageIds.add(post.pageId);
 
@@ -1690,14 +1709,27 @@ export default function App() {
         } else {
           const errCode = data.errorCode || data.error?.code;
           const errMsg = data.error?.message || "";
-          const isNotCreatedByApp = errCode === 200 || errMsg.toLowerCase().includes("this post wasn't created by the application");
+          const errMsgLower = errMsg.toLowerCase();
 
-          if (isNotCreatedByApp) {
+          const isUnsupportedDelete = errMsgLower.includes("unsupported delete request");
+          const isPermissionError = errCode === 200 || 
+                                    errCode === 10 || 
+                                    errCode === 190 || 
+                                    errMsgLower.includes("permission") || 
+                                    errMsgLower.includes("privilege") || 
+                                    errMsgLower.includes("task") ||
+                                    errMsgLower.includes("access") ||
+                                    errMsgLower.includes("wasn't created by the application");
+
+          if (isUnsupportedDelete) {
             countSkipped++;
-            addLog(postId, `Bài viết không do ứng dụng này tạo (Lỗi #200): [ID: ${postId}] [Page: ${post.pageName}]`, "skipped");
+            addLog(postId, `Bỏ qua bài viết (Unsupported delete request): [ID: ${postId}] [Page: ${post.pageName}]`, "skipped");
+          } else if (isPermissionError) {
+            countFail++;
+            addLog(postId, `Thất bại do thiếu quyền (Permission error): [ID: ${postId}] [Page: ${post.pageName}] - Lỗi: ${errMsg}`, "failed");
           } else {
             countFail++;
-            let logMsg = `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${data.error?.message || data.error || "Lỗi Meta API"}`;
+            let logMsg = `Thất bại khi xóa [ID: ${postId}] [Page: ${post.pageName}]: ${errMsg || "Lỗi Meta API"}`;
             if (errCode === "DELETE_NOT_CONFIRMED") {
               logMsg = `Meta chưa xác nhận xoá: [ID: ${postId}].`;
             } else if (errCode === "DELETE_VERIFICATION_FAILED") {
@@ -1713,12 +1745,25 @@ export default function App() {
         }
       } catch (err: any) {
         const errCode = err.responseJson?.errorCode || err.responseJson?.error?.code || err.errorCode || err.error?.code;
-        const errMsg = (err.message || "").toLowerCase();
-        const isNotCreatedByApp = errCode === 200 || errMsg.includes("this post wasn't created by the application");
+        const errMsg = err.message || "";
+        const errMsgLower = errMsg.toLowerCase();
 
-        if (isNotCreatedByApp) {
+        const isUnsupportedDelete = errMsgLower.includes("unsupported delete request");
+        const isPermissionError = errCode === 200 || 
+                                  errCode === 10 || 
+                                  errCode === 190 || 
+                                  errMsgLower.includes("permission") || 
+                                  errMsgLower.includes("privilege") || 
+                                  errMsgLower.includes("task") ||
+                                  errMsgLower.includes("access") ||
+                                  errMsgLower.includes("wasn't created by the application");
+
+        if (isUnsupportedDelete) {
           countSkipped++;
-          addLog(postId, `Bài viết không do ứng dụng này tạo (Lỗi #200): [ID: ${postId}] [Page: ${post.pageName}]`, "skipped");
+          addLog(postId, `Bỏ qua bài viết (Unsupported delete request): [ID: ${postId}] [Page: ${post.pageName}]`, "skipped");
+        } else if (isPermissionError) {
+          countFail++;
+          addLog(postId, `Thất bại do thiếu quyền (Permission error): [ID: ${postId}] [Page: ${post.pageName}] - Lỗi: ${err.message}`, "failed");
         } else {
           countFail++;
           addLog(postId, `Lỗi mạng khi xóa [ID: ${postId}]: ${err.message}`, "failed");
@@ -1748,7 +1793,7 @@ export default function App() {
       
       if (countSuccess > 0 && countFail === 0) {
         if (countSkipped > 0) {
-          toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countSkipped} bài không do app tạo (bỏ qua).`, "Xóa hoàn tất");
+          toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countSkipped} bài không hỗ trợ xóa (bỏ qua).`, "Xóa hoàn tất");
         } else {
           toast.success(`Đã xóa thành công toàn bộ ${countSuccess} bài viết trên các Fanpage!`, "Xóa thành công");
         }
@@ -1756,7 +1801,7 @@ export default function App() {
         toast.warning(`Đã xóa xong: ${countSuccess} bài thành công, ${countFail} bài thất bại${countSkipped > 0 ? `, ${countSkipped} bài bỏ qua` : ""}.`, "Xóa hoàn tất");
       } else {
         if (countSuccess === 0 && countFail === 0 && countSkipped > 0) {
-          toast.info(`Tiến trình hoàn tất. Đã bỏ qua ${countSkipped} bài viết không do ứng dụng này tạo.`, "Không có gì thay đổi");
+          toast.info(`Tiến trình hoàn tất. Đã bỏ qua ${countSkipped} bài viết không hỗ trợ xóa.`, "Không có gì thay đổi");
         } else {
           toast.error(`Xóa thất bại toàn bộ ${countFail} bài viết. Vui lòng kiểm tra lại quyền Token.`, "Xóa thất bại");
         }
@@ -2430,13 +2475,18 @@ export default function App() {
                       <div className="flex items-center gap-1">
                         <CustomSelect
                           value={filters.maxPostsToFetch}
-                          onChange={(val) => setFilters(f => ({ ...f, maxPostsToFetch: val }))}
+                          onChange={(val) => setFilters(f => ({ 
+                            ...f, 
+                            maxPostsToFetch: val,
+                            maxPostsToShow: val === 999999 ? 999999 : (val > f.maxPostsToShow ? val * 3 : f.maxPostsToShow)
+                          }))}
                           options={[
                             { value: 50, label: "50" },
                             { value: 100, label: "100" },
                             { value: 150, label: "150 (Tải thêm)" },
                             { value: 200, label: "200 (Tải thêm)" },
-                            { value: 300, label: "300 (Tối đa)" }
+                            { value: 300, label: "300 (Tối đa)" },
+                            { value: 999999, label: "Không giới hạn" }
                           ]}
                         />
                       </div>
@@ -2632,7 +2682,7 @@ export default function App() {
                   <div>
                     <h3 className="font-bold text-[13px] text-foreground">Chưa có bài viết nào</h3>
                     <p className="text-[11px] text-muted-foreground mt-1.5 max-w-[260px] mx-auto leading-relaxed">
-                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage. Hệ thống sẽ tự động tải tối đa <br/><span className="font-mono text-accent font-bold">{filters.maxPostsToFetch}</span> bài viết gốc.
+                      Để hiển thị bài đăng, vui lòng tích chọn các Fanpage và nhấn nút "Tải bài viết". Hệ thống sẽ tải tối đa <br/><span className="font-mono text-accent font-bold">{filters.maxPostsToFetch === 999999 ? "Không giới hạn" : filters.maxPostsToFetch}</span> bài viết.
                     </p>
                   </div>
                 </div>
@@ -3143,6 +3193,10 @@ export default function App() {
             </h2>
             <p className="text-[13px] text-muted-foreground leading-relaxed mb-6">
               Bạn đang chuẩn bị tiến hành xóa hàng loạt <b className="text-rose-400 font-mono text-sm bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-500/15">{selectedPostIds.length} bài đăng</b> khỏi các Fanpage. Hành động này sẽ triệt tiêu vĩnh viễn toàn bộ lượt Thích, Bình luận, và Chia sẻ đi kèm.
+              <br />
+              <span className="text-[11px] text-amber-500 font-medium block mt-2">
+                * Lưu ý: Hệ thống hỗ trợ xóa không giới hạn số lượng bài viết đã chọn, quá trình xóa sẽ diễn ra chậm (từng bài một) để tránh bị Facebook khóa hoặc chặn tính năng.
+              </span>
             </p>
 
             {hasVideoSelected && (
