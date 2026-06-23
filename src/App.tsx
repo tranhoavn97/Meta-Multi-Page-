@@ -537,14 +537,15 @@ class RequestQueue {
 
         // Handle cooldown triggers
         const limitRequests = 20; // 20 requests
-        const restDuration = 120; // 120 seconds rest (Requirement 4 & 11)
+        const restDuration = this.isSafeMode ? 30 : 5; // 30s in Safe Mode, 5s in Normal Mode
 
-        // After each Fanpage: rest for 300 seconds (Requirement 5)
+        // After each Fanpage: rest for 30s in Safe Mode, 5s in Normal Mode
         if (req.type === "posts") {
-          this.triggerRest(300, `Nghỉ sau khi rà soát Fanpage (300s)`);
+          const restTime = this.isSafeMode ? 30 : 5;
+          this.triggerRest(restTime, `Nghỉ sau khi rà soát Fanpage (${restTime}s)`);
         } else if (this.processedCount >= limitRequests) {
           this.processedCount = 0;
-          this.triggerRest(restDuration, `Đã chạy ${limitRequests} requests. Nghỉ hồi phục (120s)`);
+          this.triggerRest(restDuration, `Đã chạy ${limitRequests} requests. Nghỉ hồi phục (${restDuration}s)`);
         } else {
           // Normal delay between requests (Requirement 3 & 11)
           const delay = this.getDelay();
