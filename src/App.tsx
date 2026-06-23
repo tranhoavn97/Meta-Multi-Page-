@@ -400,63 +400,205 @@ export function parseRateLimitHeader(appHeader: string | null, pageHeader: strin
   return { maxUsage, type, estimatedTimeToRegainAccess };
 }
 
+interface QueueItem {
+  fn: () => Promise<any>;
+  resolve: (v: any) => void;
+  reject: (err: any) => void;
+  label: string;
+  type: "pages" | "posts" | "delete";
+  pageId?: string;
+}
+
 class RequestQueue {
   private activeCount = 0;
-  private activeDeletes = 0;
-  private queue: { fn: () => Promise<any>; resolve: (v: any) => void; reject: (err: any) => void; isDelete: boolean }[] = [];
+  private queue: QueueItem[] = [];
+  private processedCount = 0;
+  private restTimer: any = null;
+  private countdownInterval: any = null;
   
-  public maxConcurrency = 2; 
-  public delayBetweenRequests = 0;
+  // States that we want to expose to React UI via a listener
+  public isResting = false;
+  public restTimeLeft = 0;
+  public currentRequestRunning = "";
+  public isPaused = false;
+  public isSafeMode = true; // Enabled by default (Requirement 12)
+  
+  // Callback listener to notify React UI of state changes
+  private onStateChange: (() => void) | null = null;
 
-  async enqueue(fn: () => Promise<any>, isDelete = false): Promise<any> {
+  constructor() {}
+
+  public setListener(listener: () => void) {
+    this.onStateChange = listener;
+  }
+
+  private notify() {
+    if (this.onStateChange) this.onStateChange();
+  }
+
+  public getRemainingCount() {
+    return this.queue.length;
+  }
+
+  async enqueue(
+    fn: () => Promise<any>, 
+    label: string, 
+    type: "pages" | "posts" | "delete",
+    pageId?: string
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.queue.push({ fn, resolve, reject, isDelete });
+      this.queue.push({ fn, resolve, reject, label, type, pageId });
+      this.notify();
       this.process();
     });
   }
 
-  private process() {
-    const limit = this.maxConcurrency;
-    if (this.activeCount >= limit) return;
-    if (this.activeDeletes > 0) return;
+  private triggerRest(seconds: number, reason: string) {
+    if (this.isResting) return;
+    this.isResting = true;
+    this.restTimeLeft = seconds;
+    this.currentRequestRunning = `Đang nghỉ: ${reason}`;
+    this.notify();
 
-    const nextIndex = this.queue.findIndex(req => {
-      if (req.isDelete) {
-        return this.activeCount === 0;
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+    this.countdownInterval = setInterval(() => {
+      this.restTimeLeft--;
+      if (this.restTimeLeft <= 0) {
+        clearInterval(this.countdownInterval);
+        this.countdownInterval = null;
       }
-      return true;
-    });
+      this.notify();
+    }, 1000);
 
-    if (nextIndex === -1) return;
+    if (this.restTimer) clearTimeout(this.restTimer);
+    this.restTimer = setTimeout(() => {
+      this.isResting = false;
+      this.restTimeLeft = 0;
+      this.currentRequestRunning = "";
+      this.notify();
+      this.process();
+    }, seconds * 1000);
+  }
 
-    const req = this.queue.splice(nextIndex, 1)[0];
+  public pauseQueue(reason: string) {
+    this.isPaused = true;
+    this.currentRequestRunning = `Đang TẠM DỪNG (Rate Limit: ${reason})`;
+    this.notify();
+  }
+
+  public resumeQueue() {
+    this.isPaused = false;
+    this.currentRequestRunning = "";
+    this.notify();
+    this.process();
+  }
+
+  private getDelay(): number {
+    if (this.isSafeMode) {
+      return 2000; // 2 seconds in SAFE MODE (Requirement 11)
+    } else {
+      // Random delay between 1500ms and 3000ms (Requirement 3)
+      return Math.floor(Math.random() * (3000 - 1500 + 1)) + 1500;
+    }
+  }
+
+  private process() {
+    // Enforce maxConcurrency = 1 (Requirement 1)
+    if (this.activeCount >= 1) return;
+    if (this.isResting || this.isPaused) return;
+    if (this.queue.length === 0) {
+      if (this.activeCount === 0) {
+        this.currentRequestRunning = "";
+        this.notify();
+      }
+      return;
+    }
+
+    const req = this.queue.shift()!;
     this.activeCount++;
-    if (req.isDelete) this.activeDeletes++;
+    this.currentRequestRunning = req.label;
+    this.notify();
 
     const runTask = async () => {
       try {
         const result = await req.fn();
         req.resolve(result);
-      } catch (err) {
+
+        // Check response/error for Rate Limit signals (Requirement 9)
+        const isLimited = this.checkRateLimitSignal(result);
+        if (isLimited) {
+          this.pauseQueue(result?.error?.message || "Rate limit reached");
+          req.reject(new Error("Rate limit pause triggered"));
+          return;
+        }
+
+        // Successfully completed request, increment counts
+        this.processedCount++;
+
+        // Handle cooldown triggers
+        const limitRequests = 20; // 20 requests
+        const restDuration = 120; // 120 seconds rest (Requirement 4 & 11)
+
+        // After each Fanpage: rest for 300 seconds (Requirement 5)
+        if (req.type === "posts") {
+          this.triggerRest(300, `Nghỉ sau khi rà soát Fanpage (300s)`);
+        } else if (this.processedCount >= limitRequests) {
+          this.processedCount = 0;
+          this.triggerRest(restDuration, `Đã chạy ${limitRequests} requests. Nghỉ hồi phục (120s)`);
+        } else {
+          // Normal delay between requests (Requirement 3 & 11)
+          const delay = this.getDelay();
+          this.triggerRest(Math.ceil(delay / 1000), `Giãn cách request (${delay}ms)`);
+        }
+
+      } catch (err: any) {
         req.reject(err);
+        const isLimited = this.checkRateLimitSignal(err);
+        if (isLimited) {
+          this.pauseQueue(err.message || "Rate limit reached");
+        } else {
+          const delay = this.getDelay();
+          this.triggerRest(Math.ceil(delay / 1000), `Giãn cách request sau lỗi (${delay}ms)`);
+        }
       } finally {
         this.activeCount--;
-        if (req.isDelete) this.activeDeletes--;
-        
-        if (this.delayBetweenRequests > 0) {
-          setTimeout(() => this.process(), this.delayBetweenRequests);
-        } else {
-          this.process();
-        }
+        this.notify();
       }
     };
 
     runTask();
   }
 
+  private checkRateLimitSignal(dataOrError: any): boolean {
+    if (!dataOrError) return false;
+    const isErr = dataOrError instanceof Error;
+    const responseJson = isErr ? (dataOrError as any).responseJson : dataOrError;
+    const status = isErr ? (dataOrError as any).status : null;
+    
+    let errorCode = responseJson?.errorCode || responseJson?.error?.code || dataOrError?.errorCode || dataOrError?.error?.code;
+    let message = isErr ? dataOrError.message : "";
+    if (responseJson?.error?.message) {
+      message = responseJson.error.message;
+    } else if (dataOrError?.error?.message) {
+      message = dataOrError.error.message;
+    }
+
+    const msgLower = (message || "").toLowerCase();
+    const isRateLimited = 
+      status === 429 ||
+      errorCode === 4 ||
+      errorCode === 613 ||
+      msgLower.includes("application request limit reached") ||
+      msgLower.includes("calls to this api have exceeded");
+
+    return !!isRateLimited;
+  }
+
   clear() {
     this.queue.forEach(req => req.reject(new Error("Queue cleared")));
     this.queue = [];
+    this.processedCount = 0;
+    this.notify();
   }
 }
 
@@ -579,6 +721,25 @@ export default function App() {
       page => cleanString(page.name || "").includes(query) || (page.id || "").includes(query)
     );
   }, [pages, pageSearchQuery]);
+
+  // Request Queue reactive states for UI (Requirement 10)
+  const [queueRunning, setQueueRunning] = useState<string>("");
+  const [queueRemaining, setQueueRemaining] = useState<number>(0);
+  const [queueRestTime, setQueueRestTime] = useState<number>(0);
+  const [queueIsPaused, setQueueIsPaused] = useState<boolean>(false);
+  const [safeMode, setSafeMode] = useState<boolean>(true); // SAFE MODE enabled by default (Requirement 12)
+
+  // Listen to Request Queue state changes
+  useEffect(() => {
+    requestQueue.setListener(() => {
+      setQueueRunning(requestQueue.currentRequestRunning);
+      setQueueRemaining(requestQueue.getRemainingCount());
+      setQueueRestTime(requestQueue.restTimeLeft);
+      setQueueIsPaused(requestQueue.isPaused);
+    });
+    // Set initial safe mode
+    requestQueue.isSafeMode = safeMode;
+  }, [safeMode]);
   
   // Statuses
   const [loadingPages, setLoadingPages] = useState<boolean>(false);
@@ -848,16 +1009,7 @@ export default function App() {
       if (pagePct === usageMax) limitType = "page";
       if (bizPct === usageMax) limitType = "business";
 
-      // 5. Usage >= 70%: Concurrency = 1, delay = 1000ms
-      if (usageMax >= 70) {
-        requestQueue.maxConcurrency = 1;
-        requestQueue.delayBetweenRequests = 1000;
-        addLog("system", `Mức sử dụng API: ${usageMax.toFixed(1)}% (${limitType}). Đã giảm concurrency về 1, delay 1000ms.`, "skipped");
-      } else {
-        // Reset to default limits
-        requestQueue.maxConcurrency = 2;
-        requestQueue.delayBetweenRequests = 0;
-      }
+      // Concurrency is strictly 1 to avoid rate limits, handled by the request queue
 
       // 6. Usage >= 85%: Stop loading next Page, show warn (unless isDeleteAction is true)
       if (usageMax >= 85 && !isDeleteAction) {
@@ -982,7 +1134,11 @@ export default function App() {
           options.body = JSON.stringify({ user_token: activeToken });
         }
         
-        const checkData = await safeFetchJson(checkUrl, options);
+        const checkData = await requestQueue.enqueue(
+          () => safeFetchJson(checkUrl, options),
+          "Kiểm tra kết nối tài khoản",
+          "pages"
+        );
         if (checkData.success) {
           const userName = checkData.user?.name || "Meta Account";
           addLog("system", `Kết nối Vercel API & Facebook thành công (Khoản: ${userName}).`, "success");
@@ -1118,8 +1274,12 @@ export default function App() {
         urlParams.append("user_token", activeToken);
       }
       
-      // Use our fetchWithBackoff for pages loading (Requirement 2 & 10)
-      const data = await fetchWithBackoff(`/api/pages?${urlParams.toString()}`);
+      // Use our global requestQueue for pages loading (Requirement 2 & 10)
+      const data = await requestQueue.enqueue(
+        () => fetchWithBackoff(`/api/pages?${urlParams.toString()}`),
+        "Tải danh sách Fanpages",
+        "pages"
+      );
 
       if (data.error) {
         setApiError(data.error);
@@ -1227,7 +1387,12 @@ export default function App() {
           urlParams.append("user_token", pageInfo.access_token);
         }
 
-        const data = await requestQueue.enqueue(() => fetchWithBackoff(`/api/posts?${urlParams.toString()}`, { pageName: pageInfo.name }), false);
+        const data = await requestQueue.enqueue(
+          () => fetchWithBackoff(`/api/posts?${urlParams.toString()}`, { pageName: pageInfo.name }),
+          `Tải bài viết page: ${pageInfo.name}`,
+          "posts",
+          pageInfo.id
+        );
 
         if (data.error) {
           addLog("system", `Lỗi tải bài viết Page [${pageInfo.name}]: ${data.error}`, "failed");
@@ -1469,22 +1634,26 @@ export default function App() {
       try {
         const deleteSource = videoDeleteOption === "all";
         
-        // Wrap delete call in requestQueue.enqueue(..., true) to enforce concurrency=1 & exclusive lock (Requirement 8 & 12)
-        const data = await requestQueue.enqueue(async () => {
-          return await safeFetchJson("/api/delete-post", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              postId: post.postId || post.id,
-              sourceObjectId: post.sourceObjectId,
-              pageId: post.pageId,
-              itemType: post.itemType,
-              confirm: true,
-              deleteSource: deleteSource,
-              userToken: post.pageAccessToken
-            })
-          });
-        }, true);
+        const data = await requestQueue.enqueue(
+          async () => {
+            return await safeFetchJson("/api/delete-post", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                postId: post.postId || post.id,
+                sourceObjectId: post.sourceObjectId,
+                pageId: post.pageId,
+                itemType: post.itemType,
+                confirm: true,
+                deleteSource: deleteSource,
+                userToken: post.pageAccessToken
+              })
+            });
+          },
+          `Xóa bài viết: ${post.postId || post.id} trên page ${post.pageName}`,
+          "delete",
+          post.pageId
+        );
 
         // Check if rate limited, pass true for isDeleteAction
         const isLimited = handleRateLimitOrUsage(data, post.pageName, true);
@@ -1563,12 +1732,7 @@ export default function App() {
 
       setProgress(p => ({ ...p, current: i + 1 }));
 
-      // Concurrency is 1, so wait for delay between deletions (Requirement 12)
-      // delay 800–1500ms giữa mỗi lần xoá
-      if (i < selectedPostIds.length - 1) {
-        const delay = Math.floor(Math.random() * (1500 - 800 + 1)) + 800;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+      // The requestQueue itself handles delays and rest periods between requests.
     }
 
     setCurrentlyDeletingId(null);
@@ -1622,7 +1786,12 @@ export default function App() {
             }
             
             // Bypass cache to load fresh posts
-            const data = await requestQueue.enqueue(() => fetchWithBackoff(`/api/posts?${urlParams.toString()}`, { pageName: pageInfo.name }), false);
+            const data = await requestQueue.enqueue(
+              () => fetchWithBackoff(`/api/posts?${urlParams.toString()}`, { pageName: pageInfo.name }),
+              `Làm mới bài viết page: ${pageInfo.name}`,
+              "posts",
+              pageInfo.id
+            );
             if (data.data) {
               const mapped: FacebookPost[] = data.data.map((item: any) => ({
                 id: item.id,
@@ -1858,6 +2027,85 @@ export default function App() {
 
         {/* RIGHT MASTER CONTENT AREA */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-20 w-full">
+
+          {/* QUEUE STATUS MONITORING BAR (Requirement 10, 11, 12) */}
+          <div className="mb-3.5 flex flex-col md:flex-row items-center justify-between gap-3 bg-card/60 backdrop-blur-md border border-border rounded-2xl p-3.5 shadow-sm relative z-20 shrink-0">
+            {/* Left: Queue Status Indicators */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-inner ${
+                queueIsPaused 
+                  ? "bg-rose-950/20 text-rose-400 border border-rose-500/25"
+                  : queueRestTime > 0
+                  ? "bg-amber-950/20 text-amber-400 border border-amber-500/25 animate-pulse"
+                  : queueRunning 
+                  ? "bg-emerald-950/20 text-emerald-400 border border-emerald-500/25 animate-pulse"
+                  : "bg-muted text-muted-foreground border border-border"
+              }`}>
+                <Activity className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground select-none">Tiến trình Meta API</span>
+                  {queueIsPaused ? (
+                    <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">Tạm dừng</span>
+                  ) : queueRestTime > 0 ? (
+                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">Nghỉ ({queueRestTime}s)</span>
+                  ) : queueRunning ? (
+                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">Đang chạy</span>
+                  ) : (
+                    <span className="bg-muted text-muted-foreground border border-border text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">Sẵn sàng</span>
+                  )}
+                </div>
+                <p className="text-xs font-bold text-foreground truncate mt-0.5 leading-tight font-mono">
+                  {queueRunning || "Hàng đợi trống - Sẵn sàng nhận lệnh"}
+                </p>
+              </div>
+            </div>
+
+            {/* Middle: Queue Stats Badges */}
+            <div className="flex items-center gap-2 select-none w-full md:w-auto overflow-x-auto py-1 sm:py-0">
+              <div className="bg-muted/40 border border-border rounded-xl px-3 py-1.5 flex flex-col gap-0.5 text-center min-w-[70px] shadow-sm">
+                <span className="text-[8.5px] uppercase font-bold text-muted-foreground tracking-wider">Hàng đợi</span>
+                <span className="text-sm font-extrabold text-foreground font-mono">{queueRemaining}</span>
+              </div>
+              <div className="bg-muted/40 border border-border rounded-xl px-3 py-1.5 flex flex-col gap-0.5 text-center min-w-[70px] shadow-sm">
+                <span className="text-[8.5px] uppercase font-bold text-muted-foreground tracking-wider">Chạy tiếp</span>
+                <span className="text-xs font-bold text-foreground font-mono">{queueRestTime > 0 ? `${queueRestTime}s` : "Ngay"}</span>
+              </div>
+              {queueIsPaused && (
+                <button
+                  type="button"
+                  onClick={() => requestQueue.resumeQueue()}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10.5px] px-3.5 py-2 rounded-xl transition-all shadow-md shadow-emerald-950/20 cursor-pointer uppercase tracking-wider select-none active:scale-95 border border-emerald-500/10"
+                >
+                  Tiếp tục chạy
+                </button>
+              )}
+            </div>
+
+            {/* Right: SAFE MODE Control Toggle */}
+            <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto border-t md:border-t-0 border-border pt-2 md:pt-0 justify-between md:justify-end">
+              <div className="flex flex-col text-right">
+                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-tight">Chế độ an toàn</span>
+                <span className="text-[9px] text-muted-foreground leading-normal mt-0.5">SAFE MODE: tránh chặn tài khoản vĩnh viễn</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSafeMode(!safeMode)}
+                className={`relative w-12 h-6.5 rounded-full transition-all duration-300 shadow-inner flex items-center p-0.5 cursor-pointer border ${
+                  safeMode 
+                    ? "bg-amber-600 border-amber-500/20 shadow-amber-950/30" 
+                    : "bg-muted border-border"
+                }`}
+              >
+                <div className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transform transition-transform duration-300 flex items-center justify-center ${
+                  safeMode ? "translate-x-5.5" : "translate-x-0"
+                }`}>
+                  <Lock className={`w-3 h-3 ${safeMode ? "text-amber-600" : "text-muted-foreground"}`} />
+                </div>
+              </button>
+            </div>
+          </div>
           
           {/* ERROR ALERT BOX */}
           {apiError && (
