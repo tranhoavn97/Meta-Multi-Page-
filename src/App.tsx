@@ -562,6 +562,23 @@ export default function App() {
   const [pageSearchQuery, setPageSearchQuery] = useState<string>("");
   const [posts, setPosts] = useState<FacebookPost[]>([]);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
+
+  const cleanString = (str: string) => {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase();
+  };
+
+  const filteredPages = useMemo((): FacebookPage[] => {
+    const query = cleanString(pageSearchQuery.trim());
+    if (!query) return pages;
+    return pages.filter(
+      page => cleanString(page.name || "").includes(query) || (page.id || "").includes(query)
+    );
+  }, [pages, pageSearchQuery]);
   
   // Statuses
   const [loadingPages, setLoadingPages] = useState<boolean>(false);
@@ -620,8 +637,9 @@ export default function App() {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       setFilters(f => {
-        if (f.keyword === keywordInput) return f;
-        return { ...f, keyword: keywordInput };
+        const hasKeyword = keywordInput.trim().length > 0;
+        if (f.keyword === keywordInput && f.enableKeyword === hasKeyword) return f;
+        return { ...f, keyword: keywordInput, enableKeyword: hasKeyword };
       });
     }, 150); // Fast 150ms debounce response
 
@@ -1071,7 +1089,6 @@ export default function App() {
 
   // Fetch listed Pages with cache tracking (Requirement 7)
   const fetchPages = async (tokenToUse?: string, forceRefresh = false) => {
-    if (isMetaRateLimited) return;
     const activeToken = tokenToUse || userToken;
 
     // Check Cache first if not forcing refresh
@@ -1299,7 +1316,7 @@ export default function App() {
     }
   };
 
-  // Auto loaded posts once pages & selection is resolved
+  // Auto loaded posts once pages & selection is resolved or API filters change
   useEffect(() => {
     if (selectedPageIds.length > 0 && pages.length > 0) {
       fetchPostsFromSelectedPages();
@@ -1307,7 +1324,7 @@ export default function App() {
       setPosts([]);
       setSelectedPostIds([]);
     }
-  }, [selectedPageIds]);
+  }, [selectedPageIds, filters.maxPostsToFetch, filters.contentType]);
 
   // Handle Page checkbox toggle
   const togglePageSelection = (pageId: string) => {
@@ -1882,24 +1899,33 @@ export default function App() {
                 <button
                   id="btn-select-all-pages"
                   onClick={() => {
-                    const allPageIds = pages.map(p => p.id);
-                    setSelectedPageIds(allPageIds);
-                    addLog("system", `Đã chọn tất cả ${pages.length} Fanpage. Đang chuẩn bị tải bài viết...`, "success");
+                    const pageIdsToSelect = filteredPages.map(p => p.id);
+                    setSelectedPageIds(prev => {
+                      const union = new Set([...prev, ...pageIdsToSelect]);
+                      return Array.from(union);
+                    });
+                    addLog("system", `Đã chọn ${pageIdsToSelect.length} Fanpage đang hiển thị. Đang chuẩn bị tải bài viết...`, "success");
                   }}
                   className={`flex-1 py-2 px-2 rounded-xl text-[10px] uppercase font-bold border transition-all flex items-center justify-center gap-1 ${
-                    selectedPageIds.length === pages.length
+                    filteredPages.length > 0 && filteredPages.every(p => selectedPageIds.includes(p.id))
                       ? "btn-primary shadow-accent"
                       : "bg-[#252a37] text-slate-100 border-[#3b4354]/60 hover:bg-[#343b4e] hover:text-white"
                   }`}
                 >
-                  <Check className={`w-3 h-3 stroke-[3px] ${selectedPageIds.length === pages.length ? "text-white" : ""}`} />
-                  <span className={selectedPageIds.length === pages.length ? "text-white" : ""}>Chọn tất cả</span>
+                  <Check className={`w-3 h-3 stroke-[3px] ${filteredPages.length > 0 && filteredPages.every(p => selectedPageIds.includes(p.id)) ? "text-white" : ""}`} />
+                  <span className={filteredPages.length > 0 && filteredPages.every(p => selectedPageIds.includes(p.id)) ? "text-white" : ""}>Chọn tất cả</span>
                 </button>
                 <button
                   id="btn-deselect-all-pages"
                   onClick={() => {
-                    setSelectedPageIds([]);
-                    addLog("system", "Đã hủy chọn toàn bộ các Fanpage.", "success");
+                    if (pageSearchQuery.trim() === "") {
+                      setSelectedPageIds([]);
+                      addLog("system", "Đã hủy chọn toàn bộ các Fanpage.", "success");
+                    } else {
+                      const pageIdsToDeselect = filteredPages.map(p => p.id);
+                      setSelectedPageIds(prev => prev.filter(id => !pageIdsToDeselect.includes(id)));
+                      addLog("system", "Đã hủy chọn các Fanpage đang hiển thị.", "success");
+                    }
                   }}
                   className="flex-1 py-2 px-2 bg-rose-700 hover:bg-rose-600 text-white border border-rose-600/20 rounded-xl text-[10px] uppercase font-bold transition-all text-center cursor-pointer shadow-md shadow-black/20"
                 >
@@ -1968,29 +1994,12 @@ export default function App() {
             </div>
           ) : (
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 custom-scrollbar min-h-0">
-              {(() => {
-                const cleanString = (str: string) => {
-                  return str
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .replace(/đ/g, "d")
-                    .replace(/Đ/g, "D")
-                    .toLowerCase();
-                };
-                const query = cleanString(pageSearchQuery.trim());
-                const filteredList = pages.filter(
-                  page => cleanString(page.name || "").includes(query) || (page.id || "").includes(query)
-                );
-
-                if (filteredList.length === 0) {
-                  return (
-                    <div className="text-center py-8 text-muted-foreground text-xs">
-                      Không tìm thấy Fanpage nào phù hợp
-                    </div>
-                  );
-                }
-
-                return filteredList.map((page) => {
+              {filteredPages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-xs">
+                  Không tìm thấy Fanpage nào phù hợp
+                </div>
+              ) : (
+                filteredPages.map((page) => {
                   const isSelected = selectedPageIds.includes(page.id);
                   // Extract photo URL if possible
                   const picUrl = page.picture?.data?.url || `https://graph.facebook.com/${page.id}/picture?type=small`;
@@ -2029,8 +2038,8 @@ export default function App() {
                       </div>
                     </div>
                   );
-                });
-              })()}
+                })
+              )}
             </div>
           )}
 
@@ -2202,6 +2211,31 @@ export default function App() {
                             { value: "video", label: "Video/Reel" }
                           ]}
                         />
+                      </div>
+                    </div>
+
+                    {/* Filter: Search Posts Keyword */}
+                    <div className="relative flex flex-1 sm:flex-none items-center gap-2 shrink-0">
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-muted/30 border border-glass-border hover:border-accent/40 rounded-xl transition-all h-10 w-full sm:w-60 shadow-sm hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] group">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest select-none shrink-0 border-r border-glass-border pr-2">
+                          Tìm bài
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Tìm nhanh bài viết..."
+                          value={keywordInput}
+                          onChange={(e) => setKeywordInput(e.target.value)}
+                          className="bg-transparent text-xs text-foreground focus:outline-none w-full font-semibold border-none outline-none focus:ring-0 placeholder:text-muted-foreground/40"
+                        />
+                        {keywordInput && (
+                          <button
+                            type="button"
+                            onClick={() => setKeywordInput("")}
+                            className="p-0.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
