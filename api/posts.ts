@@ -108,9 +108,12 @@ export default async function handler(req: any, res: any) {
 
     let latestRateLimitInfo: any = null;
 
-    // 2. Fetch /posts (if not requested only videos)
     let allPosts: any[] = [];
-    if (contentType !== "video") {
+    let allVideos: any[] = [];
+    let errorResponse: any = null;
+
+    const fetchPosts = async () => {
+      if (contentType === "video") return;
       let postsUrl = `https://graph.facebook.com/v19.0/${pageId}/posts?fields=id,message,story,created_time,permalink_url,status_type,full_picture,attachments{media,type,url,target}&access_token=${activeToken}&limit=${initialLimit}`;
       let nextUrl: string | null = postsUrl;
 
@@ -123,7 +126,7 @@ export default async function handler(req: any, res: any) {
         if (data.error) {
           if (allPosts.length === 0) {
             const endpointLog = nextUrl.replace(activeToken, "[HIDDEN_TOKEN]");
-            return res.status(500).json({ 
+            errorResponse = { 
                error: data.error,
                errorCode: data.error.code,
                pageName: pageName,
@@ -132,10 +135,9 @@ export default async function handler(req: any, res: any) {
                isDetailedError: true,
                rateLimitInfo: latestRateLimitInfo,
                retryAfterSeconds: data.retryAfterSeconds
-            });
-          } else {
-            break;
+            };
           }
+          break;
         }
 
         const postsBatch = data.data || [];
@@ -146,16 +148,11 @@ export default async function handler(req: any, res: any) {
         }
 
         nextUrl = (data.paging && data.paging.next) || null;
-        if (nextUrl) {
-          const delayMs = Math.floor(Math.random() * 501) + 500;
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-        }
       }
-    }
+    };
 
-    // 3. Fetch /videos (if not requested only posts)
-    let allVideos: any[] = [];
-    if (contentType !== "post") {
+    const fetchVideos = async () => {
+      if (contentType === "post") return;
       let videosUrl = `https://graph.facebook.com/v19.0/${pageId}/videos?fields=id,title,description,created_time,permalink_url,picture&access_token=${activeToken}&limit=${initialLimit}`;
       let nextVideoUrl: string | null = videosUrl;
 
@@ -175,15 +172,17 @@ export default async function handler(req: any, res: any) {
             break;
           }
           nextVideoUrl = (data.paging && data.paging.next) || null;
-          if (nextVideoUrl) {
-            const delayMs = Math.floor(Math.random() * 501) + 500;
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-          }
         } catch (e) {
           console.error("Lỗi khi tải danh sách videos từ Meta:", e);
           break;
         }
       }
+    };
+
+    await Promise.all([fetchPosts(), fetchVideos()]);
+
+    if (errorResponse && allPosts.length === 0) {
+      return res.status(500).json(errorResponse);
     }
 
     // 4. Map posts to standardized layout
